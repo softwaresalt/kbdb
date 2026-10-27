@@ -80,13 +80,13 @@ autoharness_version_to: "1.6.0"
 1. **[TUNE-008] Schema-contract upgrades (`source: schema-contract`)**
    * **`upgrade-manifest-contract-1.0.0-to-1.1.0`**: Upgraded `.autoharness/harness-manifest.yaml` `schema_version` from `1.0.0` to `1.1.0` and `autoharness_version` from `1.5.0` to `1.6.0`.
    * **`upgrade-profile-contract-1.0.0-to-1.1.0`**: Upgraded `.autoharness/workspace-profile.yaml` `schema_version` from `1.0.0` to `1.1.0`, updated `workspace_path` to `C:\Source\GitHub\kbdb`, updated `frameworks.list` (`cozo`, `sqlite`, `pulldown-cmark`, `schemars`, `indicatif`), and added `runtime_surfaces.cli: true`, `runtime_validation.validation_expectations`, and `runtime_validation.releasability` (resolving `runtime_validation_profile_contract`).
-   * **`upgrade-config-contract-1.1.0-to-1.2.0` (advanced to `1.3.0`)**: Upgraded `.autoharness/config.yaml` `schema_version` from `1.1.0` to `1.3.0` (current `harness-config.schema.json` contract) and added `graphtor_docs` path settings (`.kbdb/config/sources.yaml`, `target/release/kbdb`).
+   * **`upgrade-config-contract-1.1.0-to-1.2.0` (advanced to `1.3.0`)**: Upgraded `.autoharness/config.yaml` `schema_version` from `1.1.0` to `1.3.0` (current `harness-config.schema.json` contract) and added `graphtor_docs` path settings (`.graphtor/config/sources.yaml`, `target/release/graphtor-docs`).
 2. **[TUNE-009] Subagent model-routing frontmatter refresh (`source: route-drift`) — 17 managed subagents**
    * **Artifacts**: `.github/agents/subagents/{adversarial-review,agent-native-parity-reviewer,architecture-strategist,concurrency-reviewer,constitution-reviewer,correctness-reviewer,language-engineer,learnings-researcher,maintainability-reviewer,prompt-builder,schema-cli-docs-coupling-reviewer,scope-boundary-auditor,security-lens-reviewer,security-reviewer,security-sentinel,technology-reviewer,template-integrity-reviewer}.agent.md`
    * **Action**: Applied `refresh-route-frontmatter` across all 17 managed subagents (Tier 1 → `claude-haiku-5.5` / `anthropic` / `xhigh` / `long_context`; Tier 2 → `claude-sonnet-5.5` / `anthropic` / `high` / `long_context`; Tier 3 → `gemini-4-argon` / `google` / `high` / `long_context`; Anchor review → `gpt-6.1-sol` / `openai` / `high`) and removed deprecated `model_routing:` keys from `language-engineer.agent.md` and `prompt-builder.agent.md`. Also updated `_orchestrator.agent.md`, `_stage.agent.md`, `_ship.agent.md`, and `adversarial-review.instructions.md` to match.
 3. **[TUNE-010] `graphtor-docs` overlay path synchronization for `kbdb` (`source: structural-drift`)**
    * **Artifact**: `.github/instructions/graphtor-docs.instructions.md`
-   * **Action**: Updated `{{GRAPHTOR_SOURCES_PATH}}` to `.kbdb/config/sources.yaml` and `{{GRAPHTOR_BINARY_PATH}}` to `target/release/kbdb` to match `.autoharness/workspace-profile.yaml` and `.autoharness/config.yaml`.
+   * **Action**: Updated `{{GRAPHTOR_SOURCES_PATH}}` to `.graphtor/config/sources.yaml` and `{{GRAPHTOR_BINARY_PATH}}` to `target/release/graphtor-docs` to match `.autoharness/workspace-profile.yaml` and `.autoharness/config.yaml`.
 
 ### P1 — Degrading (Deferred for Manual Operator Review)
 

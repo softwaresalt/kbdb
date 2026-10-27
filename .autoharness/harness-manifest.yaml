@@ -3,8 +3,8 @@ installed_at: '2026-05-10T08:42:00-07:00'
 tuned_at: '2026-10-26T17:27:00Z'
 autoharness_version: 1.6.0
 autoharness_home: C:\Python\Python315\Lib\site-packages\autoharness\data
-profile_hash: 0895ea2ffe494f8637cfcdd430def2879b5e76635ff1f0b284d691bf74b1a98f
-config_hash: 38e6a43e6d91693819171d0662090b351ce3609e03a433287329704ea211be48
+profile_hash: 94e3642e107a3de88d0d6a31e54ed54e01df6cb576dfc30b454fed2c27d5ca82
+config_hash: 6021164b6652936ee859ef4ba0b5e94e6b40798ee5f46d9e4f8d6ecc73cdd580
 install_preset: full
 primary_stack_pack: mcp-server
 stack_packs:
@@ -65,7 +65,7 @@ capability_pack_overlays:
   - .github/instructions/graphtor-docs.instructions.md
   verification_checks:
   - graphtor-docs.instructions.md installed
-  - sources path resolved to .kbdb/config/sources.yaml
+  - sources path resolved to .graphtor/config/sources.yaml
   - capability-pack-enforcement.instructions.md routes documentation queries to graphtor-docs
 primitives_installed:
 - 1
@@ -88,7 +88,7 @@ artifacts:
   artifact_type: config
   primitive: 3
   template: harness-config.yaml.tmpl
-  checksum: 38e6a43e6d91693819171d0662090b351ce3609e03a433287329704ea211be48
+  checksum: 6021164b6652936ee859ef4ba0b5e94e6b40798ee5f46d9e4f8d6ecc73cdd580
 - path: .github/agents/_orchestrator.agent.md
   artifact_type: agent
   primitive: 4
@@ -193,7 +193,7 @@ artifacts:
   artifact_type: foundation
   primitive: 6
   template: foundation/copilot-instructions.md.tmpl
-  checksum: 31d0c2bf9fbc7507cb81ca956c151dca6dee2ce56f50a3a80b8d48356fc11226
+  checksum: c9e3e2343ce14f3fc2093add961d24e721cb1db5e1899374e453d829ea6e4ec3
 - path: .github/instructions/adversarial-review.instructions.md
   artifact_type: instruction
   primitive: 7
@@ -263,7 +263,7 @@ artifacts:
   artifact_type: foundation
   primitive: 5
   template: foundation/constitution.instructions.md.tmpl
-  checksum: 0198701e0b7a2cc461f0158a380bf04bed9a943a9b39ad4b80fcad77d71a5953
+  checksum: 6a3b5b373f7383ce00cf7cd37b5f6c3d6694873a1f7d73e04fdacb3384a0e049
 - path: .github/instructions/context-efficiency.instructions.md
   artifact_type: instruction
   primitive: 3
@@ -293,7 +293,7 @@ artifacts:
   artifact_type: instruction
   primitive: 6
   template: instructions/graphtor-docs.instructions.md.tmpl
-  checksum: 90d075169f3cf1b114f6ac37e1787547c0bcb08d97889c3a2f572fde956b3e7a
+  checksum: 619af6ab03e6d0fef41f2acf54f1d10aa058662f153755ce2646a845af6fae45
 - path: .github/instructions/markdown.instructions.md
   artifact_type: instruction
   primitive: 6
@@ -568,7 +568,7 @@ artifacts:
   artifact_type: foundation
   primitive: 9
   template: foundation/AGENTS.md.tmpl
-  checksum: 23a032550310925d9d534df879e628f1c19595babf5e995050dbc8129b985bfe
+  checksum: 99aa1133ab9817cbc754ea1f0eb03730140fbcf856e81ee29ca7b078450acfe1
 - path: scripts/deploy-harness.ps1
   artifact_type: script
   primitive: 6
@@ -746,8 +746,8 @@ variables_used:
   FORMAT_FIX_COMMAND: cargo fmt --all
   FORMAT_TOOL: cargo
   GATE_POINT: Before PR creation and during Windows test/script verification
-  GRAPHTOR_BINARY_PATH: target/release/kbdb
-  GRAPHTOR_SOURCES_PATH: .kbdb/config/sources.yaml
+  GRAPHTOR_BINARY_PATH: target/release/graphtor-docs
+  GRAPHTOR_SOURCES_PATH: .graphtor/config/sources.yaml
   HARNESS_ENFORCED_SUMMARY: '* Formatting and linting (`cargo fmt --all -- --check`, `cargo clippy --all-targets -- -D warnings
     -D clippy::pedantic`)
 
@@ -980,7 +980,7 @@ tuning_history:
   notes: Three-way merge against a reconstructed 1.4.11 baseline; local modifications preserved.
 - date: '2026-10-26T17:27:00Z'
   proposals_applied: 42
-  profile_hash: 0895ea2ffe494f8637cfcdd430def2879b5e76635ff1f0b284d691bf74b1a98f
+  profile_hash: 94e3642e107a3de88d0d6a31e54ed54e01df6cb576dfc30b454fed2c27d5ca82
 vscode_settings:
   applied: false
   user_settings_path: null

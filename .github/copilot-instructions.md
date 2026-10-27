@@ -244,7 +244,7 @@ When the workspace enabled the `graphtor-docs` capability pack:
 * prefer `search_local_docs`, `search_semantic`, and `research_topic` for conceptual, API-oriented, or documentation questions before broad web search or raw file scans
 * use `traverse_doc_links` to follow related documentation and `list_sources` to confirm indexed coverage
 * if the server is unavailable or sources are not indexed, fall back to grep, glob, or direct file reading and note reduced confidence
-* treat `.kbdb/config/sources.yaml` as the authoritative source registry and `.kbdb/` (and legacy `.graphtor/`) generated artifacts as tool-managed state rather than files to hand-edit casually
+* treat `.graphtor/config/sources.yaml` as the authoritative source registry and `.graphtor/` generated artifacts as tool-managed state rather than files to hand-edit casually
 
 ## Remote Operator Integration
 

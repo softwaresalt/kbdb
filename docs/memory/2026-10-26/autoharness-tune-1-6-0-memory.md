@@ -19,7 +19,7 @@ Executed `/autoharness:tune-harness` (with `workspace-discovery` delta scan and 
 * **Contracts Upgraded**:
   * `.autoharness/harness-manifest.yaml` (`schema_version`: `1.0.0` → `1.1.0`, `autoharness_version`: `1.5.0` → `1.6.0`, all 108 artifact checksums and `variables_used` synchronized)
   * `.autoharness/workspace-profile.yaml` (`schema_version`: `1.0.0` → `1.1.0`, `workspace_path: C:\Source\GitHub\kbdb`, `cozo`+`sqlite` frameworks, `runtime_surfaces.cli: true`, `runtime_validation.validation_expectations` & `releasability`, and `drift_report`)
-  * `.autoharness/config.yaml` (`schema_version`: `1.1.0` → `1.3.0`, `graphtor_docs` `.kbdb/config/sources.yaml` & `target/release/kbdb`, and `model_routing.stage.escalation`: `gpt-6.1-sol` / `openai` / `high` / `long_context`)
+  * `.autoharness/config.yaml` (`schema_version`: `1.1.0` → `1.3.0`, `graphtor_docs` `.graphtor/config/sources.yaml` & `target/release/graphtor-docs`, and `model_routing.stage.escalation`: `gpt-6.1-sol` / `openai` / `high` / `long_context`)
   * `.autoharness/backlog-registry.yaml` (added `cli_command` surfaces for `poll_hook_events`, `ack_hook_events`, `append_comment`, `save_memory`, `add_to_shipment`)
 * **Agents, Skills, Instructions, Policies, Foundation**:
   * Pipeline agents: `.github/agents/_orchestrator.agent.md`, `.github/agents/_stage.agent.md`, `.github/agents/_ship.agent.md`

@@ -124,7 +124,7 @@ When the `graphtor-docs` capability pack is installed, agents MUST also follow
 * verify server reachability and index freshness with `get_status` / `list_sources` before relying on results
 * use `traverse_doc_links` to follow related documentation and `get_document` / `get_chunk_by_id` for specific content
 * fall back to grep, glob, or direct file reading only when the server is unavailable, sources are not indexed, or the query is literal-text oriented
-* treat `.kbdb/config/sources.yaml` as the authoritative source registry and `.kbdb/` (and legacy `.graphtor/`) artifacts as tool-managed state rather than files to hand-edit
+* treat `.graphtor/config/sources.yaml` as the authoritative source registry and `.graphtor/` artifacts as tool-managed state rather than files to hand-edit
 
 ### Capability Overlay — browser-verification
 

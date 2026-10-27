@@ -145,7 +145,7 @@ graphtor-docs workflow for indexed local documentation search, semantic retrieva
 traversal, and source-index status checks. Agents MUST prefer graphtor-docs indexed retrieval over
 broad web search or raw filesystem scanning for conceptual, API-oriented, or documentation
 questions, MUST verify server reachability and index freshness before trusting results, and MUST
-not hand-edit tool-managed `.kbdb/` (or legacy `.graphtor/`) artifacts as a substitute for re-indexing or configuration
+not hand-edit tool-managed `.graphtor/` artifacts as a substitute for re-indexing or configuration
 updates.
 
 **Rationale**: graphtor-docs exists to resolve domain concepts and referenced APIs from an indexed

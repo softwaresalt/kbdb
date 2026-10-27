@@ -317,13 +317,12 @@ drift_report:
     - .github/skills/operational-closure/SKILL.md
     - .autoharness/backlog-registry.yaml
   - category: degrading
-    description: Upgraded manifest/profile/config schema contracts to 1.1.0/1.1.0/1.3.0, refreshed 17 subagent frontmatter
-      routes, and updated graphtor-docs paths to .kbdb/config/sources.yaml and target/release/kbdb
+    description: Upgraded manifest/profile/config schema contracts to 1.1.0/1.1.0/1.3.0 and refreshed 17 subagent frontmatter
+      routes
     affected_artifacts:
     - .autoharness/harness-manifest.yaml
     - .autoharness/workspace-profile.yaml
     - .autoharness/config.yaml
-    - .github/instructions/graphtor-docs.instructions.md
   - category: growth
     description: Generated dynamic policy proposal P-DYN-001 from 7 cross-cutting windows compound learnings
     affected_artifacts:
@@ -339,10 +338,10 @@ drift_report:
 graphtor_docs:
   detected: true
   mcp_configured: true
-  sources_path: .kbdb/config/sources.yaml
-  binary_path: target/release/kbdb
+  sources_path: .graphtor/config/sources.yaml
+  binary_path: target/release/graphtor-docs
   config_paths:
-  - .kbdb/config/sources.yaml
+  - .graphtor/config/sources.yaml
   recommended: true
 typecheck:
   tool: cargo
@@ -370,7 +369,7 @@ runtime_validation:
       probe_hints:
       - id: cli-status
         kind: command
-        target: kbdb status
+        target: graphtor-docs status
         command: cargo run --release -- status
         url: null
         route: null
@@ -379,10 +378,10 @@ runtime_validation:
         evidence_types:
         - stdout
         - exit-code
-        notes: Fails closed on pre-v4 schema; a failure here means the index needs `kbdb sync`.
+        notes: Fails closed on pre-v4 schema; a failure here means the index needs `graphtor-docs sync`.
       - id: cli-sync
         kind: command
-        target: kbdb sync
+        target: graphtor-docs sync
         command: cargo run --release -- sync
         url: null
         route: null
@@ -395,7 +394,7 @@ runtime_validation:
         notes: Expensive. Run when the change touches acquire/chunk/embed/db or the schema version.
       - id: mcp-stdio-startup
         kind: command
-        target: kbdb serve (MCP STDIO)
+        target: graphtor-docs serve (MCP STDIO)
         command: cargo run --release -- serve < /dev/null
         url: null
         route: null
@@ -445,7 +444,7 @@ runtime_validation:
     minimum_verdict: PASS_WITH_FOLLOW_UP
     preserve_invariants:
     - Workspace containment fails closed on .., symlinks, and Windows reparse points
-    - Pre-v4 schema fails closed until kbdb sync rebuilds the index
+    - Pre-v4 schema fails closed until graphtor-docs sync rebuilds the index
     - STDIO MCP serve handshake negotiates protocolVersion and advertises the 8 canonical tools
     release_blockers:
     - cli-status or mcp-stdio-startup probe fails unexpectedly

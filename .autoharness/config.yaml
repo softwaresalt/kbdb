@@ -74,10 +74,10 @@ strict_safety:
   require_approval_for:
     - destructive
 
-# Optional graphtor-docs (kbdb) capability-pack configuration
+# Optional graphtor-docs capability-pack configuration
 graphtor_docs:
-  sources_path: ".kbdb/config/sources.yaml"
-  binary_path: "target/release/kbdb"
+  sources_path: ".graphtor/config/sources.yaml"
+  binary_path: "target/release/graphtor-docs"
 
 model_routing:
   tier1:
