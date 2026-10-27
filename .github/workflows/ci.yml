@@ -97,23 +97,29 @@ jobs:
           # --deny warnings makes the --ignore set an explicit allowlist: any NEW
           # unmaintained/unsound advisory not listed below fails CI and forces re-triage.
           #
-          # Vulnerability (owned by task 013.008-T):
-          #   RUSTSEC-2026-0041: lz4_flex 0.10.0 (cozo → swapvec 0.3.0 → lz4_flex ^0.10)
-          # Unmaintained-crate advisories (informational; Review: 2026-09-18):
-          #   RUSTSEC-2025-0056: adler         (cozo → swapvec → miniz_oxide → adler)
-          #   RUSTSEC-2025-0141: bincode 1.x   (cozo → swapvec/fast2s → bincode)
-          #   RUSTSEC-2025-0057: fxhash        (cozo → jieba-rs → fxhash)
-          #   RUSTSEC-2025-0119: number_prefix (indicatif 0.17 direct + hf-hub 0.3.2; upgrade infeasible per 035.001-T)
-          #   RUSTSEC-2024-0436: paste         (tokenizers + candle/gemm → paste 1.x)
-          #   RUSTSEC-2026-0249: smartstring   (cozo 0.7.6 direct dependency)
+          # Vulnerabilities (transitive, non-reachable in workspace usage):
+          #   RUSTSEC-2026-0041: lz4_flex 0.10.0 (cozo → swapvec 0.3.0 → lz4_flex ^0.10; owned by 013.008-T)
+          #   RUSTSEC-2026-0367/0368/0369: zip 1.1.4 (candle-core 0.8.4 → zip ^1.1.1; extract() unused; Review: 2026-12-01)
+          # Unmaintained-crate advisories (informational; Review: 2026-09-18 / 2026-12-01):
+          #   RUSTSEC-2025-0056: adler          (cozo → swapvec → miniz_oxide → adler)
+          #   RUSTSEC-2025-0141: bincode 1.x    (cozo → swapvec/fast2s → bincode)
+          #   RUSTSEC-2025-0057: fxhash         (cozo → jieba-rs → fxhash)
+          #   RUSTSEC-2025-0119: number_prefix  (indicatif 0.17 direct + hf-hub 0.3.2; upgrade infeasible per 035.001-T)
+          #   RUSTSEC-2024-0436: paste          (tokenizers + candle/gemm → paste 1.x)
+          #   RUSTSEC-2026-0249: smartstring    (cozo 0.7.6 direct dependency)
+          #   RUSTSEC-2024-0449: unsafe-libyaml (serde_yaml 0.9.34 → unsafe-libyaml ^0.2.11)
           cargo audit \
             --ignore RUSTSEC-2026-0041 \
+            --ignore RUSTSEC-2026-0367 \
+            --ignore RUSTSEC-2026-0368 \
+            --ignore RUSTSEC-2026-0369 \
             --ignore RUSTSEC-2025-0056 \
             --ignore RUSTSEC-2025-0141 \
             --ignore RUSTSEC-2025-0057 \
             --ignore RUSTSEC-2025-0119 \
             --ignore RUSTSEC-2024-0436 \
             --ignore RUSTSEC-2026-0249 \
+            --ignore RUSTSEC-2024-0449 \
             --deny warnings
 
   # Server-side backstop for the P-001 (at-most-one-active-shipment) and P-016
@@ -157,7 +163,7 @@ jobs:
         # would let a future release silently change the topology verdict with
         # no repository change. Bump this in lockstep with the manifest when
         # the harness is merge-installed to a newer version.
-        run: python -m pip install --disable-pip-version-check autoharness==1.5.0
+        run: python -m pip install --disable-pip-version-check autoharness==1.6.0
 
       - name: Run pipeline-topology gate
         run: bash scripts/ci-topology-check.sh

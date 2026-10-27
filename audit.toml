@@ -18,7 +18,7 @@
 
 [advisories]
 ignore = [
-    # --- Vulnerability (owned and tracked separately by task 013.008-T) ---
+    # --- Vulnerabilities (transitive, non-reachable in workspace usage) ---
 
     # RUSTSEC-2026-0041: lz4_flex 0.10.0 — uninitialised memory on bad decompression input
     # Transitive: cozo 0.7.6 → swapvec 0.3.0 → lz4_flex ^0.10 (semver-locked)
@@ -27,9 +27,22 @@ ignore = [
     # Backlogit stash 94D655D7 tracks the upstream upgrade; owned by task 013.008-T.
     "RUSTSEC-2026-0041",
 
+    # RUSTSEC-2026-0367, RUSTSEC-2026-0368, RUSTSEC-2026-0369: zip 1.1.4 —
+    # ZipArchive::extract() and ZipStreamReader::extract() symlink traversal and
+    # SUID/SGID/permission handling when extracting archives to disk.
+    # Transitive: candle-core 0.8.4 → zip ^1.1.1 (semver-locked; fix requires zip >=9.0.0).
+    # Non-reachable: candle-core only reads .npz tensor entries into memory via
+    # ZipArchive::by_name/by_index (candle-core/src/npz.rs) and never invokes
+    # ZipArchive::extract() or ZipStreamReader::extract().
+    # Upstream blocker: candle-core pins zip ^1.1.1.
+    # Review: 2026-12-01
+    "RUSTSEC-2026-0367",
+    "RUSTSEC-2026-0368",
+    "RUSTSEC-2026-0369",
+
     # --- Unmaintained-crate advisories (informational; suppressed post-042-S) ---
     # None is a vulnerability. Each is reached only transitively through cozo,
-    # candle/tokenizers, or indicatif, whose upstreams pin the unmaintained crate.
+    # candle/tokenizers, indicatif, or serde_yaml, whose upstreams pin the crate.
     # Upgrade-vs-suppress was evaluated per the 035-C deliberation; number_prefix
     # got a dedicated upgrade spike (035.001-T) that proved infeasible.
 
@@ -72,4 +85,11 @@ ignore = [
     # drops or replaces smartstring.
     # Review: 2026-09-18
     "RUSTSEC-2026-0249",
+
+    # RUSTSEC-2024-0449: unsafe-libyaml 0.2.11 — crate unmaintained
+    # Transitive: serde_yaml 0.9.34+deprecated → unsafe-libyaml ^0.2.11.
+    # Upstream blocker: serde_yaml is archived at 0.9.34; replacing it requires
+    # a dedicated YAML parser migration across config/frontmatter surfaces.
+    # Review: 2026-12-01
+    "RUSTSEC-2024-0449",
 ]
