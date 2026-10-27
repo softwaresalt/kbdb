@@ -54,10 +54,10 @@ autoharness_version_to: "1.6.0"
    * **Artifact**: `.github/agents/_ship.agent.md`
    * **Issue**: `pipeline_topology_gate_ship_agent_wiring` and `pipeline_topology_gate_ship_agent_claim_ordering` failed because `TOPOLOGY_GATE: pre_claim (before branch/worktree creation)` / `Bootstrap exemption` were absent before `BRANCH_CREATED` and a table cell in `Mutation Classification` mentioned `backlogit_claim_shipment` ahead of Step 0.5.
    * **Action**: Added the `TOPOLOGY_GATE: pre_claim (before branch/worktree creation)` bullet with its bootstrap exemption in Step 0.5 step 3a and normalized the pre-Step-0.5 table cell to `` `claim_shipment` (`backlogit shipment claim`) `` while preserving all workspace-specific P-010/P-015/P-021 rules.
-3. **[TUNE-003] Operational closure source-artifact cleanup and closure-evidence gate (`source: structural-drift`)**
+3. **[TUNE-003] Operational closure source-artifact cleanup handoff (`source: structural-drift`)**
    * **Artifact**: `.github/skills/operational-closure/SKILL.md`
    * **Issue**: `closure_source_artifact_cleanup` failed (`missing: ["Source artifact cleanup", "source_stash_id", "source_deliberation_id"]`).
-   * **Action**: Re-rendered from the `1.6.0` template, adding the `Source artifact cleanup` checklist item and Step 3a (`autoharness gate closure-evidence`).
+   * **Action**: Added the `Source artifact cleanup` checklist item using the workspace's Stage-owned retirement handoff contract (covering both singular `source_stash_id` / `source_deliberation_id` and plural `source_stash_ids` / `source_deliberation_ids` per `_ship.agent.md` Step 7 and P-010/P-021 C5) while retaining the compatible closure output contract.
 4. **[TUNE-004] Dark Factory Visibility Protocol (`source: structural-drift`)**
    * **Artifact**: `.github/policies/workflow-policies.md`
    * **Issue**: `dark_factory_visibility_contract` failed (`missing: ["Dark Factory Visibility Protocol"]`).

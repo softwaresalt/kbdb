@@ -398,7 +398,7 @@ artifacts:
   artifact_type: skill
   primitive: 4
   template: skills/build-feature/SKILL.md.tmpl
-  checksum: 6c22cd85f794a4b338d1fcc9b1ebf1012e0f25d02bea9cbbd8f0c09c275cd686
+  checksum: 81e7bfed5c62b9cd32e334ce361df1b1bb66adc9a4bb5e8caeb0adf23aa5de88
 - path: .github/skills/compact-context/SKILL.md
   artifact_type: skill
   primitive: 1
@@ -433,7 +433,7 @@ artifacts:
   artifact_type: skill
   primitive: 5
   template: skills/file-lock/SKILL.md.tmpl
-  checksum: 2d8a3a664254863a26ccfce9c4207ceb18c3257a41b0a90d864f8adb99fc79df
+  checksum: 97336f58fa5c1b78408d7b5ce03f3e1bf13e1aa96b3e65df79ec4b612bbbbe6c
 - path: .github/skills/file-lock/scripts/acquire_lock.ps1
   artifact_type: skill
   primitive: 4
@@ -498,7 +498,7 @@ artifacts:
   artifact_type: skill
   primitive: 10
   template: skills/operational-closure/SKILL.md.tmpl
-  checksum: b041de02a9c787a1211896ce4cc8ccaa3fd245c0bf37276d67f7c084ca751f39
+  checksum: 2064ba500cd81daa569fdbacac97695358cda22de4bbc400df36157331dcc0fc
 - path: .github/skills/plan-harden/SKILL.md
   artifact_type: skill
   primitive: 10
