@@ -124,7 +124,7 @@ When the `graphtor-docs` capability pack is installed, agents MUST also follow
 * verify server reachability and index freshness with `get_status` / `list_sources` before relying on results
 * use `traverse_doc_links` to follow related documentation and `get_document` / `get_chunk_by_id` for specific content
 * fall back to grep, glob, or direct file reading only when the server is unavailable, sources are not indexed, or the query is literal-text oriented
-* treat `.graphtor/` artifacts as tool-managed state rather than files to hand-edit
+* treat `.kbdb/config/sources.yaml` as the authoritative source registry and `.kbdb/` (and legacy `.graphtor/`) artifacts as tool-managed state rather than files to hand-edit
 
 ### Capability Overlay — browser-verification
 
@@ -186,23 +186,6 @@ compliance-critical work:
 * assemble consensus-weighted findings: HIGH (all agree), MEDIUM (majority), LOW (single reviewer)
 * treat HIGH-confidence P0/P1 findings as gate-blocking just like standard review findings
 * feed remediation queue entries into backlog for structured follow-up
-
-### Capability Overlay — graphtor-docs
-
-When the workspace enables the `graphtor-docs` capability pack, agents MUST use the configured
-graphtor-docs workflow for indexed local documentation search, semantic retrieval, and doc-graph
-traversal:
-
-* prefer `search_local_docs` / `search_semantic` / `research_topic` over raw file scans or web search
-  for documentation lookups covered by indexed sources
-* verify server reachability via `get_status` before trusting query results, and fall back to file-based
-  search only when the graphtor-docs server is unavailable or sources are unindexed
-* treat `.graphtor/config/sources.yaml` as the authoritative source registry and
-  `.graphtor/` generated artifacts (indexes, embeddings, chunk registries) as tool-managed state
-
-**Rationale**: graphtor-docs exists to give agents fast, indexed access to cross-referenced
-documentation without repeatedly re-scanning raw files. Bypassing it by default discards the
-token-efficiency and freshness guarantees the overlay was meant to provide.
 
 ### Capability Overlay Interaction Rules
 

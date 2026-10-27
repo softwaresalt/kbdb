@@ -18,23 +18,35 @@ graphtor-docs is a documentation cross-reference system that acquires, parses, c
 | Async Runtime | tokio                     | Multi-threaded async I/O                      |
 | CLI           | clap                      | Derive-based argument parsing                 |
 | ML Inference  | candle                    | In-process all-MiniLM-L6-v2 embeddings        |
-| Vector DB     | lancedb                   | Embedded vector similarity search              |
-| Graph DB      | kuzu                      | Embedded property graph for doc relationships  |
+| Graph+Vector DB | cozo (SQLite backend)   | Embedded CozoDB graph and vector store         |
 
 ## Project Structure
 
 ```text
 src/                    # Application source
-  acquire/              # Documentation source acquisition (git, local, web)
+  acquire/              # Documentation source acquisition
   chunk/                # Heading-based document chunking
+  cli/                  # CLI argument parsing and formatting
   config/               # Configuration loading and validation
+  db/                   # CozoDB schema and storage layer
+  embed/                # Candle embedding inference and model resolution
   error/                # Error type definitions (thiserror)
+  ingest_contract/      # Docline v1 frontmatter contract validation
   logging/              # Structured logging setup
+  mcp/                  # RMCP STDIO server and tool handlers
+  parse/                # Markdown parsing and link extraction
   path/                 # Path resolution and normalization
+  pipeline/             # End-to-end ingestion pipeline
+  query/                # Hybrid keyword, semantic, and graph query engine
+  sync/                 # Incremental source synchronization
+  workspace/            # Workspace init, install, doctor, and MCP config
+tools/mcp-probe/        # Standalone MCP handshake/CLI verification crate
 tests/                  # Integration tests
 scripts/                # Build and automation scripts
 docs/                   # Documentation root
   adrs/                 # Architecture Decision Records
+  archive/              # Archived memory and historical docs
+  cli-reference/        # CLI reference documentation
   compound/             # Institutional learnings
   decisions/            # Decision outcomes
   exec-plans/           # Implementation plans
@@ -42,6 +54,9 @@ docs/                   # Documentation root
   closure/              # Release closure artifacts
   design-docs/          # Graduated design rationale
   product-specs/        # Product requirements
+  references/           # External reference material
+  research/             # Research artifacts
+  reviews/              # Review records
 .github/                # Agent harness artifacts
   agents/               # Agent definitions
   skills/               # Skill workflows
@@ -225,16 +240,12 @@ When the workspace enabled the `adversarial-review` capability pack:
 When the workspace enabled the `graphtor-docs` capability pack:
 
 * follow `.github/instructions/graphtor-docs.instructions.md`
-* verify the graphtor-docs server / MCP surface is reachable and sources are indexed before depending on indexed documentation retrieval
+* verify the graphtor-docs server / MCP surface is reachable via `get_status` and sources are indexed before depending on indexed documentation retrieval
 * prefer `search_local_docs`, `search_semantic`, and `research_topic` for conceptual, API-oriented, or documentation questions before broad web search or raw file scans
 * use `traverse_doc_links` to follow related documentation and `list_sources` to confirm indexed coverage
 * if the server is unavailable or sources are not indexed, fall back to grep, glob, or direct file reading and note reduced confidence
-* treat `.graphtor/` generated artifacts as tool-managed state rather than files to hand-edit casually
+* treat `.kbdb/config/sources.yaml` as the authoritative source registry and `.kbdb/` (and legacy `.graphtor/`) generated artifacts as tool-managed state rather than files to hand-edit casually
 
-* prefer `search_local_docs` / `search_semantic` / `research_topic` over raw file scans or web search for documentation lookups covered by indexed sources
-* verify server reachability via `get_status` before trusting query results
-* fall back to file-based search only when the graphtor-docs server is unavailable or sources are unindexed
-* treat `.graphtor/config/sources.yaml` as the authoritative source registry and `.graphtor/` generated artifacts as tool-managed state
 ## Remote Operator Integration
 
 ### agent-intercom

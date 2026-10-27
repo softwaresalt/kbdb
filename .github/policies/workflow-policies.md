@@ -578,12 +578,32 @@ and surface:
 * `DARK_MODE_COMPLETE`
 
 Each event MUST include the affected scope item, gate or decision state, outcome,
-and next action. When `agent-intercom` is installed, these events should be
-broadcast with enough context for a remote operator to understand the current
-scope and risk without reading the full chat transcript. When intercom is
-unavailable, the same event evidence must be recorded in the session/PR summary.
-Approval-dependent destructive actions, admin fallback, scope expansion,
-secrets-risk work, and ambiguous branch-protection states must halt.
+and next action. Events are operator-visible session-output summaries; no
+particular transport or capability pack is required.
+
+**Dark Factory Visibility Protocol**: when `DARK_MODE_ACTIVE` is present,
+each event below MUST be reported as a session-output summary that is
+self-contained enough for a remote or asynchronous operator to understand scope,
+authority, gate state, and risk without reading the full chat transcript. The same
+event evidence is recorded in the local session/PR summary.
+
+| Event | Required broadcast content |
+|---|---|
+| `DARK_MODE_START` | resolved scope, merge-approval authority, admin-fallback authority, stop conditions, visibility mode |
+| `DARK_MODE_SCOPE` | concrete stash IDs, feature/task IDs, shipment IDs, and any explicitly excluded items |
+| `BRAINSTORM_HANDOFF_READY` | brainstorm/requirements artifact path, unresolved questions, and handoff target |
+| `LOCAL_REVIEW_READY` | reviewed HEAD, readiness outcome, P0/P1 counts, follow-ups or residual-risk notes, shadow-review posture |
+| `DARK_MODE_MERGE_AUTHORIZED` | PR number, reviewed HEAD, checks state, merge strategy, approval source, and scope match |
+| `ADMIN_FALLBACK_ATTEMPTED` | after the fallback command/API returns: PR number, block classification, fallback authority, command/API used, and actual result |
+| `DARK_MODE_HALTED` | halt reason, violated policy or stop condition, affected scope item, and required operator action |
+| `DARK_MODE_COMPLETE` | shipped/closed shipments, decisions, gate outcomes, reviewed HEADs, merge/fallback outcome, closure status, and follow-up items |
+
+**Degraded visibility**: if the required reporting surface becomes unavailable
+during dark mode, record a degraded-visibility warning in the local session/PR
+summary and continue only with safe, non-destructive work. Approval-dependent
+destructive actions, scope expansion, admin fallback, failed local readiness,
+secrets-exposure risk, and ambiguous branch-protection state MUST halt rather
+than proceed silently.
 
 **`DARK_MODE_SCOPE` resume/audit evidence**: For a multi-shipment dark run,
 `DARK_MODE_SCOPE` MUST carry restartable resume/audit evidence — the **ordered

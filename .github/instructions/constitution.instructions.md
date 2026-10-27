@@ -145,7 +145,7 @@ graphtor-docs workflow for indexed local documentation search, semantic retrieva
 traversal, and source-index status checks. Agents MUST prefer graphtor-docs indexed retrieval over
 broad web search or raw filesystem scanning for conceptual, API-oriented, or documentation
 questions, MUST verify server reachability and index freshness before trusting results, and MUST
-not hand-edit tool-managed `.graphtor/` artifacts as a substitute for re-indexing or configuration
+not hand-edit tool-managed `.kbdb/` (or legacy `.graphtor/`) artifacts as a substitute for re-indexing or configuration
 updates.
 
 **Rationale**: graphtor-docs exists to resolve domain concepts and referenced APIs from an indexed
@@ -153,21 +153,16 @@ local documentation corpus. Defaulting immediately to broad web search or raw fi
 context budget and discards the retrieval leverage the overlay was meant to provide.
 
 ### Capability Overlay — adversarial-review
+
 When the workspace enables the `adversarial-review` capability pack, agents MUST use the
 configured multi-model dispatch workflow for security-sensitive or compliance-critical work.
 Agents MUST escalate from standard review when 3+ P0/P1 findings are surfaced, dispatch parallel
 reviewer instances across different model tiers, and assemble consensus-weighted findings before
 treating HIGH-confidence P0/P1 findings as gate-blocking.
+
 **Rationale**: A single-model review has blind spots. Multi-model consensus review exists to
 raise confidence on the highest-risk changes before they merge.
-When the workspace enables the `graphtor-docs` capability pack, agents MUST prefer indexed
-semantic and keyword search (`search_local_docs`, `search_semantic`, `research_topic`) over raw
-file scans for documentation lookups, MUST verify server reachability before trusting query
-results, and MUST treat `.graphtor/` generated artifacts as tool-managed state rather than files
-to hand-edit directly.
-**Rationale**: graphtor-docs exists to compress documentation cross-referencing into a queryable
-local index. Bypassing it discards the token-efficiency and freshness guarantees the overlay was
-meant to provide.
+
 ### IX. Git-Friendly Persistence
 
 All workspace state managed by the agent harness MUST be serializable to

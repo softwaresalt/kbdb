@@ -93,7 +93,7 @@ The escalation route resolves via a role-scoped precedence:
    never silently defers to the shared legacy route.
 2. **Legacy flat fallback (DEPRECATED)**: when the acting role has no nested
    `escalation` override, `model_routing.escalation`
-   (`claude-opus-4.8` / `anthropic` / `xhigh`
+   (`gemini-4-argon` / `google` / `high`
    — the pre-F02FD596 flat, role-agnostic route) resolves instead, with a
    deprecation notice. This is retained, unremoved, for backward
    compatibility. Whether this fallback is actually active for the acting
@@ -104,7 +104,17 @@ The escalation route resolves via a role-scoped precedence:
    any workspace, not a fixed installed fact about this one.
 3. **Tier3 fallback**: any field still unresolved after (1)/(2) falls back
    per-field to `model_routing.tier3`
-   (`claude-opus-4.8` / `anthropic` / `high`).
+   (`gemini-4-argon` / `google` / `high`).
+   Separately, the escalation `context_tier` resolves to `long_context`
+   (acting role's nested `escalation.context_tier` -> legacy flat
+   `escalation.context_tier` only when the flat route is the selected
+   source -> `tier3.context_tier` (`long_context`) -> `default`).
+   It is recorded in the payload's separate
+   `resolved_escalation_context_tier` field, not in `resolved_escalation_route`,
+   and is excluded from the same-route guard below. When the runtime cannot
+   honor a non-`default` escalation `context_tier`, record
+   `ROUTING_DEGRADED: context_tier` and hand off at the default context; this
+   never blocks the handoff.
 
 This mirrors the P-013.5 `stage`/`ship` role-route fallback pattern: a
 targeted override, never a parallel tier taxonomy.

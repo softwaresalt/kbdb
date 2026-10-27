@@ -1,4 +1,5 @@
 ---
+name: impl-plan
 description: "Transform feature or chore descriptions and requirements into structured implementation plans grounded in repo patterns and research"
 ---
 
@@ -19,11 +20,6 @@ Invoke when a deliberation outcome, brainstorm requirements document, or spike f
 A plan file at `docs/exec-plans/{YYYY-MM-DD}-{slug}-plan.md`.
 
 ## Required Protocol
-
-When the `agent-intercom` capability pack is installed, follow
-`.github/instructions/agent-intercom.instructions.md`: establish heartbeat / ping visibility at the
-start of planning, broadcast major planning milestones, and use the intercom clarification flow
-when unresolved source ambiguity or planning trade-offs require operator input.
 
 When the `agent-engram` capability pack is installed, follow
 `.github/instructions/agent-engram.instructions.md`: verify the engram search surface before relying

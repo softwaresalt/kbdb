@@ -5,9 +5,10 @@ description: "Coordinates the Stage → Ship pipeline for continuous iteration: 
 maturity: stable
 tools: vscode, execute, read, agent, edit, search, todo, memory, backlogit
 max_subagent_tier: 3
-reasoning_effort: "xhigh"
-model_provider: "openai"
-model_family: "gpt-5.6-sol"
+reasoning_effort: "medium"
+model_provider: "anthropic"
+model_family: "claude-sonnet-5.5"
+context_tier: "long_context"
 subagent_depth: 3
 ---
 
@@ -256,7 +257,7 @@ When the `agent-intercom` capability pack is installed, broadcast the state summ
 **Skip if**: No stash entries remain.
 
 1. Confirm planning-overlap mode is safe: Stage must not mutate the active Ship shipment manifest, must not create/use a parallel implementation branch or worktree, and may only use the explicit Stage spike/research worktree exception.
-2. **Resolve Stage's routed model (P-013.5, NON-NEGOTIABLE)**: before invoking Stage, resolve `config.model_routing.stage`, falling back per sub-field to `config.model_routing.tier3` when the `stage` route or an individual sub-field is absent or empty. This is intent-directive resolution, not a baked `--model` CLI flag (Core Rule 3): declare the resolved `model_family`/`model_provider`/`reasoning_effort` as the invocation override when the runtime supports honoring a per-invocation model directive for the Stage subagent. If the runtime cannot honor a per-invocation override, emit `ROUTING_DEGRADED: Stage invocation could not honor resolved route {model_family}/{model_provider} — falling back to session default` and surface it to the operator — never silently invoke Stage on the current session model without declaring the resolved route and the degradation.
+2. **Resolve Stage's routed model (P-013.5, NON-NEGOTIABLE)**: **CLI-first**: run `autoharness routing resolve --workspace . --site stage --json`; when it runs, log `TOOL_OK: routing-resolver-cli` and declare the route it prints (exit `1` is not a failure: use the route and surface its `degraded` entries; exit `2` means the config is unresolved or invalid, so HALT this invocation, fail closed). Only when the `autoharness` executable is unavailable or the command cannot run, log `TOOL_DEGRADED: routing-resolver-cli` and resolve by the prose below. Before invoking Stage, resolve `config.model_routing.stage`, falling back per sub-field to `config.model_routing.tier3` when the `stage` route or an individual sub-field is absent or empty. This is intent-directive resolution, not a baked `--model` CLI flag (Core Rule 3): declare the resolved `model_family`/`model_provider`/`reasoning_effort`/`context_tier` as the invocation override when the runtime supports honoring a per-invocation model directive for the Stage subagent (`context_tier` resolves the same way per sub-field and is `default` when neither the role route nor `tier3` sets it). If the runtime cannot honor a per-invocation override, emit `ROUTING_DEGRADED: Stage invocation could not honor resolved route {model_family}/{model_provider} — falling back to session default` and surface it to the operator — never silently invoke Stage on the current session model without declaring the resolved route and the degradation. If the runtime cannot honor a non-`default` resolved `context_tier` for Stage, record `ROUTING_DEGRADED: context_tier` naming Stage and the resolved tier, and proceed at the default context without halting.
 3. Invoke the **Stage** subagent:
    * Pass the stash context, any operator-specified grouping preferences, and the resolved model-routing directive from step 2.
    * Stage's expected output: a `shipment_id` in `queued` status.
@@ -317,7 +318,7 @@ When the `agent-intercom` capability pack is installed, broadcast `[ORCHESTRATOR
     than invoking Ship against an ineligible candidate — never inferred, never fail-open. (Bootstrap exemption: while
     `autoharness gate pipeline-topology` is not yet installed in this workspace, skip this sub-step; self-referential
     bootstrapping shipments that build the gate are not blocked by an as-yet-uninstalled gate.)
-3. **Resolve Ship's routed model (P-013.5, NON-NEGOTIABLE)**: before invoking Ship, resolve `config.model_routing.ship`, falling back per sub-field to `config.model_routing.tier2` when the `ship` route or an individual sub-field is absent or empty. This is intent-directive resolution, not a baked `--model` CLI flag (Core Rule 3): declare the resolved `model_family`/`model_provider`/`reasoning_effort` as the invocation override when the runtime supports honoring a per-invocation model directive for the Ship subagent. If the runtime cannot honor a per-invocation override, emit `ROUTING_DEGRADED: Ship invocation could not honor resolved route {model_family}/{model_provider} — falling back to session default` and surface it to the operator — never silently invoke Ship on the current session model without declaring the resolved route and the degradation.
+3. **Resolve Ship's routed model (P-013.5, NON-NEGOTIABLE)**: **CLI-first**: run `autoharness routing resolve --workspace . --site ship --json`; when it runs, log `TOOL_OK: routing-resolver-cli` and declare the route it prints (exit `1` is not a failure: use the route and surface its `degraded` entries; exit `2` means the config is unresolved or invalid, so HALT this invocation, fail closed). Only when the `autoharness` executable is unavailable or the command cannot run, log `TOOL_DEGRADED: routing-resolver-cli` and resolve by the prose below. Before invoking Ship, resolve `config.model_routing.ship`, falling back per sub-field to `config.model_routing.tier2` when the `ship` route or an individual sub-field is absent or empty. This is intent-directive resolution, not a baked `--model` CLI flag (Core Rule 3): declare the resolved `model_family`/`model_provider`/`reasoning_effort`/`context_tier` as the invocation override when the runtime supports honoring a per-invocation model directive for the Ship subagent (`context_tier` resolves the same way per sub-field and is `default` when neither the role route nor `tier2` sets it). If the runtime cannot honor a per-invocation override, emit `ROUTING_DEGRADED: Ship invocation could not honor resolved route {model_family}/{model_provider} — falling back to session default` and surface it to the operator — never silently invoke Ship on the current session model without declaring the resolved route and the degradation. If the runtime cannot honor a non-`default` resolved `context_tier` for Ship, record `ROUTING_DEGRADED: context_tier` naming Ship and the resolved tier, and proceed at the default context without halting.
 4. Invoke the **Ship** subagent:
    * Pass the `shipment_id` as the session scope, along with the resolved model-routing directive from step 3.
    * Ship's expected output: merged PR, archived shipment, and closure artifacts.
@@ -426,8 +427,8 @@ This agent operates at **Tier 2 (Standard)** by default, but supports an indepen
 * **Declare**: pass the resolved fields as the invocation override when the runtime supports per-invocation model directives — never a baked provider-specific `--model` CLI flag (Core Rule 3).
 * **Degrade explicitly**: when the runtime cannot honor a per-invocation override, emit `ROUTING_DEGRADED` naming the subagent and the resolved route that could not be honored, and surface it to the operator — never silently fall back to the current session model without declaring the degradation.
 * **Propagate to inherited skills (P-013.5/H7)**: skills invoked by Stage/Ship at
-  depth 2 (see the Subagent Depth table below) do not carry an independent
-  `model_family`/`model_provider` binding of their own — they execute inside the
+  depth 2 (see the Subagent Depth table below) have no independent model binding
+  (`model_family`/`model_provider`) of their own — they execute inside the
   depth-1 agent's own invocation, so the depth-1 override declared above already
   covers them. There is nothing separate to "resolve" or "reload" at the skill
   layer. If a runtime ever exposes an independent per-skill model binding that
@@ -474,7 +475,7 @@ before any P-013.5 invocation-time resolution above is performed:
    `harness-architecture.instructions.md`), never assumed workspace-relative.
    Resolve `autoharness_home` via the same order used elsewhere in this agent
    (`AUTOHARNESS_HOME` env var → `autoharness home` CLI → the directory
-   containing this agent definition, traversed up → `~/.autoharness/`), then
+   containing this agent definition, traversed up → `$HOME/.autoharness/`), then
    run the globally installed CLI:
    `autoharness verify-workspace --workspace {workspace_path} --autoharness-home {autoharness_home} --json`
    and inspect the harness-config schema result (`strict_schema_blockers` for
@@ -513,24 +514,29 @@ each placeholder's source, default, and fallback):
 ```yaml
 model_routing:
   orchestrator:
-    model: "gpt-5.6-sol"
-    model_family: "gpt-5.6-sol"
-    model_provider: "openai"
-    reasoning_effort: "xhigh"
+    model: "claude-sonnet-5.5"
+    model_family: "claude-sonnet-5.5"
+    model_provider: "anthropic"
+    reasoning_effort: "medium"
+    context_tier: "long_context"
   tier2:
-    model: "claude-sonnet-5"
-    model_family: "claude-sonnet-5"
+    model: "claude-sonnet-5.5"
+    model_family: "claude-sonnet-5.5"
+    context_tier: "long_context"
   tier3:
-    model: "claude-opus-4.8"
-    model_family: "claude-opus-4.8"
+    model: "gemini-4-argon"
+    model_family: "gemini-4-argon"
+    context_tier: "long_context"
   stage:
-    model_family: "claude-opus-4.8"
-    model_provider: "anthropic"
+    model_family: "gemini-4-argon"
+    model_provider: "google"
     reasoning_effort: "high"
+    context_tier: "long_context"
   ship:
-    model_family: "claude-sonnet-5"
+    model_family: "claude-sonnet-5.5"
     model_provider: "anthropic"
-    reasoning_effort: "xhigh"
+    reasoning_effort: "medium"
+    context_tier: "long_context"
 ```
 
 An installed workspace resolves each placeholder to concrete values (for

@@ -1,4 +1,5 @@
 ---
+name: build-feature
 description: "Execute a harness loop — iteratively run tests, capture failures, fix code, and repeat until the harness passes or the circuit breaker trips"
 ---
 
@@ -8,7 +9,7 @@ Implement a requested feature by continuously looping against a strict, compilin
 
 ## When to Use
 
-Invoked by the ship agent when a task has the `harness-ready` label. Not invoked directly by users.
+Invoked by the ship agent when a task has the `harness-ready` label (code route) or the `harness-verification-gated` label (docs-only route; see Docs Route below). Not invoked directly by users.
 
 ## Inputs
 
@@ -21,12 +22,15 @@ Invoked by the ship agent when a task has the `harness-ready` label. Not invoked
 * Code changes committed
 * Task marked complete in backlog
 
+## Docs Route
+
+For a task carrying the `harness-verification-gated` label (P-002 docs-only route), `harness_cmd` is the task's recorded executable verification gate commands, each run exactly as recorded (literal command, recorded working directory) against its recorded pass criteria. The skill edits only the task's owned prose `.md` paths, never invents a RED phase, and never creates a stub, test or harness for the task. On this route, make the requested docs change to the owned paths first (implementation step), before entering the verification loop; the loop only repairs verification failures and never decides that implementation is unnecessary. Manual gates are executed and evidenced as recorded. The loop below and its circuit breaker still bound fix attempts: a failing recorded gate is fixed by correcting the docs, never by weakening or editing the recorded gate. On this route the Commit section below does not apply: do not stage, commit or complete the task, and return the changes to Ship, which commits after the completion checker passes. Ship runs the `autoharness harness docs-only-check` baseline phase before this skill starts and the completion phase after it succeeds.
+
 ## Required Protocol
 
-When the `agent-intercom` capability pack is installed, follow
-`.github/instructions/agent-intercom.instructions.md` throughout the loop: establish heartbeat /
-ping visibility up front, broadcast meaningful attempt transitions, and route any destructive
-actions through the intercom approval path rather than improvising local-only approval.
+Route any destructive actions through the workspace's native approval path (`strict-safety`
+classification when that pack is installed, otherwise local confirmation per AGENTS.md
+safe-operations) rather than improvising approval.
 
 When the `agent-engram` capability pack is installed, follow
 `.github/instructions/agent-engram.instructions.md` throughout the loop: prefer indexed symbol and
@@ -126,6 +130,8 @@ After the harness passes:
 
 ### Commit
 
+On the docs route, skip this section entirely: do not stage, commit or complete the task, and return the changes to Ship, which commits after the completion checker passes.
+
 If all quality gates pass:
 
 1. Stage all changes
@@ -142,8 +148,7 @@ If all quality gates pass:
 * Same-operation counters persist across all prior loop attempts; distinct
   errors advance distinct per-operation counters
 * Read coding standards once at task start; targeted re-read for unfamiliar modules
-* One file change per tool call; broadcast after each write
-* When the `agent-intercom` capability pack is installed, use intercom broadcasts for attempt milestones and file-write visibility
+* One file change per tool call
 
 ## Quality Criteria
 

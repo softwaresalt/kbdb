@@ -80,11 +80,11 @@ scan. Do not retry the same broad semantic query more than twice.
 
 ## Source Configuration
 
-Documentation sources are configured at `.graphtor/config/sources.yaml`. This file declares which
+Documentation sources are configured at `.kbdb/config/sources.yaml`. This file declares which
 local paths, Git repositories, and URLs graphtor-docs indexes. Agents should not modify this file
 unless the task is specifically to manage doc sources.
 
-When the binary is not on PATH, it may be found at `target/release/graphtor-docs`.
+When the binary is not on PATH, it may be found at `target/release/kbdb`.
 
 The local sentence-transformer embedding model used for offline vector search is
 configured via the `GRAPHTOR_EMBED_MODEL_DIR` environment variable, set in the
