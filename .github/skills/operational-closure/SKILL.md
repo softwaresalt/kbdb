@@ -1,4 +1,5 @@
 ---
+name: operational-closure
 description: "Produce release-readiness, releasability evidence, monitoring, rollback, and feedback artifacts that close the loop after implementation and verification"
 ---
 
@@ -79,6 +80,7 @@ The closure artifact MUST include:
 * **Rollback procedure** — the actual rollback or mitigation action to take when the trigger fires
 * **Validation window** — how long the change should be watched
 * **Owner** — who is responsible for observing or acting
+* **Source artifact cleanup** — the traceable read-only handoff record of which source artifacts feeding the shipped scope require retirement by Stage. For every shipped top-level item (feature or chore), inspect both singular and plural provenance fields (`custom_fields.source_stash_id` / `custom_fields.source_stash_ids` and `custom_fields.source_deliberation_id` / `custom_fields.source_deliberation_ids`) and record each referenced stash entry ID and deliberation ID (or `none` when absent) together with its observed current status so Stage can retire any still-active source stash or deliberation artifacts during its next triage cycle. Per Ship's Role Boundary (P-010) and P-021 C5, Ship never executes `backlogit_stash_archive`, `backlogit_stash_remove`, or source-deliberation archival directly during Step 7; it records the handoff here for Stage.
 * **Compaction status (P-020)** — the post-merge context compaction state, one of `pending`, `done`, or `degraded`. operational-closure initializes this field to `pending` when it creates the closure artifact; the Ship post-merge closure finalizes it to `done` after compact-context completes, or `degraded` if compact-context was invoked but failed (non-blocking). Allowed transitions are `pending` → `done` and `pending` → `degraded` only. The Orchestrator's next-shipment routing (P-001 + P-020) treats `pending`, unset, or missing as an incomplete post-merge closure that blocks routing, and `done` or `degraded` as satisfied.
 * **Releasability evidence** — the final structured record showing which required evidence from `runtime_validation.releasability` is satisfied, conditional, or still blocked
 

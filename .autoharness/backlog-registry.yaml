@@ -106,6 +106,7 @@ operations:
 
   append_comment:
     mcp_tool: "backlogit_append_comment"
+    cli_command: "backlogit comment add {{task_id}} --actor {{actor}} --comment {{comment}}"
     params:
       task_id: "item_id"
       actor: "actor"
@@ -118,6 +119,7 @@ operations:
 
   save_memory:
     mcp_tool: "backlogit_save_memory"
+    cli_command: "backlogit memory save --key {{key}} --summary {{summary}}"
     params:
       key: "key"
       summary: "summary"
@@ -152,11 +154,13 @@ operations:
 
   poll_hook_events:
     mcp_tool: "backlogit_poll_hook_events"
+    cli_command: "backlogit hooks poll --consumer-id {{consumer_id}}"
     params:
       consumer_id: "consumer_id"
 
   ack_hook_events:
     mcp_tool: "backlogit_ack_hook_events"
+    cli_command: "backlogit hooks ack --consumer-id {{consumer_id}} --seq {{seq}}"
     params:
       consumer_id: "consumer_id"
       seq: "seq"
@@ -239,6 +243,7 @@ operations:
 
   add_to_shipment:
     mcp_tool: "backlogit_add_to_shipment"
+    cli_command: "backlogit shipment add {{shipment_id}} {{item_id}}"
     params:
       shipment_id: "shipment_id"
       item_id: "item_id"

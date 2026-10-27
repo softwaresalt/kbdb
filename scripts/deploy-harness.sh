@@ -184,9 +184,12 @@ pack_detect_status() {
 	local mcp="$1" exe="" version="" status="absent"
 	if command -v "$mcp" >/dev/null 2>&1; then
 		exe="$mcp"
-	elif [[ "$mcp" == "graphtor-docs" ]]; then
-		# graphtor-docs may be installed workspace-local at .graphtor/bin/ (registry eligibility signal), not just on PATH.
-		if [[ -f ".graphtor/bin/graphtor-docs" && -x ".graphtor/bin/graphtor-docs" ]]; then exe=".graphtor/bin/graphtor-docs"
+	elif [[ "$mcp" == "graphtor-docs" || "$mcp" == "kbdb" ]]; then
+		if command -v kbdb >/dev/null 2>&1; then exe="kbdb"
+		elif command -v graphtor-docs >/dev/null 2>&1; then exe="graphtor-docs"
+		elif [[ -f ".kbdb/bin/kbdb" && -x ".kbdb/bin/kbdb" ]]; then exe=".kbdb/bin/kbdb"
+		elif [[ -f ".kbdb/bin/kbdb.exe" && -x ".kbdb/bin/kbdb.exe" ]]; then exe=".kbdb/bin/kbdb.exe"
+		elif [[ -f ".graphtor/bin/graphtor-docs" && -x ".graphtor/bin/graphtor-docs" ]]; then exe=".graphtor/bin/graphtor-docs"
 		elif [[ -f ".graphtor/bin/graphtor-docs.exe" && -x ".graphtor/bin/graphtor-docs.exe" ]]; then exe=".graphtor/bin/graphtor-docs.exe"
 		fi
 	fi

@@ -5,9 +5,10 @@ description: "Manages the backlog-to-shipped pipeline: harness generation, build
 maturity: stable
 tools: vscode, execute, read, agent, edit, search, todo, memory, backlogit
 max_subagent_tier: 2
-reasoning_effort: "xhigh"
+reasoning_effort: "medium"
 model_provider: "anthropic"
-model_family: "claude-sonnet-5"
+model_family: "claude-sonnet-5.5"
+context_tier: "long_context"
 subagent_depth: 2
 ---
 
@@ -54,7 +55,7 @@ fail-closed rule in `.github/instructions/role-enforcement.instructions.md`.
 
 | Operation | Classification |
 |---|---|
-| `backlogit_claim_shipment` | Allowed — claim the Stage-prepared shipment that scopes this session |
+| `claim_shipment` (`backlogit shipment claim`) | Allowed — claim the Stage-prepared shipment that scopes this session |
 | `backlogit_move_item` | Allowed — move members of Ship's current shipment through `active` / `done` execution status (`done` is the task terminal status), and transition that same current shipment record to the valid terminal shipment status `shipped` as part of `shipment-reconcile` safe-close. The shipment status enum is `queued` / `active` / `shipped` / `abandoned`, so `done` is never applied to a shipment record. Bounded to the exact shipment Ship claimed this session and its manifest members: no other shipment record, no item outside that manifest, and no status change beyond execution and safe-close |
 | `backlogit_archive_item` | Allowed — single-artifact archival during `shipment-reconcile` safe-close: each manifest item of Ship's current shipment, and that same current shipment record itself, archived as its own single artifact and never through the destructive cascade op (P-015). On the atomic path it carries the delivered-work `commit_sha` and no later move or archive follows it. Bounded to the exact current shipment: no other shipment record, no item outside its manifest, and no archival outside safe-close |
 | `backlogit_return_blocked` | Allowed — narrow, status-preserving return of a non-terminal member of Ship's current shipment during `shipment-reconcile` / safe-close. It may preserve the blocked status and record the exact blocked reason the return operation requires, and nothing else. It confers no general item-planning authority: no scope, acceptance-criteria, dependency, or priority change, and no blocked-to-queued normalization |
@@ -190,7 +191,8 @@ build work begins:
 1. Load the shipment using `backlogit_get_item`. Confirm it is in `queued` or `active` status.
 2. Confirm the shipment has explicit item membership (feature + tasks).
 3. Verify no item in the shipment is missing a covering feature parent.
-3a. **Branch Creation Gate (P-011, NON-NEGOTIABLE) + Worktree Topology Gate (P-016, NON-NEGOTIABLE)**: Before claiming (the first workspace mutation), ensure a feature branch is active and no prohibited parallel worktree is attached:
+3a. **Pipeline-Topology Pre-Claim Gate + Branch Creation Gate (P-011, NON-NEGOTIABLE) + Worktree Topology Gate (P-016, NON-NEGOTIABLE)**: Before claiming (the first workspace mutation), ensure a feature branch is active and no prohibited parallel worktree is attached:
+    - **TOPOLOGY_GATE: pre_claim (before branch/worktree creation)** — before any branch/worktree creation or selection below, if the `pipeline-topology` gate is installed, run `autoharness gate pipeline-topology --mode agent --shipment {shipment_id} --phase pre_claim --json` (or with `--bootstrap-grant-invocation ship_pre_branch` when `.autoharness/bootstrap-grants/{shipment_id}.yaml` exists). Exit 0 proceeds to the branch/worktree checks below; exit 1 (`blocked`) or exit 2 (`invalid`) halts immediately with the reported token/message. (Bootstrap exemption: a workspace that has not yet installed the `autoharness gate pipeline-topology` CLI cannot enforce this gate against itself; skip this sub-step until the gate is installed, so self-referential bootstrapping shipments are not blocked by an as-yet-uninstalled gate.)
     - Check current branch:
       `git branch --show-current`
     - Check attached worktrees before logging `BRANCH_OK`, creating a branch, or claiming a shipment:
@@ -991,8 +993,8 @@ before falling back to the operator-halt checkpoint:
    (threshold-kind + count = `consecutive_task_failures` / 3, failure
    summary, last-N action/observation refs, artifact refs, telemetry-
    evidence pointers, resumption checkpoint ref).
-2. **Resolve the escalation route**: `claude-opus-4.8` /
-   `anthropic` / `xhigh`, resolving
+2. **Resolve the escalation route**: `claude-sonnet-5.5` /
+   `anthropic` / `high`, resolving
    this workspace's currently-effective escalation route per the nested
    per-role -> legacy flat (DEPRECATED) -> tier3 precedence defined in
    `escalation-protocol.instructions.md` (F02FD596). This resolution always
@@ -1011,10 +1013,20 @@ before falling back to the operator-halt checkpoint:
    carried over from this file's frontmatter or a prior session's resolved
    value, and MUST NOT invent a last-known-good fallback. Falls back per
    field to
-   `claude-opus-4.8` / `anthropic` /
+   `gemini-4-argon` / `google` /
    `high` when no override for a field is declared at
    any tier. This is the config-resolved successor to ad hoc "suggest a
    frontier-tier model" prose — the route is now declared, not improvised.
+   Separately, the escalation `context_tier` resolves to `long_context`
+   (nested `ship.escalation.context_tier` -> legacy flat
+   `escalation.context_tier` only when the flat route is the selected
+   source -> `tier3.context_tier` -> `default`).
+   Record it in the compiled payload's separate
+   `resolved_escalation_context_tier` field — it is not part of the
+   `resolved_escalation_route` tuple and is excluded from the same-route
+   guard. When the runtime cannot honor a non-`default` escalation
+   `context_tier`, record `ROUTING_DEGRADED: context_tier` and hand off at
+   the default context; this never blocks the handoff.
 3. **Same-route guard**: if the resolved escalation tuple equals this
    agent's own role route tuple (P-013.5), treat this as
    `ESCALATION_DEGRADED` (same-route no-op) per the canonical definition in

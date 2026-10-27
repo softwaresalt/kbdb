@@ -1,4 +1,5 @@
 ---
+name: runtime-verification
 description: "Validate affected runtime surfaces after build and CI using adapter-based runtime validators and structured evidence"
 ---
 
@@ -34,10 +35,10 @@ Invoke after CI is green, before merge, after merge, or after deployment wheneve
 
 ## Required Protocol
 
-When the `agent-intercom` capability pack is installed, follow
-`.github/instructions/agent-intercom.instructions.md`: broadcast which runtime surface is being
-verified, keep the operator informed of pass / follow-up / fail outcomes, and use the intercom
-clarification or standby flow when manual operator confirmation is part of the verification path.
+Report which runtime surface is being verified and the `PASS` / `PASS_WITH_FOLLOW_UP` /
+`FAIL` / `BLOCKED` outcome in the session output. When manual operator confirmation is
+part of the verification path, state the question and the decision required in the
+session output and STOP until the operator replies; never proceed on an assumed answer.
 
 When the `browser-verification` capability pack is installed, also follow
 `.github/instructions/browser-verification.instructions.md`: verify server

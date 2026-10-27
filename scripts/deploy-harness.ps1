@@ -178,10 +178,17 @@ function Get-PackDetectionStatus([string]$PackName) {
     $cmd = Get-Command $PackName -ErrorAction SilentlyContinue
     $exePath = $null
     if ($cmd) { $exePath = $cmd.Source }
-    if (-not $exePath -and $PackName -eq "graphtor-docs") {
-        # graphtor-docs may be installed workspace-local at .graphtor/bin/ (registry eligibility signal), not just on PATH.
-        foreach ($candidate in @(".graphtor/bin/graphtor-docs.exe", ".graphtor/bin/graphtor-docs")) {
-            if (Test-Path -LiteralPath $candidate -PathType Leaf) { $exePath = $candidate; break }
+    if (-not $exePath -and ($PackName -eq "graphtor-docs" -or $PackName -eq "kbdb")) {
+        # kbdb (legacy graphtor-docs) may be installed workspace-local at .kbdb/bin/ (or legacy .graphtor/bin/), not just on PATH.
+        $searchNames = @("kbdb", "graphtor-docs")
+        foreach ($name in $searchNames) {
+            $cmdCandidate = Get-Command $name -ErrorAction SilentlyContinue
+            if ($cmdCandidate) { $exePath = $cmdCandidate.Source; break }
+        }
+        if (-not $exePath) {
+            foreach ($candidate in @(".kbdb/bin/kbdb.exe", ".kbdb/bin/kbdb", ".graphtor/bin/graphtor-docs.exe", ".graphtor/bin/graphtor-docs")) {
+                if (Test-Path -LiteralPath $candidate -PathType Leaf) { $exePath = $candidate; break }
+            }
         }
     }
     if (-not $exePath) {

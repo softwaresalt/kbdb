@@ -1,4 +1,5 @@
 //! Integration tests: edges and code-snippet operations.
+#![allow(clippy::assert_is_empty)]
 
 use graphtor_core::db::{list_edges_from_chunk, upsert_code_snippet, upsert_edge, DataStore};
 use graphtor_core::parse::types::{CodeSnippet, Reference};

@@ -8,9 +8,9 @@ argument-hint: "[mode:autofix|mode:report-only] [branch name or file paths]"
 
 Reviews code changes using dynamically selected reviewer personas. Spawns persona subagents that return structured findings, then merges and deduplicates into a unified report.
 
-## Agent-Intercom Communication (NON-NEGOTIABLE)
+## Agent-Intercom Communication
 
-Call `ping` at session start. If agent-intercom is reachable, broadcast at every step. If unreachable, warn the user that operator visibility is degraded.
+When the `agent-intercom` capability pack is installed, call `ping` at session start. If agent-intercom is reachable, broadcast at every step. If unreachable, warn the user that operator visibility is degraded.
 
 When the `strict-safety` capability pack is installed, also follow
 `.github/instructions/strict-safety.instructions.md`: for high-risk diffs, call
@@ -115,7 +115,10 @@ P-017, this local review record is the authoritative merge-readiness signal:
   residual-risk notes
 * hosted Copilot/GitHub review cannot replace this local review record
 * advisory shadow-review comments are follow-ups by default unless the operator
-  or policy explicitly elevates them to blocking status
+  or policy explicitly elevates them to blocking status (when the P-018
+  `copilot-review` gate is engaged on the PR, unresolved Copilot-authored threads
+  block merge in dark mode as well, and this local readiness record does not
+  waive P-018)
 * the reviewed HEAD SHA or equivalent diff identity must be current when the PR
   readiness block is written
 

@@ -1,4 +1,5 @@
 //! Integration tests: `SourceRecord` CRUD (`upsert_source`, `get_source`, `list_sources`).
+#![allow(clippy::assert_is_empty)]
 
 use graphtor_core::db::{get_source, list_sources, upsert_source, DataStore, SourceRecord};
 

@@ -1,4 +1,5 @@
 ---
+name: deliberate
 description: "Interactively deliberate on a request, feature, or chore — frame the problem, research options, compare trade-offs, and produce a decision artifact that links into the backlog queue"
 ---
 
@@ -49,12 +50,6 @@ When `promote_to` includes `plan`, the artifact path is passed to `impl-plan`
 as its source document.
 
 ## Required Protocol
-
-When the `agent-intercom` capability pack is installed, follow
-`.github/instructions/agent-intercom.instructions.md`: establish heartbeat /
-ping visibility at the start of deliberation, broadcast major phase transitions,
-and use the intercom clarification flow when the operator needs to be consulted
-between phases.
 
 When the `agent-engram` capability pack is installed, follow
 `.github/instructions/agent-engram.instructions.md`: verify the engram search

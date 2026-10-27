@@ -27,6 +27,7 @@
 //! | 2    | fatal error (pipeline stage failed, database unavailable, etc.) |
 
 #![forbid(unsafe_code)]
+#![cfg_attr(test, allow(clippy::assert_is_empty))]
 
 mod cli;
 mod workspace;

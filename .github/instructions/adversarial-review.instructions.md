@@ -32,7 +32,7 @@ instances across different model tiers:
 
 ## Anchor Reviewer Support
 
-When `openai` and `gpt-5.6-sol` are configured,
+When `openai` and `gpt-6.1-sol` are configured,
 launch an **Anchor Reviewer** as a separately identified reviewer slot before
 standard Tier 1/2/3 assignment. Resolve the anchor reviewer's reasoning effort
 from `model_routing.anchor_review.reasoning_effort` in `.autoharness/config.yaml`

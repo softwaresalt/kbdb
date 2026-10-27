@@ -16,6 +16,7 @@
 //! - [`pipeline`]: End-to-end ingestion orchestrator — acquire → parse → embed → load.
 
 #![forbid(unsafe_code)]
+#![cfg_attr(test, allow(clippy::assert_is_empty))]
 #![warn(missing_docs)]
 
 pub mod acquire;

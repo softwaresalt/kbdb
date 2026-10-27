@@ -1,4 +1,5 @@
 ---
+name: plan-harden
 description: "Risk-triggered plan reinforcement that deepens verification, rollback, and guardrail detail before plan review"
 ---
 
@@ -33,11 +34,6 @@ The same plan file, updated with a `## Plan Hardening` section that records:
 * review-gate capability risks, including expected `dispatch_mode:` / `decision:` markers and any P-012 degraded-review conditions that must be carried into plan review
 
 ## Required Protocol
-
-When the `agent-intercom` capability pack is installed, follow
-`.github/instructions/agent-intercom.instructions.md`: broadcast when plan
-hardening starts, call out blocked approval or rollout questions, and warn if
-operator visibility is degraded.
 
 When the `agent-engram` capability pack is installed, follow
 `.github/instructions/agent-engram.instructions.md`: prefer indexed search when

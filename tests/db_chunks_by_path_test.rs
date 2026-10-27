@@ -1,4 +1,5 @@
 //! Integration tests: `list_chunks_by_path`.
+#![allow(clippy::assert_is_empty)]
 
 use graphtor_core::db::{list_chunks_by_path, upsert_chunk, DataStore};
 use graphtor_core::parse::types::Chunk;
