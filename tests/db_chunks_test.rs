@@ -1,4 +1,5 @@
 //! Integration tests: chunk CRUD (`upsert_chunk`, `get_chunk`, `list_chunks_for_source`).
+#![allow(clippy::assert_is_empty)]
 
 use graphtor_core::db::{
     get_chunk, list_chunks_for_source, upsert_chunk,

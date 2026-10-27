@@ -1,4 +1,5 @@
 //! Integration tests for acquisition planning — local-only after docline pivot.
+#![allow(clippy::assert_is_empty)]
 
 use std::fs;
 use std::path::PathBuf;

@@ -106,7 +106,7 @@ operations:
 
   append_comment:
     mcp_tool: "backlogit_append_comment"
-    cli_command: "backlogit comment add {{id}} --actor {{actor}} --comment {{comment}}"
+    cli_command: "backlogit comment add {{task_id}} --actor {{actor}} --comment {{comment}}"
     params:
       task_id: "item_id"
       actor: "actor"

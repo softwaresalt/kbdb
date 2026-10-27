@@ -83,7 +83,7 @@ artifacts:
   artifact_type: config
   primitive: 3
   template: backlog/registries/backlogit.registry.yaml
-  checksum: a21fa3e7681e473ff090f08b604cbc030cd375126afe0fe4b3531cf431988eca
+  checksum: d658eff2d2fd055361a94ba7f2a60990e85c3a91c73116881fe91ffda02db201
 - path: .autoharness/config.yaml
   artifact_type: config
   primitive: 3

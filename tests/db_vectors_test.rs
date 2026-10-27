@@ -3,6 +3,7 @@
 //! These tests exercise [`graphtor_core::db::vectors`] functions directly
 //! using synthetic 384-dimensional unit vectors — no real ML model is loaded.
 //! All vectors must be 384-dim to match the stored `embedding` column.
+#![allow(clippy::assert_is_empty)]
 
 use graphtor_core::db::{
     upsert_chunk,
