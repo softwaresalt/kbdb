@@ -166,4 +166,11 @@ jobs:
         run: python -m pip install --disable-pip-version-check autoharness==1.6.0
 
       - name: Run pipeline-topology gate
+        # Apply the same required-vs-advisory toggle at the step level: job-level
+        # continue-on-error alone prevents workflow failure but still records the
+        # job's GitHub Check Run conclusion as `failure` when the step exits 1.
+        # Setting continue-on-error on this step keeps the check run passing in
+        # advisory mode (when PIPELINE_TOPOLOGY_GATE_REQUIRED != 'true') while
+        # still failing closed when PIPELINE_TOPOLOGY_GATE_REQUIRED == 'true'.
+        continue-on-error: ${{ vars.PIPELINE_TOPOLOGY_GATE_REQUIRED != 'true' }}
         run: bash scripts/ci-topology-check.sh
