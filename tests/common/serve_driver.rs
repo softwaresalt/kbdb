@@ -93,11 +93,11 @@ fn bounded_wait_after_kill(child: &mut Child, budget: Duration) -> Option<ExitSt
     }
 }
 
-/// Path to the real `graphtor-docs` binary under test, resolved via the
-/// Cargo-injected `CARGO_BIN_EXE_graphtor-docs` environment variable.
+/// Path to the real `kbdb` binary under test, resolved via the
+/// Cargo-injected `CARGO_BIN_EXE_kbdb` environment variable.
 #[must_use]
 pub fn graphtor_bin() -> PathBuf {
-    PathBuf::from(env!("CARGO_BIN_EXE_graphtor-docs"))
+    PathBuf::from(env!("CARGO_BIN_EXE_kbdb"))
 }
 
 // ── Wire-level observation types ────────────────────────────────────────
@@ -240,7 +240,7 @@ impl ServeSession {
 
         let mut child = command
             .spawn()
-            .map_err(|err| format!("failed to spawn graphtor-docs serve: {err}"))?;
+            .map_err(|err| format!("failed to spawn kbdb serve: {err}"))?;
 
         let stdin = child
             .stdin

@@ -1,4 +1,4 @@
-//! `graphtor-docs` — `GraphRAG` documentation index binary entry point.
+//! `kbdb` — `GraphRAG` documentation index binary entry point.
 //!
 //! Provides a `clap`-based CLI with the following subcommands:
 //!
@@ -6,10 +6,10 @@
 //! - `serve`     — start the MCP STDIO server (`localhost` only)
 //! - `status`    — print database statistics
 //! - `init`      — generate a template `sources.yaml`
-//! - `install`   — install graphtor-docs into the current workspace
+//! - `install`   — install kbdb into the current workspace
 //! - `doctor`    — diagnose workspace health
 //! - `upgrade`   — upgrade the installed binary
-//! - `uninstall` — remove graphtor-docs from the current workspace
+//! - `uninstall` — remove kbdb from the current workspace
 //! - `manifest`  — print a JSON-RPC 2.0 manifest of MCP tools
 //! - `prewarm`   — pre-warm all documentation sources with progress reporting
 //!
@@ -125,13 +125,14 @@ async fn main() {
 /// Returns `0` for success, `1` for partial failures, `2` for fatal errors.
 async fn run(cli: Cli) -> anyhow::Result<i32> {
     let cwd = std::env::current_dir().context("failed to determine working directory")?;
-    let has_explicit_db_target = cli.db_path.is_some();
-
-    // Resolve database path: CLI flag > env var (already handled by clap env=) > default.
-    let db_path: PathBuf = cli
+    let effective_db_path = cli
         .db_path
         .clone()
-        .unwrap_or_else(|| cwd.join(".graphtor/graph.db"));
+        .or_else(|| std::env::var_os("GRAPHTOR_DB_PATH").map(PathBuf::from));
+    let has_explicit_db_target = effective_db_path.is_some();
+
+    // Resolve database path: CLI flag > env var (already handled by clap env=) > legacy env > default.
+    let db_path: PathBuf = effective_db_path.unwrap_or_else(|| cwd.join(".kbdb/graph.db"));
 
     // Warn on deprecated --data-dir alias usage (flag form and =value form).
     if std::env::args().any(|a| a == "--data-dir" || a.starts_with("--data-dir=")) {
@@ -139,7 +140,10 @@ async fn run(cli: Cli) -> anyhow::Result<i32> {
     }
 
     // Extract shared fields before destructuring the command.
-    let sources_path = cli.config.clone();
+    let sources_path = cli
+        .config
+        .clone()
+        .or_else(|| std::env::var_os("GRAPHTOR_SOURCES").map(PathBuf::from));
     let verbose = cli.verbose;
     let _ = verbose; // available for future use
 
@@ -232,7 +236,7 @@ fn load_source_config(
         return Ok(None);
     }
 
-    let config_dir = cwd.join(".graphtor/config");
+    let config_dir = cwd.join(".kbdb/config");
 
     let files = discover_source_files(&config_dir)
         .with_context(|| format!("failed to read config dir {}", config_dir.display()))?;
@@ -438,7 +442,7 @@ fn handle_empty_sync_registry(
             fmt,
         ));
     }
-    println!("No sources configured. Add documentation sources and re-run `graphtor-docs sync`.");
+    println!("No sources configured. Add documentation sources and re-run `kbdb sync`.");
     Ok(0)
 }
 
@@ -456,7 +460,7 @@ fn cmd_sync(
             cfg
         } else {
             // Only reachable when config_override is Some but the file does not exist,
-            // or when no registry exists in .graphtor/config/.
+            // or when no registry exists in .kbdb/config/.
             if let Some(path) = config_override {
                 eprintln!(
                     "error: source registry config not found at {}",
@@ -464,8 +468,8 @@ fn cmd_sync(
                 );
             } else {
                 eprintln!(
-                    "error: no source registry config found in .graphtor/config/. \
-                     Run `graphtor-docs init` to create a sources.yaml registry."
+                    "error: no source registry config found in .kbdb/config/. \
+                     Run `kbdb init` to create a sources.yaml registry."
                 );
             }
             return Ok(2);
@@ -474,7 +478,7 @@ fn cmd_sync(
     let data_root: PathBuf = args
         .data_root
         .clone()
-        .unwrap_or_else(|| cwd.join(".graphtor/data"));
+        .unwrap_or_else(|| cwd.join(".kbdb/data"));
 
     if source_config.sources.is_empty() {
         return handle_empty_sync_registry(cwd, db_path, &data_root, args, fmt);
@@ -2277,7 +2281,7 @@ fn spawn_background_sync(
         let sync_status_progress = Arc::clone(&sync_status_bg);
         let result = tokio::task::spawn_blocking(move || {
             let started_at = Instant::now();
-            let data_root = cwd_owned.join(".graphtor/data");
+            let data_root = cwd_owned.join(".kbdb/data");
             let plan = acquire_plan::plan(&source_config, &data_root, &cwd_owned)
                 .context("background sync: failed to build acquisition plan")?;
 
@@ -2422,7 +2426,7 @@ fn open_serve_databases(
                     exit.trace();
                     eprintln!(
                         "error: database at '{}' has pre-v4 schema; \
-                         run `graphtor-docs sync` to rebuild the index before starting serve",
+                         run `kbdb sync` to rebuild the index before starting serve",
                         target_db_path.display()
                     );
                     return Ok((Some(exit.exit_code()), result));
@@ -2461,7 +2465,7 @@ fn open_serve_databases(
                     exit.trace();
                     eprintln!(
                         "error: database at '{}' has pre-v4 schema; \
-                         run `graphtor-docs sync` to rebuild the index before starting serve",
+                         run `kbdb sync` to rebuild the index before starting serve",
                         target_db_path.display()
                     );
                     return Ok((Some(exit.exit_code()), result));
@@ -2527,7 +2531,7 @@ async fn cmd_serve(
     // against the broader `cwd` project root (an explicit `--db-path` may
     // live outside `.graphtor/`); auto-discovery itself stays scoped to
     // `.graphtor/`.
-    let graphtor_dir = cwd.join(".graphtor");
+    let graphtor_dir = cwd.join(".kbdb");
     let served_paths = trace_stage(
         ServePreflightErrorStage::Discovery,
         workspace::serve_discovery::discover_served_databases(
@@ -2786,7 +2790,7 @@ fn discover_status_db_paths(
     // `serve` would never open. A real not-yet-created GENERATION target (a
     // resolvable, ingestible local source) classifies `Generation` and is kept
     // even when absent, exactly as `serve` keeps it.
-    let graphtor_dir = cwd.join(".graphtor");
+    let graphtor_dir = cwd.join(".kbdb");
     let served = workspace::serve_discovery::discover_served_databases(
         &graphtor_dir,
         cwd,
@@ -2831,7 +2835,7 @@ fn load_status_databases(
             {
                 return Err(anyhow::anyhow!(
                     "database '{}' has pre-v4 schema; \
-                     run `graphtor-docs sync` to rebuild the index",
+                     run `kbdb sync` to rebuild the index",
                     candidate_db_path.display()
                 ));
             }
@@ -2911,7 +2915,7 @@ fn emit_missing_database_status(database: &StatusDatabaseEntry, json_output: boo
             }))
         );
     } else {
-        println!("database not found — run `graphtor-docs sync` to create it");
+        println!("database not found — run `kbdb sync` to create it");
     }
 }
 
@@ -2974,7 +2978,7 @@ fn cmd_status(
                 cli::jsonrpc::wrap_success(serde_json::json!({ "databases": [] }))
             );
         } else {
-            println!("no sources configured — run `graphtor-docs init` to create sources.yaml");
+            println!("no sources configured — run `kbdb init` to create sources.yaml");
         }
         return Ok(0);
     }
@@ -3038,7 +3042,7 @@ impl QueryCtx<'_> {
             {
                 anyhow::bail!(
                     "database '{}' has pre-v4 schema; \
-                     run `graphtor-docs sync` to rebuild the index",
+                     run `kbdb sync` to rebuild the index",
                     candidate.display()
                 );
             }
@@ -3117,7 +3121,7 @@ fn cmd_search_semantic(ctx: &QueryCtx, args: &cli::SearchSemanticArgs) -> anyhow
         .ok_or_else(|| {
             anyhow::anyhow!(
                 "semantic search requires the embedding model, which is unavailable; \
-                 see the diagnostics above, or use `graphtor-docs search` for keyword search"
+                 see the diagnostics above, or use `kbdb search` for keyword search"
             )
         })?;
     let results = query::search_semantic(&stores, &model, &args.query, args.top_k)
@@ -3223,8 +3227,8 @@ fn cmd_get_document(ctx: &QueryCtx, args: &cli::GetDocumentArgs) -> anyhow::Resu
 
 fn cmd_init(cwd: &std::path::Path, args: &cli::InitArgs, fmt: OutputFormat) -> anyhow::Result<i32> {
     // Locate or create workspace dir.
-    let workspace_dir = cwd.join(".graphtor");
-    std::fs::create_dir_all(&workspace_dir).context("failed to create .graphtor/")?;
+    let workspace_dir = cwd.join(".kbdb");
+    std::fs::create_dir_all(&workspace_dir).context("failed to create .kbdb/")?;
 
     let result = workspace::init::init_sources_yaml(&workspace_dir, args.force)
         .context("failed to initialise sources.yaml")?;
@@ -3242,7 +3246,7 @@ fn cmd_init(cwd: &std::path::Path, args: &cli::InitArgs, fmt: OutputFormat) -> a
 
     if result.created {
         println!("created: {}", result.path.display());
-        println!("edit the file to add your documentation sources, then run `graphtor-docs sync`");
+        println!("edit the file to add your documentation sources, then run `kbdb sync`");
     } else {
         println!("already exists: {}", result.path.display());
         println!("use --force to overwrite");
@@ -3259,9 +3263,9 @@ fn cmd_install(
     fmt: OutputFormat,
 ) -> anyhow::Result<i32> {
     // Always create the workspace directory scaffold first so the lock path exists.
-    let ws_dir = cwd.join(".graphtor");
+    let ws_dir = cwd.join(".kbdb");
     // Containment guard (W7-1; parity with serve X1 / uninstall X2): a
-    // pre-existing `.graphtor` that is itself a symlink/junction is its own
+    // pre-existing `.kbdb` that is itself a symlink/junction is its own
     // trust anchor, so `validate_path` would accept every descendant.
     // `create_dir_all` follows the link and `WorkspaceLock::acquire` plus the
     // scaffold/binary copy would then write through it into an external target,
@@ -3269,15 +3273,15 @@ fn cmd_install(
     // closed (Constitution Principles III/IV).
     if graphtor_core::path::is_reparse_point(&ws_dir) {
         anyhow::bail!(
-            ".graphtor is a symlink or junction; refusing to install through a linked workspace root"
+            ".kbdb is a symlink or junction; refusing to install through a linked workspace root"
         );
     }
     // Capture whether the workspace already existed BEFORE the bootstrap
-    // below: `create_dir_all` always makes `.graphtor/`, so `install_minimal`
+    // below: `create_dir_all` always makes `.kbdb/`, so `install_minimal`
     // / `install` would otherwise always observe an existing directory and
     // report `created: false` even on a genuine first-time install.
     let workspace_existed = ws_dir.exists();
-    std::fs::create_dir_all(&ws_dir).context("failed to create .graphtor directory")?;
+    std::fs::create_dir_all(&ws_dir).context("failed to create .kbdb directory")?;
 
     // Always acquire a lock to prevent concurrent installs.
     let _lock = workspace::lock::WorkspaceLock::acquire(&ws_dir, args.force_unlock)
@@ -3288,7 +3292,7 @@ fn cmd_install(
     }
 
     // Consumption-first default (P2-T1): the minimal footprint creates ONLY
-    // `.graphtor/` plus a minimal serve `.mcp.json` — no `sources.yaml`, no
+    // `.kbdb/` plus a minimal serve `.mcp.json` — no `sources.yaml`, no
     // ingestion subdirectories (bin/data/cache/config/logs), and no
     // `.gitignore` side effect. `install_minimal` NEVER removes an existing
     // full scaffold (P2-T6/INV-6), so the reported footprint reflects the
@@ -3297,18 +3301,18 @@ fn cmd_install(
     // to report `full`.
     let result = workspace::install::install_minimal(cwd).context("install failed")?;
     let footprint = workspace::doctor::detect_footprint(&result.workspace_dir);
-    // The bootstrap above created `.graphtor/` before `install_minimal` ran,
+    // The bootstrap above created `.kbdb/` before `install_minimal` ran,
     // so its own `created` flag is always false here (asserted below to pin
     // that invariant); report genuine first-time creation from the
     // pre-bootstrap existence check instead.
     debug_assert!(
         !result.created,
-        "the lock bootstrap creates .graphtor before install_minimal, so its created flag \
+        "the lock bootstrap creates .kbdb before install_minimal, so its created flag \
          must be false; report created from the pre-bootstrap existence check instead"
     );
     let created = !workspace_existed;
 
-    // Generate or merge the graphtor-docs entry in the workspace-root .mcp.json.
+    // Generate or merge the kbdb entry in the workspace-root .mcp.json.
     let mcp_outcome =
         workspace::mcp_config::generate_mcp_config(cwd).context("failed to generate MCP config")?;
 
@@ -3348,10 +3352,10 @@ fn cmd_install(
     if let Some(outcome) = &mcp_outcome {
         match outcome.action {
             workspace::mcp_config::McpConfigAction::Created => {
-                println!("created: {} (registered graphtor-docs)", outcome.path);
+                println!("created: {} (registered kbdb)", outcome.path);
             }
             workspace::mcp_config::McpConfigAction::Updated => {
-                println!("updated: {} (registered graphtor-docs)", outcome.path);
+                println!("updated: {} (registered kbdb)", outcome.path);
             }
             workspace::mcp_config::McpConfigAction::Removed => {}
         }
@@ -3359,13 +3363,13 @@ fn cmd_install(
 
     println!("\ninstallation complete.");
     println!(
-        "drop a `.db` file into {} and run `graphtor-docs serve` to serve it read-only.",
+        "drop a `.db` file into {} and run `kbdb serve` to serve it read-only.",
         ws_dir.display()
     );
     println!(
         "to ingest and generate your own documentation index instead, run \
-         `graphtor-docs install --with-ingestion` — see the ingestion setup guide in \
-         docs/cli-reference/graphtor-docs.md."
+         `kbdb install --with-ingestion` — see the ingestion setup guide in \
+         docs/cli-reference/kbdb.md."
     );
 
     Ok(0)
@@ -3388,13 +3392,13 @@ fn cmd_install_full(
     workspace_existed: bool,
 ) -> anyhow::Result<i32> {
     let result = workspace::install::install(cwd).context("install failed")?;
-    // The caller's lock-directory bootstrap created `.graphtor/` before
+    // The caller's lock-directory bootstrap created `.kbdb/` before
     // `install` ran, so its own `created` flag is always false here (asserted
     // below to pin that invariant); report genuine first-time creation from
     // the pre-bootstrap existence check instead.
     debug_assert!(
         !result.created,
-        "the lock bootstrap creates .graphtor before install, so its created flag must be \
+        "the lock bootstrap creates .kbdb before install, so its created flag must be \
          false; report created from the pre-bootstrap existence check instead"
     );
     let created = !workspace_existed;
@@ -3409,7 +3413,7 @@ fn cmd_install_full(
         workspace::gitignore::add_gitignore_entry(cwd).context("failed to update .gitignore")?;
     }
 
-    // Generate or merge the graphtor-docs entry in the workspace-root
+    // Generate or merge the kbdb entry in the workspace-root
     // .mcp.json.
     let mcp_outcome =
         workspace::mcp_config::generate_mcp_config(cwd).context("failed to generate MCP config")?;
@@ -3449,25 +3453,25 @@ fn cmd_install_full(
     }
 
     if !args.no_gitignore {
-        println!("updated: .gitignore (added .graphtor/)");
+        println!("updated: .gitignore (added .kbdb/)");
     }
 
     if let Some(outcome) = &mcp_outcome {
         match outcome.action {
             workspace::mcp_config::McpConfigAction::Created => {
-                println!("created: {} (registered graphtor-docs)", outcome.path);
+                println!("created: {} (registered kbdb)", outcome.path);
             }
             workspace::mcp_config::McpConfigAction::Updated => {
-                println!("updated: {} (registered graphtor-docs)", outcome.path);
+                println!("updated: {} (registered kbdb)", outcome.path);
             }
             workspace::mcp_config::McpConfigAction::Removed => {}
         }
     }
 
     println!("\ninstallation complete. next steps:");
-    println!("  1. edit .graphtor/config/sources.yaml to add documentation sources");
-    println!("  2. run `graphtor-docs sync` to ingest");
-    println!("  3. run `graphtor-docs serve` or configure your MCP client");
+    println!("  1. edit .kbdb/config/sources.yaml to add documentation sources");
+    println!("  2. run `kbdb sync` to ingest");
+    println!("  3. run `kbdb serve` or configure your MCP client");
 
     Ok(0)
 }
@@ -3475,7 +3479,7 @@ fn cmd_install_full(
 // ── doctor ────────────────────────────────────────────────────────────────────
 
 fn cmd_doctor(cwd: &std::path::Path, fmt: OutputFormat) -> i32 {
-    let workspace_dir = cwd.join(".graphtor");
+    let workspace_dir = cwd.join(".kbdb");
     let checks = workspace::doctor::run_doctor(&workspace_dir);
 
     let has_fail = checks
@@ -3563,7 +3567,7 @@ fn cmd_upgrade(
     // the lock is ever touched and fail closed (Constitution Principles III/IV).
     if graphtor_core::path::is_reparse_point(&workspace_dir) {
         anyhow::bail!(
-            ".graphtor is a symlink or junction; refusing to upgrade through a linked workspace root"
+            ".kbdb is a symlink or junction; refusing to upgrade through a linked workspace root"
         );
     }
 
@@ -3611,21 +3615,21 @@ fn cmd_uninstall(
             );
         } else {
             eprintln!("error: --confirm flag is required to prevent accidental uninstall");
-            eprintln!("       run: graphtor-docs uninstall --confirm");
+            eprintln!("       run: kbdb uninstall --confirm");
         }
         return Ok(2);
     }
 
-    let ws_dir = cwd.join(".graphtor");
-    // Containment guard (W7-2): reject a linked `.graphtor` root BEFORE
+    let ws_dir = cwd.join(".kbdb");
+    // Containment guard (W7-2): reject a linked `.kbdb` root BEFORE
     // acquiring the lock. Otherwise `WorkspaceLock::acquire` (and
     // `--force-unlock` replacing external lock artifacts) creates/removes
-    // `graphtor.lock` inside the external target — an out-of-workspace
+    // `kbdb.lock` inside the external target — an out-of-workspace
     // mutation — before `plan_uninstall`'s linked-root guard runs. Fail closed
     // on a reparse-point root (Constitution Principles III/IV).
     if graphtor_core::path::is_reparse_point(&ws_dir) {
         anyhow::bail!(
-            ".graphtor is a symlink or junction; refusing to uninstall through a linked workspace root"
+            ".kbdb is a symlink or junction; refusing to uninstall through a linked workspace root"
         );
     }
     let lock_guard = if ws_dir.exists() {
@@ -3640,9 +3644,9 @@ fn cmd_uninstall(
     // PA-3 / F5: enumerate the EXACT deletion set AND every other destructive
     // mutation BEFORE performing any of them. `plan_uninstall_full` computes
     // the managed subdirectories (the PA-3 set — a user-dropped `.db` file in
-    // `.graphtor/` is never included), whether the managed `.gitignore` block
+    // `.kbdb/` is never included), whether the managed `.gitignore` block
     // will be cleaned, which MCP client config files may be pruned/deleted,
-    // and whether the now-empty `.graphtor/` root itself will be removed.
+    // and whether the now-empty `.kbdb/` root itself will be removed.
     let plan = workspace::uninstall::plan_uninstall_full(cwd, args.keep_config);
     let planned = &plan.managed_dirs;
     if fmt != OutputFormat::Json {
@@ -3657,19 +3661,19 @@ fn cmd_uninstall(
             }
         }
         if plan.gitignore_cleanup {
-            println!("the managed `.graphtor/` block will be removed from .gitignore");
+            println!("the managed `.kbdb/` block will be removed from .gitignore");
         }
         if !plan.mcp_config_files.is_empty() {
             println!(
-                "the graphtor-docs entry will be pruned from these MCP config files (a file is \
-                 deleted only if graphtor-docs was its sole server):"
+                "the kbdb entry will be pruned from these MCP config files (a file is \
+                 deleted only if kbdb was its sole server):"
             );
             for path in &plan.mcp_config_files {
                 println!("  {path}");
             }
         }
         if plan.root_removal {
-            println!("the now-empty `.graphtor/` workspace root will be removed");
+            println!("the now-empty `.kbdb/` workspace root will be removed");
         }
     }
 
@@ -3723,7 +3727,7 @@ fn cmd_uninstall(
         println!("removed: {item}");
     }
     for item in &result.updated {
-        println!("updated: {item} (removed graphtor-docs entry)");
+        println!("updated: {item} (removed kbdb entry)");
     }
     println!("uninstall complete");
     Ok(0)
@@ -3800,7 +3804,7 @@ fn cmd_prewarm(
     let data_root: PathBuf = args
         .data_root
         .clone()
-        .unwrap_or_else(|| cwd.join(".graphtor/data"));
+        .unwrap_or_else(|| cwd.join(".kbdb/data"));
 
     if source_config.sources.is_empty() {
         warn!("sources.yaml contains no sources; nothing to prewarm");
@@ -4064,7 +4068,7 @@ mod tests {
     }
 
     fn write_single_source_config(root: &Path, source_id: &str, source_dir: &Path) {
-        let config_dir = root.join(".graphtor").join("config");
+        let config_dir = root.join(".kbdb").join("config");
         fs::create_dir_all(&config_dir).expect("create config dir");
         let source_dir_yaml = source_dir.display().to_string().replace('\\', "/");
         fs::write(
@@ -4077,7 +4081,7 @@ mod tests {
     }
 
     fn write_empty_source_config(root: &Path) {
-        let config_dir = root.join(".graphtor").join("config");
+        let config_dir = root.join(".kbdb").join("config");
         fs::create_dir_all(&config_dir).expect("create config dir");
         fs::write(config_dir.join("sources.yaml"), "sources: []\n")
             .expect("write empty sources.yaml");
@@ -4087,7 +4091,7 @@ mod tests {
 
     #[test]
     fn discover_db_files_excludes_a_database_source_from_the_generation_set() {
-        let base_db_path = Path::new("/workspace/.graphtor/graph.db");
+        let base_db_path = Path::new("/workspace/.kbdb/graph.db");
         let config = SourceConfig {
             sources: vec![
                 Source::Local(graphtor_core::LocalSource {
@@ -4100,7 +4104,7 @@ mod tests {
                 }),
                 Source::Database(graphtor_core::DatabaseSource {
                     id: "legacy".to_string(),
-                    path: PathBuf::from("/workspace/.graphtor/legacy.db"),
+                    path: PathBuf::from("/workspace/.kbdb/legacy.db"),
                 }),
             ],
         };
@@ -4109,7 +4113,7 @@ mod tests {
 
         assert_eq!(
             db_paths,
-            vec![PathBuf::from("/workspace/.graphtor/docs.db")],
+            vec![PathBuf::from("/workspace/.kbdb/docs.db")],
             "the Database entry must contribute no generation target — it must not fall \
              through to base_db_path, and only the local source's target remains"
         );
@@ -4126,7 +4130,7 @@ mod tests {
         // (one explicit `type: database` entry, no local sources) must therefore
         // report ONLY the served database, never the phantom.
         let root = tempfile::tempdir().expect("workspace tempdir");
-        let graphtor_dir = root.path().join(".graphtor");
+        let graphtor_dir = root.path().join(".kbdb");
         let config_dir = graphtor_dir.join("config");
         fs::create_dir_all(&config_dir).expect("create config dir");
 
@@ -4175,7 +4179,7 @@ mod tests {
         // Full posture parity (`classify_serve_postures` + `Generation || exists`
         // retain) drops it here too.
         let root = tempfile::tempdir().expect("workspace tempdir");
-        let graphtor_dir = root.path().join(".graphtor");
+        let graphtor_dir = root.path().join(".kbdb");
         let config_dir = graphtor_dir.join("config");
         fs::create_dir_all(&config_dir).expect("create config dir");
 
@@ -4218,7 +4222,7 @@ mod tests {
         // and drops it, so `status` must too. This is the precise "stale/empty,
         // has_ingestible was true" case the old coarse count mishandled.
         let root = tempfile::tempdir().expect("workspace tempdir");
-        let graphtor_dir = root.path().join(".graphtor");
+        let graphtor_dir = root.path().join(".kbdb");
         let config_dir = graphtor_dir.join("config");
         fs::create_dir_all(&config_dir).expect("create config dir");
 
@@ -4265,8 +4269,8 @@ mod tests {
         // for REGISTRY-driven discovery only; an explicit target is a direct
         // inspection request that legitimately diverges from `serve`.
         let root = tempfile::tempdir().expect("workspace tempdir");
-        let graphtor_dir = root.path().join(".graphtor");
-        fs::create_dir_all(&graphtor_dir).expect("create graphtor dir");
+        let graphtor_dir = root.path().join(".kbdb");
+        fs::create_dir_all(&graphtor_dir).expect("create kbdb dir");
 
         // An explicit target that does NOT exist and has no backing registry.
         let explicit_target = graphtor_dir.join("explicit-missing.db");
@@ -4288,7 +4292,7 @@ mod tests {
 
     #[test]
     fn split_plan_by_database_excludes_a_database_source_even_if_present_in_plan_sources() {
-        let base_db_path = Path::new("/workspace/.graphtor/graph.db");
+        let base_db_path = Path::new("/workspace/.kbdb/graph.db");
         let local_source = Source::Local(graphtor_core::LocalSource {
             id: "docs".to_string(),
             path: PathBuf::from("/workspace/docs"),
@@ -4299,7 +4303,7 @@ mod tests {
         });
         let database_source = Source::Database(graphtor_core::DatabaseSource {
             id: "legacy".to_string(),
-            path: PathBuf::from("/workspace/.graphtor/legacy.db"),
+            path: PathBuf::from("/workspace/.kbdb/legacy.db"),
         });
         let config = SourceConfig {
             sources: vec![local_source.clone(), database_source.clone()],
@@ -4310,7 +4314,7 @@ mod tests {
         // `plan.sources`, to prove `split_plan_by_database`'s OWN guard
         // excludes it independently of whatever produced the plan.
         let plan = AcquisitionPlan {
-            data_root: PathBuf::from("/workspace/.graphtor/data"),
+            data_root: PathBuf::from("/workspace/.kbdb/data"),
             allowed_root: PathBuf::from("/workspace"),
             sources: vec![
                 PlannedSource {
@@ -4322,7 +4326,7 @@ mod tests {
                 PlannedSource {
                     source: database_source,
                     action: SourceAction::ScanLocal,
-                    target_dir: PathBuf::from("/workspace/.graphtor/legacy.db"),
+                    target_dir: PathBuf::from("/workspace/.kbdb/legacy.db"),
                     allow_internal_snapshot_scan: false,
                 },
             ],
@@ -4337,10 +4341,7 @@ mod tests {
             "only the local source's group must survive splitting"
         );
         let (target_db_path, grouped_plan) = grouped.into_iter().next().unwrap();
-        assert_eq!(
-            target_db_path,
-            PathBuf::from("/workspace/.graphtor/graph.db")
-        );
+        assert_eq!(target_db_path, PathBuf::from("/workspace/.kbdb/graph.db"));
         assert_eq!(grouped_plan.sources.len(), 1);
         assert_eq!(grouped_plan.sources[0].source.id(), "docs");
     }
@@ -4405,7 +4406,7 @@ mod tests {
             seed_store_at_v3(&db_path, root);
 
             let plan = AcquisitionPlan {
-                data_root: root.join(".graphtor").join("data"),
+                data_root: root.join(".kbdb").join("data"),
                 allowed_root: root.to_path_buf(),
                 sources: vec![PlannedSource {
                     source: Source::Local(graphtor_core::LocalSource {
@@ -4482,7 +4483,7 @@ mod tests {
     fn local_plan(root: &Path, sources: Vec<PlannedSource>) -> AcquisitionPlan {
         let total_scan = sources.len();
         AcquisitionPlan {
-            data_root: root.join(".graphtor").join("data"),
+            data_root: root.join(".kbdb").join("data"),
             allowed_root: root.to_path_buf(),
             sources,
             total_scan,
@@ -4541,7 +4542,7 @@ mod tests {
     #[test]
     fn cmd_install_refuses_a_symlinked_graphtor_root() {
         // W7-1 / containment parity with serve (X1) and uninstall (X2): a
-        // pre-existing `.graphtor` that is itself a symlink/junction is its own
+        // pre-existing `.kbdb` that is itself a symlink/junction is its own
         // trust anchor, so `validate_path` would accept every descendant.
         // `create_dir_all` follows the link and `WorkspaceLock::acquire` +
         // the scaffold/binary copy would then write through it into an external
@@ -4549,7 +4550,7 @@ mod tests {
         // closed BEFORE any write.
         let project = tempfile::tempdir().expect("project tempdir");
         let external = tempfile::tempdir().expect("external tempdir");
-        let ws_dir = project.path().join(".graphtor");
+        let ws_dir = project.path().join(".kbdb");
         if try_symlink_dir(external.path(), &ws_dir).is_err() {
             return; // platform refused symlink creation — skip
         }
@@ -4563,10 +4564,10 @@ mod tests {
 
         assert!(
             result.is_err(),
-            "install through a symlinked .graphtor root must fail closed"
+            "install through a symlinked .kbdb root must fail closed"
         );
         // Load-bearing containment check: the full (`--with-ingestion`) scaffold
-        // creates `bin/` and copies the binary into `.graphtor`. Without the
+        // creates `bin/` and copies the binary into `.kbdb`. Without the
         // guard those writes follow the link into the external target; the guard
         // must abort before any of them run.
         assert!(
@@ -4582,7 +4583,7 @@ mod tests {
     #[test]
     fn cmd_uninstall_refuses_a_symlinked_graphtor_root() {
         // W7-2: the linked-root guard in plan/execute runs only AFTER the lock
-        // acquisition. If `.graphtor` is a symlink/junction, acquiring the lock
+        // acquisition. If `.kbdb` is a symlink/junction, acquiring the lock
         // (and `--force-unlock` replacing external lock artifacts) mutates the
         // external target before uninstall decides to skip deletion. Reject a
         // reparse-point root BEFORE acquiring the lock.
@@ -4594,9 +4595,9 @@ mod tests {
         // mutation — before `plan_uninstall`'s linked-root guard runs. The new
         // guard must reject the linked root before the lock is ever touched, so
         // this foreign artifact survives byte-for-byte.
-        let foreign_lock = external.path().join("graphtor.lock");
+        let foreign_lock = external.path().join("kbdb.lock");
         fs::write(&foreign_lock, b"foreign").expect("seed foreign lock");
-        let ws_dir = project.path().join(".graphtor");
+        let ws_dir = project.path().join(".kbdb");
         if try_symlink_dir(external.path(), &ws_dir).is_err() {
             return; // platform refused symlink creation — skip
         }
@@ -4610,7 +4611,7 @@ mod tests {
 
         assert!(
             result.is_err(),
-            "uninstall through a symlinked .graphtor root must fail closed"
+            "uninstall through a symlinked .kbdb root must fail closed"
         );
         assert!(
             foreign_lock.exists(),
@@ -4626,11 +4627,11 @@ mod tests {
     #[test]
     fn cmd_upgrade_refuses_a_symlinked_graphtor_root() {
         // 2D49BDDF / containment parity with install (W7-1) and uninstall
-        // (W7-2): `find_workspace_dir` matches `.graphtor` via
+        // (W7-2): `find_workspace_dir` matches `.kbdb` via
         // `candidate.is_dir()`, which FOLLOWS a symlink/junction, so the
         // resolved workspace_dir points at an external target. Without a guard,
         // `WorkspaceLock::acquire` (and `--force-unlock` replacing external lock
-        // artifacts) creates/removes/replaces `graphtor.lock` inside that
+        // artifacts) creates/removes/replaces `kbdb.lock` inside that
         // external target before upgrade proceeds. The new guard must reject a
         // reparse-point root BEFORE the lock is ever touched and fail closed.
         let project = tempfile::tempdir().expect("project tempdir");
@@ -4640,9 +4641,9 @@ mod tests {
         // file and its guard drop would then remove it — an out-of-workspace
         // mutation. The guard must reject the linked root first, so this foreign
         // artifact survives byte-for-byte.
-        let foreign_lock = external.path().join("graphtor.lock");
+        let foreign_lock = external.path().join("kbdb.lock");
         fs::write(&foreign_lock, b"foreign").expect("seed foreign lock");
-        let ws_dir = project.path().join(".graphtor");
+        let ws_dir = project.path().join(".kbdb");
         if try_symlink_dir(external.path(), &ws_dir).is_err() {
             return; // platform refused symlink creation — skip
         }
@@ -4655,7 +4656,7 @@ mod tests {
 
         assert!(
             result.is_err(),
-            "upgrade through a symlinked .graphtor root must fail closed"
+            "upgrade through a symlinked .kbdb root must fail closed"
         );
         assert!(
             foreign_lock.exists(),
@@ -4677,9 +4678,9 @@ mod tests {
         // primary Windows attack path rather than silently skipping it.
         let project = tempfile::tempdir().expect("project tempdir");
         let external = tempfile::tempdir().expect("external tempdir");
-        let foreign_lock = external.path().join("graphtor.lock");
+        let foreign_lock = external.path().join("kbdb.lock");
         fs::write(&foreign_lock, b"foreign").expect("seed foreign lock");
-        let ws_dir = project.path().join(".graphtor");
+        let ws_dir = project.path().join(".kbdb");
         let status = std::process::Command::new("cmd")
             .args([
                 "/C",
@@ -4705,7 +4706,7 @@ mod tests {
 
         assert!(
             result.is_err(),
-            "upgrade through a junctioned .graphtor root must fail closed"
+            "upgrade through a junctioned .kbdb root must fail closed"
         );
         assert!(
             foreign_lock.exists(),
@@ -4750,8 +4751,8 @@ mod tests {
             cmd_install(tmp.path(), &args, OutputFormat::Human).expect("install should succeed");
 
         assert_eq!(code, 0);
-        let ws = tmp.path().join(".graphtor");
-        assert!(ws.is_dir(), ".graphtor/ root must exist");
+        let ws = tmp.path().join(".kbdb");
+        assert!(ws.is_dir(), ".kbdb/ root must exist");
         for sub in workspace::paths::GRAPHTOR_SUBDIRS {
             assert!(
                 !ws.join(sub).exists(),
@@ -4798,7 +4799,7 @@ mod tests {
             cmd_install(tmp.path(), &args, OutputFormat::Human).expect("install should succeed");
 
         assert_eq!(code, 0);
-        let ws = tmp.path().join(".graphtor");
+        let ws = tmp.path().join(".kbdb");
         for sub in workspace::paths::GRAPHTOR_SUBDIRS {
             assert!(
                 ws.join(sub).is_dir(),
@@ -4807,7 +4808,7 @@ mod tests {
         }
         assert!(
             workspace::install::installed_binary_path(&ws).exists(),
-            "--with-ingestion must copy the running binary into .graphtor/bin/"
+            "--with-ingestion must copy the running binary into .kbdb/bin/"
         );
     }
 
@@ -4824,7 +4825,7 @@ mod tests {
 
         assert!(
             tmp.path()
-                .join(".graphtor")
+                .join(".kbdb")
                 .join("config")
                 .join("sources.yaml")
                 .exists(),
@@ -4849,7 +4850,7 @@ mod tests {
             "--with-ingestion must manage .gitignore unless --no-gitignore is set"
         );
         let content = fs::read_to_string(&gitignore_path).expect("read .gitignore");
-        assert!(content.contains(".graphtor/"), "gitignore: {content}");
+        assert!(content.contains(".kbdb/"), "gitignore: {content}");
     }
 
     #[test]
@@ -4882,7 +4883,7 @@ mod tests {
 
         let content = fs::read_to_string(tmp.path().join(".mcp.json")).expect("read .mcp.json");
         let parsed: serde_json::Value = serde_json::from_str(&content).expect("valid json");
-        let entry = &parsed["mcpServers"]["graphtor-docs"];
+        let entry = &parsed["mcpServers"]["kbdb"];
         let command = entry["command"].as_str().expect("command string");
         assert!(
             std::path::Path::new(command).is_absolute(),
@@ -4890,7 +4891,7 @@ mod tests {
              pinned path, not the bare PATH command: {command}"
         );
         assert_eq!(
-            entry["x-graphtor-managed"], true,
+            entry["x-kbdb-managed"], true,
             "the with-ingestion .mcp.json entry must carry the managed-entry provenance marker"
         );
     }
@@ -4917,7 +4918,7 @@ mod tests {
             .expect("default install over existing full layout should succeed");
 
         assert_eq!(code, 0);
-        let ws = tmp.path().join(".graphtor");
+        let ws = tmp.path().join(".kbdb");
         for sub in workspace::paths::GRAPHTOR_SUBDIRS {
             assert!(
                 ws.join(sub).is_dir(),
@@ -4957,7 +4958,7 @@ mod tests {
             .expect("default install over existing full layout should succeed");
         assert_eq!(code, 0);
 
-        let ws = tmp.path().join(".graphtor");
+        let ws = tmp.path().join(".kbdb");
         assert_eq!(
             workspace::doctor::detect_footprint(&ws),
             workspace::doctor::WorkspaceFootprint::Full,
@@ -4979,7 +4980,7 @@ mod tests {
 
         assert_eq!(first, 0);
         assert_eq!(second, 0);
-        let ws = tmp.path().join(".graphtor");
+        let ws = tmp.path().join(".kbdb");
         for sub in workspace::paths::GRAPHTOR_SUBDIRS {
             assert!(
                 !ws.join(sub).exists(),
@@ -5002,7 +5003,7 @@ mod tests {
 
         assert_eq!(first, 0);
         assert_eq!(second, 0);
-        let ws = tmp.path().join(".graphtor");
+        let ws = tmp.path().join(".kbdb");
         for sub in workspace::paths::GRAPHTOR_SUBDIRS {
             assert!(
                 ws.join(sub).is_dir(),
@@ -5096,7 +5097,7 @@ mod tests {
         .expect("write source file");
 
         let plan = graphtor_core::AcquisitionPlan {
-            data_root: tmp.path().join(".graphtor").join("data"),
+            data_root: tmp.path().join(".kbdb").join("data"),
             allowed_root: tmp.path().to_path_buf(),
             sources: vec![graphtor_core::PlannedSource {
                 source: Source::Local(graphtor_core::LocalSource {
@@ -5229,7 +5230,7 @@ mod tests {
             seed_store_at_v3(&db_path, root);
 
             let plan = AcquisitionPlan {
-                data_root: root.join(".graphtor").join("data"),
+                data_root: root.join(".kbdb").join("data"),
                 allowed_root: root.to_path_buf(),
                 sources: vec![PlannedSource {
                     source: Source::Local(graphtor_core::LocalSource {
@@ -5586,7 +5587,7 @@ mod tests {
         .expect("write live guide.md");
 
         let stale_snapshot_file = root
-            .join(".graphtor")
+            .join(".kbdb")
             .join("data")
             .join("v4-migration-snapshots")
             .join("stale")
@@ -5804,7 +5805,7 @@ mod tests {
         let source_config = load_source_config(root, &db_path, None)
             .expect("load source config")
             .expect("source config should exist");
-        let data_root = root.join(".graphtor").join("data");
+        let data_root = root.join(".kbdb").join("data");
         let plan =
             acquire_plan::plan(&source_config, &data_root, root).expect("build acquisition plan");
         let store = DataStore::open_sqlite(&db_path, root).expect("open sqlite store");
@@ -6364,7 +6365,7 @@ mod tests {
         seed_store_at_v3_with_source(&db_path, root, "guide-source");
         seed_current_sync_state(root, &db_path, "guide-source", "guide.md", live_mtime);
 
-        let data_root = root.join(".graphtor").join("data");
+        let data_root = root.join(".kbdb").join("data");
         assert!(
             complete_empty_registry_v4_migration_if_needed(root, &db_path, &data_root)
                 .expect("empty-registry migration should succeed"),

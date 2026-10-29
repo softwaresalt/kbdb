@@ -14,11 +14,11 @@
       "env": {"ENGRAM_WORKSPACE": "${workspaceFolder}"},
       "tools": ["*"]
     },
-    "graphtor-docs": {
+    "kbdb": {
       "type": "stdio",
       "command": "bun",
-      "args": [".copilot/graphtor-mcp-shim.cjs", "graphtor-docs", "serve"],
-      "x-graphtor-managed": true,
+      "args": [".copilot/graphtor-mcp-shim.cjs", "kbdb", "serve"],
+      "x-kbdb-managed": true,
       "tools": ["*"]
     },
     "context7": {

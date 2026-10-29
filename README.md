@@ -1,9 +1,9 @@
 ---
-title: graphtor-docs
+title: kbdb
 description: "Local-first documentation RAG — indexes docline Markdown into an embedded CozoDB graph+vector store and serves AI agents via MCP"
 ---
 
-**graphtor-docs** gives developers and AI-agent users a private documentation
+**kbdb** gives developers and AI-agent users a private documentation
 RAG for local docs. It indexes docline-emitted Markdown into an embedded CozoDB
 (SQLite backend) graph+vector store, then serves semantic search and graph
 cross-references to local agents over STDIO
@@ -40,7 +40,7 @@ docline Markdown, sync, and query.
 * **Read-only database sources** — `type: database` entries expose existing
   workspace-contained `.db` files without ingestion
 * **Consumption-first serve** — `serve` auto-discovers dropped `.db` files under
-  `.graphtor/` and keeps read-only databases out of the write/sync path
+  `.kbdb/` and keeps read-only databases out of the write/sync path
 * **STDIO MCP server** — exposes `search_local_docs`, `search_semantic`,
   `research_topic`, `traverse_doc_links`, `list_sources`, `get_chunk_by_id`,
   `get_document`, and `get_status`
@@ -67,7 +67,7 @@ irm https://raw.githubusercontent.com/softwaresalt/graphtor-docs/main/install.ps
 
 Both scripts download the latest release from [GitHub Releases][releases],
 verify the SHA-256 checksum, and install the binary to `~/.local/bin/`
-(macOS/Linux) or `%LOCALAPPDATA%\graphtor-docs\bin\` (Windows).
+(macOS/Linux) or `%LOCALAPPDATA%\kbdb\bin\` (Windows).
 
 **Direct download:**
 
@@ -77,7 +77,7 @@ Windows (x86_64) are available on the [Releases page][releases].
 **Install with cargo:**
 
 ```sh
-cargo install --git https://github.com/softwaresalt/graphtor-docs --bin graphtor-docs --locked
+cargo install --git https://github.com/softwaresalt/graphtor-docs --bin kbdb --locked
 ```
 
 **Build from source (Rust 1.75+ required):**
@@ -86,7 +86,7 @@ cargo install --git https://github.com/softwaresalt/graphtor-docs --bin graphtor
 git clone https://github.com/softwaresalt/graphtor-docs.git
 cd graphtor-docs
 cargo build --release
-# Binary is at target/release/graphtor-docs
+# Binary is at target/release/kbdb
 ```
 
 [releases]: https://github.com/softwaresalt/graphtor-docs/releases
@@ -96,21 +96,24 @@ cargo build --release
 From the workspace where your AI agent will run:
 
 ```sh
-graphtor-docs install --with-ingestion
+kbdb install --with-ingestion
 ```
 
-This creates the ingestion-capable `.graphtor/` scaffold, a template
-`.graphtor/config/sources.yaml`, and an MCP config entry.
+This creates the ingestion-capable `.kbdb/` scaffold, a template
+`.kbdb/config/sources.yaml`, and an MCP config entry.
 
 > [!TIP]
 > If you only want to consume an already-generated database, run
-> `graphtor-docs install` without flags, drop a `.db` file directly into
-> `.graphtor/`, and run `graphtor-docs serve`. No `sources.yaml` or `sync` is
+> `kbdb install` without flags, drop a `.db` file directly into
+> `.kbdb/`, and run `kbdb serve`. No `sources.yaml` or `sync` is
 > required for that read-only path.
+>
+> To convert an existing `.graphtor` workspace to `.kbdb` on Windows, run
+> `.\scripts\convert-to-kbdb.ps1`.
 
 ### 3. Configure a local docline Markdown source
 
-Edit `.graphtor/config/sources.yaml` so it points at a local directory of
+Edit `.kbdb/config/sources.yaml` so it points at a local directory of
 docline-emitted Markdown files:
 
 ```yaml
@@ -134,14 +137,14 @@ rejected deterministically.
 See the [Configuration Guide](docs/configuration.md) for all options.
 
 When you omit `database`, the source uses the primary `--db-path` target
-(`.graphtor/graph.db` by default). When you set `database`, graphtor-docs
-creates or reuses `.graphtor/<database>` and keeps that source's incremental
+(`.kbdb/graph.db` by default). When you set `database`, kbdb
+creates or reuses `.kbdb/<database>` and keeps that source's incremental
 state in the matching `*.sync_state.json` file.
 
 ### 4. Sync documentation
 
 ```sh
-graphtor-docs sync
+kbdb sync
 ```
 
 `sync` scans the configured local directories, validates docline frontmatter,
@@ -149,8 +152,8 @@ chunks Markdown by heading, embeds chunks when the model is available, and
 writes the graph+vector database. Subsequent runs are incremental
 (mtime-based).
 
-By default, graphtor-docs loads `all-MiniLM-L6-v2` from the Hugging Face cache
-on first use. Set `GRAPHTOR_EMBED_MODEL_DIR` to a local model directory for
+By default, kbdb loads `all-MiniLM-L6-v2` from the Hugging Face cache
+on first use. Set `KBDB_EMBED_MODEL_DIR` to a local model directory for
 offline or air-gapped environments.
 
 ### 5. Run your first semantic search
@@ -158,19 +161,19 @@ offline or air-gapped environments.
 Use a natural-language query that matches the kind of content in your docs:
 
 ```sh
-graphtor-docs search-semantic "deployment checklist" --top-k 5
+kbdb search-semantic "deployment checklist" --top-k 5
 ```
 
 A successful query returns the nearest indexed chunks. Within a single database
-the ranking is exact; when multiple databases are configured, graphtor-docs
+the ranking is exact; when multiple databases are configured, kbdb
 merges each database's exact top matches round-robin rather than computing one
 global ranking. If the embedding model is unavailable, fix the model location
-and re-run `graphtor-docs sync --full` so chunks receive embeddings.
+and re-run `kbdb sync --full` so chunks receive embeddings.
 
 ### 6. Serve to your AI agent
 
 ```sh
-graphtor-docs serve
+kbdb serve
 ```
 
 Add to your MCP client config (e.g., `.mcp.json`):
@@ -178,9 +181,9 @@ Add to your MCP client config (e.g., `.mcp.json`):
 ```json
 {
   "mcpServers": {
-    "graphtor-docs": {
+    "kbdb": {
       "type": "stdio",
-      "command": "graphtor-docs",
+      "command": "kbdb",
       "args": ["serve"]
     }
   }
@@ -196,7 +199,7 @@ See the [MCP Tool Reference](docs/mcp-tools.md) for available tools.
 | [Architecture Overview](docs/architecture.md) | System design, components, data flow |
 | [Developer Guide](docs/developer-guide.md) | Build, test, extend |
 | [Configuration Guide](docs/configuration.md) | `sources.yaml` full reference |
-| [CLI Reference](docs/cli-reference/graphtor-docs.md) | All subcommands and flags |
+| [CLI Reference](docs/cli-reference/kbdb.md) | All subcommands and flags |
 | [Pipeline Reference](docs/pipeline.md) | Acquire → parse → embed → load |
 | [Incremental Sync](docs/incremental-sync.md) | Change detection design |
 | [MCP Tool Reference](docs/mcp-tools.md) | All 8 MCP tools |

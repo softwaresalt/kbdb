@@ -23,18 +23,18 @@ use crate::workspace::paths::{GRAPHTOR_DIR, GRAPHTOR_SUBDIRS};
 use graphtor_core::path::is_reparse_point;
 use graphtor_core::GraphtorError;
 
-/// Filename of the workspace advisory lock created inside `.graphtor/`.
+/// Filename of the workspace advisory lock created inside `.kbdb/`.
 /// Mirrors `graphtor_core::lock`'s private `WORKSPACE_LOCK_FILE` — the root
 /// cleanup planner must ignore it because the caller releases the lock (which
 /// deletes this file) before attempting to remove the now-empty root.
-const WORKSPACE_LOCK_FILE: &str = "graphtor.lock";
+const WORKSPACE_LOCK_FILE: &str = "kbdb.lock";
 
 /// Result of an uninstall operation.
 #[derive(Debug)]
 pub struct UninstallResult {
     /// Files and directories deleted.
     pub removed: Vec<String>,
-    /// Shared MCP configs updated in place (graphtor-docs entry pruned, file kept).
+    /// Shared MCP configs updated in place (kbdb entry pruned, file kept).
     pub updated: Vec<String>,
 }
 
@@ -580,7 +580,7 @@ mod tests {
         assert!(
             fs::read_to_string(&gitignore_path)
                 .expect("read")
-                .contains(".graphtor/"),
+                .contains(".kbdb/"),
             "precondition: managed entry present"
         );
 
@@ -588,7 +588,7 @@ mod tests {
 
         let after = fs::read_to_string(&gitignore_path).expect("read after uninstall");
         assert!(
-            !after.contains(".graphtor/"),
+            !after.contains(".kbdb/"),
             "a full-footprint uninstall must remove its own managed .gitignore block: {after}"
         );
     }
@@ -680,8 +680,8 @@ mod tests {
         add_gitignore_entry(tmp.path()).expect("gitignore");
         fs::write(
             tmp.path().join(".mcp.json"),
-            "{\"mcpServers\":{\"graphtor-docs\":{\"command\":\"graphtor-docs\",\
-             \"x-graphtor-managed\":true}}}",
+            "{\"mcpServers\":{\"kbdb\":{\"command\":\"kbdb\",\
+             \"x-kbdb-managed\":true}}}",
         )
         .expect("write mcp config");
 
@@ -714,11 +714,11 @@ mod tests {
         // delete a line graphtor-docs never authored.
         let tmp = tempfile::tempdir().expect("tempdir");
         install(tmp.path()).expect("install"); // Full footprint
-        fs::write(tmp.path().join(".gitignore"), ".graphtor/\n").expect("seed unmarked");
+        fs::write(tmp.path().join(".gitignore"), ".kbdb/\n").expect("seed unmarked");
         let plan = plan_uninstall_full(tmp.path(), false);
         assert!(
             !plan.gitignore_cleanup,
-            "an unmarked user .graphtor/ line must not schedule gitignore cleanup"
+            "an unmarked user .kbdb/ line must not schedule gitignore cleanup"
         );
     }
 
@@ -861,8 +861,8 @@ mod tests {
         let mcp_path = tmp.path().join(".mcp.json");
         fs::write(
             &mcp_path,
-            "{\"mcpServers\":{\"graphtor-docs\":{\"command\":\"graphtor-docs\",\
-             \"x-graphtor-managed\":true}}}",
+            "{\"mcpServers\":{\"kbdb\":{\"command\":\"kbdb\",\
+             \"x-kbdb-managed\":true}}}",
         )
         .expect("write late mcp config");
 
@@ -874,13 +874,13 @@ mod tests {
         );
         let mcp_after = fs::read_to_string(&mcp_path).expect("read mcp");
         assert!(
-            mcp_after.contains("graphtor-docs"),
+            mcp_after.contains("kbdb"),
             "the unapproved managed entry must be left intact: {mcp_after}"
         );
         let gitignore_after =
             fs::read_to_string(tmp.path().join(".gitignore")).expect("read gitignore");
         assert!(
-            !gitignore_after.contains(".graphtor/"),
+            !gitignore_after.contains(".kbdb/"),
             "the approved gitignore cleanup must still run: {gitignore_after}"
         );
     }
@@ -894,8 +894,8 @@ mod tests {
         let mcp_path = tmp.path().join(".mcp.json");
         fs::write(
             &mcp_path,
-            "{\"mcpServers\":{\"graphtor-docs\":{\"command\":\"graphtor-docs\",\
-             \"x-graphtor-managed\":true}}}",
+            "{\"mcpServers\":{\"kbdb\":{\"command\":\"kbdb\",\
+             \"x-kbdb-managed\":true}}}",
         )
         .expect("write mcp config");
 
@@ -903,12 +903,12 @@ mod tests {
 
         assert!(
             !mcp_path.exists(),
-            "an approved .mcp.json whose sole server was graphtor-docs must be removed"
+            "an approved .mcp.json whose sole server was kbdb must be removed"
         );
         let gitignore_after =
             fs::read_to_string(tmp.path().join(".gitignore")).expect("read gitignore");
         assert!(
-            !gitignore_after.contains(".graphtor/"),
+            !gitignore_after.contains(".kbdb/"),
             "the approved managed gitignore block must be cleaned: {gitignore_after}"
         );
     }

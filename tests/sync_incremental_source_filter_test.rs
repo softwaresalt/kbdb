@@ -12,7 +12,7 @@ use graphtor_core::DataStore;
 use serde_json::Value;
 
 fn graphtor_bin() -> PathBuf {
-    PathBuf::from(env!("CARGO_BIN_EXE_graphtor-docs"))
+    PathBuf::from(env!("CARGO_BIN_EXE_kbdb"))
 }
 
 /// A source filtered to `**/*.md` ingests Markdown files and produces stable

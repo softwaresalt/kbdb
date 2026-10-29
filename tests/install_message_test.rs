@@ -6,7 +6,7 @@
 use std::process::Command;
 
 fn graphtor_bin() -> std::path::PathBuf {
-    std::path::PathBuf::from(env!("CARGO_BIN_EXE_graphtor-docs"))
+    std::path::PathBuf::from(env!("CARGO_BIN_EXE_kbdb"))
 }
 
 #[test]
@@ -17,7 +17,7 @@ fn default_install_prints_the_consumption_first_post_install_message() {
         .current_dir(workspace.path())
         .arg("install")
         .output()
-        .expect("run graphtor-docs install");
+        .expect("run kbdb install");
     assert!(
         output.status.success(),
         "install failed: stderr={}",
@@ -35,12 +35,11 @@ fn default_install_prints_the_consumption_first_post_install_message() {
         "consumption-first message must mention the --with-ingestion opt-in: {stdout}"
     );
     assert!(
-        stdout.contains("ingestion setup guide")
-            && stdout.contains("docs/cli-reference/graphtor-docs.md"),
+        stdout.contains("ingestion setup guide") && stdout.contains("docs/cli-reference/kbdb.md"),
         "consumption-first message must reference the ingestion-setup docs section: {stdout}"
     );
     assert!(
-        !stdout.contains("edit .graphtor/config/sources.yaml"),
+        !stdout.contains("edit .kbdb/config/sources.yaml"),
         "the minimal-install path must NOT print the ingestion-oriented message: {stdout}"
     );
 }
@@ -53,12 +52,12 @@ fn with_ingestion_install_prints_the_ingestion_oriented_message_not_the_minimal_
         .current_dir(workspace.path())
         .args(["install", "--with-ingestion", "--no-gitignore"])
         .output()
-        .expect("run graphtor-docs install --with-ingestion");
+        .expect("run kbdb install --with-ingestion");
     assert!(output.status.success());
 
     let stdout = String::from_utf8(output.stdout).expect("stdout utf-8");
     assert!(
-        stdout.contains("edit .graphtor/config/sources.yaml to add documentation sources"),
+        stdout.contains("edit .kbdb/config/sources.yaml to add documentation sources"),
         "the --with-ingestion path must print the ingestion-oriented next steps: {stdout}"
     );
     assert!(

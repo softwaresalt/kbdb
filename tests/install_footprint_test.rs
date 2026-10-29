@@ -7,7 +7,7 @@ use std::process::Command;
 use serde_json::Value;
 
 fn graphtor_bin() -> std::path::PathBuf {
-    std::path::PathBuf::from(env!("CARGO_BIN_EXE_graphtor-docs"))
+    std::path::PathBuf::from(env!("CARGO_BIN_EXE_kbdb"))
 }
 
 #[test]

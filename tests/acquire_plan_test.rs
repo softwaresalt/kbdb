@@ -144,7 +144,7 @@ fn mixed_local_and_database_config_plans_only_the_local_source() {
             local_source("docs-source", &local_dir),
             Source::Database(graphtor_core::DatabaseSource {
                 id: "legacy".to_string(),
-                path: root.join(".graphtor").join("legacy.db"),
+                path: root.join(".kbdb").join("legacy.db"),
             }),
         ],
     };
@@ -182,7 +182,7 @@ fn mixed_local_and_database_config_validates_only_the_local_source() {
             local_source("local-docs", &local_dir),
             Source::Database(graphtor_core::DatabaseSource {
                 id: "legacy".to_string(),
-                path: root.join(".graphtor").join("legacy.db"),
+                path: root.join(".kbdb").join("legacy.db"),
             }),
         ],
     };

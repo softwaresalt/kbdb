@@ -194,7 +194,7 @@ impl From<serde_json::Error> for WorkspaceError {
 #[derive(Debug, Clone)]
 pub struct McpServerEntrySpec {
     /// The `mcpServers` key this probe workspace generates (for example,
-    /// `"graphtor-docs"`).
+    /// `"kbdb"`).
     pub entry_name: String,
     /// Absolute path to the compiled `mcp-probe` binary; becomes every
     /// generated entry's `command`.

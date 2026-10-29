@@ -14,7 +14,7 @@ use sysinfo::{Pid, System};
 
 use crate::GraphtorError;
 
-const WORKSPACE_LOCK_FILE: &str = "graphtor.lock";
+const WORKSPACE_LOCK_FILE: &str = "kbdb.lock";
 const STALE_SECS: u64 = 3600;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -106,7 +106,7 @@ pub struct WorkspaceLock {
 }
 
 impl WorkspaceLock {
-    /// Acquire the workspace lock at `.graphtor/graphtor.lock`.
+    /// Acquire the workspace lock at `.kbdb/kbdb.lock`.
     ///
     /// When `force` is true, lock acquisition attempts to replace any existing
     /// lock file immediately. It can still fail if another process is already
@@ -133,7 +133,7 @@ pub struct DatabaseLock {
 impl DatabaseLock {
     /// Acquire a database-scoped lock file named `{db_name}.lock`.
     ///
-    /// `lock_dir` is typically the `.graphtor/` workspace directory and
+    /// `lock_dir` is typically the `.kbdb/` workspace directory and
     /// `db_path` identifies the target database file whose filename becomes the
     /// lock name.
     ///

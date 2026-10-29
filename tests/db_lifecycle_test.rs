@@ -34,7 +34,7 @@ fn open_mem_succeeds() {
 #[test]
 fn open_sqlite_creates_file() {
     let dir = temp_dir();
-    let db_root = dir.path().join(".graphtor");
+    let db_root = dir.path().join(".kbdb");
     std::fs::create_dir_all(&db_root).expect("create db root");
     let db_path = db_root.join("test.db");
     let store = DataStore::open_sqlite(&db_path, dir.path())
@@ -48,7 +48,7 @@ fn open_sqlite_creates_file() {
 #[test]
 fn open_sqlite_enables_write_ahead_logging() {
     let dir = temp_dir();
-    let db_root = dir.path().join(".graphtor");
+    let db_root = dir.path().join(".kbdb");
     std::fs::create_dir_all(&db_root).expect("create db root");
     let db_path = db_root.join("wal.db");
     let store = DataStore::open_sqlite(&db_path, dir.path())
@@ -99,7 +99,7 @@ fn open_sqlite_nonexistent_root_is_rejected() {
 #[test]
 fn open_sqlite_readonly_rejects_mutations_but_allows_reads() {
     let dir = temp_dir();
-    let db_root = dir.path().join(".graphtor");
+    let db_root = dir.path().join(".kbdb");
     std::fs::create_dir_all(&db_root).expect("create db root");
     let db_path = db_root.join("readonly.db");
 

@@ -1,18 +1,18 @@
-# install.ps1 — graphtor-docs installer for Windows (PowerShell 5.1+)
+# install.ps1 — kbdb installer for Windows (PowerShell 5.1+)
 #
 # Usage:
 #   irm https://raw.githubusercontent.com/softwaresalt/graphtor-docs/main/install.ps1 | iex
 #
 # Optional environment variables (set before running):
-#   $env:GRAPHTOR_INSTALL_DIR  — override install directory
-#   $env:GRAPHTOR_VERSION      — pin a specific release tag (default: latest stable)
+#   $env:KBDB_INSTALL_DIR      — override install directory
+#   $env:KBDB_VERSION          — pin a specific release tag (default: latest stable)
 #
 # The installer:
 #   1. Detects Windows architecture (x86_64 only for now)
-#   2. Fetches the latest stable GitHub release tag (or uses GRAPHTOR_VERSION)
+#   2. Fetches the latest stable GitHub release tag (or uses KBDB_VERSION)
 #   3. Downloads the .zip archive and SHA256SUMS
 #   4. Verifies the SHA-256 checksum
-#   5. Extracts the binary to $env:LOCALAPPDATA\graphtor-docs\bin
+#   5. Extracts the binary to $env:LOCALAPPDATA\kbdb\bin
 #   6. Adds the install directory to the user PATH (idempotent)
 #
 # Requires: PowerShell 5.1+ (ships with Windows 10/11) or PowerShell 7+
@@ -24,14 +24,14 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $Repo   = 'softwaresalt/graphtor-docs'
-$Binary = 'graphtor-docs'
+$Binary = 'kbdb'
 $Target = 'x86_64-pc-windows-msvc'
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-function Write-Info  { param([string]$Msg) Write-Host "[graphtor] $Msg" -ForegroundColor Cyan }
-function Write-Warn  { param([string]$Msg) Write-Host "[graphtor] $Msg" -ForegroundColor Yellow }
-function Write-Err   { param([string]$Msg) throw "[graphtor] $Msg" }
+function Write-Info  { param([string]$Msg) Write-Host "[kbdb] $Msg" -ForegroundColor Cyan }
+function Write-Warn  { param([string]$Msg) Write-Host "[kbdb] $Msg" -ForegroundColor Yellow }
+function Write-Err   { param([string]$Msg) throw "[kbdb] $Msg" }
 
 # ── Architecture check ────────────────────────────────────────────────────────
 
@@ -42,7 +42,13 @@ if ($arch -ne 'AMD64') {
 
 # ── Version resolution ────────────────────────────────────────────────────────
 
-$version = if ($env:GRAPHTOR_VERSION) { $env:GRAPHTOR_VERSION } else { $null }
+$version = if ($env:KBDB_VERSION) {
+    $env:KBDB_VERSION
+} elseif ($env:GRAPHTOR_VERSION) {
+    $env:GRAPHTOR_VERSION
+} else {
+    $null
+}
 
 if (-not $version) {
     Write-Info "Resolving latest stable release..."
@@ -58,10 +64,12 @@ Write-Info "Installing $Binary $version..."
 
 # ── Install directory ─────────────────────────────────────────────────────────
 
-$installDir = if ($env:GRAPHTOR_INSTALL_DIR) {
+$installDir = if ($env:KBDB_INSTALL_DIR) {
+    $env:KBDB_INSTALL_DIR
+} elseif ($env:GRAPHTOR_INSTALL_DIR) {
     $env:GRAPHTOR_INSTALL_DIR
 } else {
-    Join-Path $env:LOCALAPPDATA 'graphtor-docs\bin'
+    Join-Path $env:LOCALAPPDATA 'kbdb\bin'
 }
 
 if (-not (Test-Path $installDir)) {

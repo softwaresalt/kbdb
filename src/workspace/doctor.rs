@@ -46,11 +46,11 @@ pub struct Check {
 /// consumption-first minimal footprint (P2-T1).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum WorkspaceFootprint {
-    /// The full scaffold: `.graphtor/{bin,data,cache,config,logs}` — created
+    /// The full scaffold: `.kbdb/{bin,data,cache,config,logs}` — created
     /// by `install --with-ingestion` (or the legacy default before this
     /// shipment).
     Full,
-    /// The consumption-first minimal footprint: `.graphtor/` exists but
+    /// The consumption-first minimal footprint: `.kbdb/` exists but
     /// none of the ingestion-capable subdirectories were created — created
     /// by the default `install` (P2-T1).
     Minimal,
@@ -74,7 +74,7 @@ impl WorkspaceFootprint {
 /// `cache/`, `logs/`) is occupied by SOME filesystem entry — a directory, or
 /// (in a corrupt/partial install) a regular file or symlink standing in for
 /// the scaffold directory. Detection deliberately keys off "any entry present"
-/// rather than "is a directory": a regular file at `.graphtor/bin` is a
+/// rather than "is a directory": a regular file at `.kbdb/bin` is a
 /// corrupt partial full install, and classifying it `Minimal` would hide that
 /// corruption (doctor would downgrade the missing scaffold to informational
 /// and `upgrade` would no-op). Matching conservatively toward `Full` here lets
@@ -116,7 +116,7 @@ fn check_workspace_dir(workspace_dir: &Path) -> Check {
             name: "workspace-dir",
             severity: Severity::Fail,
             message: format!(
-                "workspace directory not found: {}; run `graphtor-docs install`",
+                "workspace directory not found: {}; run `kbdb install`",
                 workspace_dir.display()
             ),
         }
@@ -140,7 +140,7 @@ fn check_subdirs(workspace_dir: &Path, footprint: WorkspaceFootprint) -> Vec<Che
                     severity: Severity::Fail,
                     message: format!(
                         "{sub} exists but is not a directory; remove it and re-run \
-                         `graphtor-docs install`"
+                         `kbdb install`"
                     ),
                 }
             } else if footprint == WorkspaceFootprint::Minimal {
@@ -149,14 +149,14 @@ fn check_subdirs(workspace_dir: &Path, footprint: WorkspaceFootprint) -> Vec<Che
                     severity: Severity::Pass,
                     message: format!(
                         "{sub}/ not created — consumption-first minimal install \
-                         (run `graphtor-docs install --with-ingestion` for the full scaffold)"
+                         (run `kbdb install --with-ingestion` for the full scaffold)"
                     ),
                 }
             } else {
                 Check {
                     name: "subdir",
                     severity: Severity::Fail,
-                    message: format!("{sub}/ missing; re-run `graphtor-docs install`"),
+                    message: format!("{sub}/ missing; re-run `kbdb install`"),
                 }
             }
         })
@@ -178,7 +178,7 @@ fn check_sources_yaml(workspace_dir: &Path, footprint: WorkspaceFootprint) -> Ch
             Check {
                 name: "sources-yaml",
                 severity: Severity::Warn,
-                message: "sources.yaml not found; run `graphtor-docs init`".to_string(),
+                message: "sources.yaml not found; run `kbdb init`".to_string(),
             }
         };
     }
@@ -236,7 +236,7 @@ pub fn run_doctor(workspace_dir: &Path) -> Vec<Check> {
             name: "binary",
             severity: Severity::Pass,
             message: "binary not copied — consumption-first minimal install resolves \
-                      graphtor-docs via PATH"
+                      kbdb via PATH"
                 .to_string(),
         }
     } else {
@@ -244,7 +244,7 @@ pub fn run_doctor(workspace_dir: &Path) -> Vec<Check> {
             name: "binary",
             severity: Severity::Warn,
             message: format!(
-                "binary not found at {}; run `graphtor-docs install`",
+                "binary not found at {}; run `kbdb install`",
                 bin_path.display()
             ),
         }
@@ -252,7 +252,7 @@ pub fn run_doctor(workspace_dir: &Path) -> Vec<Check> {
 
     checks.push(check_sources_yaml(workspace_dir, footprint));
 
-    // Database file accessible (default path: .graphtor/graph.db).
+    // Database file accessible (default path: .kbdb/graph.db).
     let db_path = workspace_dir.join("graph.db");
     checks.push(if db_path.exists() {
         Check {
@@ -264,7 +264,7 @@ pub fn run_doctor(workspace_dir: &Path) -> Vec<Check> {
         Check {
             name: "database",
             severity: Severity::Pass,
-            message: "no default database yet — drop a `.db` file into .graphtor/ for serve \
+            message: "no default database yet — drop a `.db` file into .kbdb/ for serve \
                       to auto-discover"
                 .to_string(),
         }
@@ -272,11 +272,11 @@ pub fn run_doctor(workspace_dir: &Path) -> Vec<Check> {
         Check {
             name: "database",
             severity: Severity::Warn,
-            message: "database not yet created; run `graphtor-docs sync` to populate".to_string(),
+            message: "database not yet created; run `kbdb sync` to populate".to_string(),
         }
     });
 
-    // Disk usage (warn if .graphtor/ > 5 GiB).
+    // Disk usage (warn if .kbdb/ > 5 GiB).
     let usage_bytes = dir_size(workspace_dir);
     checks.push(if usage_bytes < WARN_BYTES {
         Check {

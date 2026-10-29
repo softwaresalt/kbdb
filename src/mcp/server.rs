@@ -338,7 +338,7 @@ impl DocServer {
     /// ranked by cosine similarity.  Use this tool for conceptual queries where
     /// keyword matching is insufficient.
     ///
-    /// Requires the embedding model to be loaded (`graphtor-docs serve`).
+    /// Requires the embedding model to be loaded (`kbdb serve`).
     /// Returns an error when the server was started without a model.
     ///
     /// # Errors
@@ -362,7 +362,7 @@ impl DocServer {
         let model = self.model.as_ref().ok_or_else(|| {
             ErrorData::invalid_params(
                 "semantic search is disabled: the embedding model is not loaded. \
-                 Run `graphtor-docs serve` with the embedding model enabled.",
+                 Run `kbdb serve` with the embedding model enabled.",
                 None,
             )
         })?;
@@ -589,10 +589,7 @@ impl DocServer {
 impl ServerHandler for DocServer {
     fn get_info(&self) -> ServerInfo {
         ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
-            .with_server_info(Implementation::new(
-                "graphtor-docs",
-                env!("CARGO_PKG_VERSION"),
-            ))
+            .with_server_info(Implementation::new("kbdb", env!("CARGO_PKG_VERSION")))
             .with_instructions(
                 "LocalDocRAG MCP server — search and traverse local documentation graphs \
                  indexed from MicrosoftDocs repositories.",
@@ -655,7 +652,7 @@ mod tests {
     fn server_info_contains_correct_name() {
         let server = test_server();
         let info = server.get_info();
-        assert_eq!(info.server_info.name, "graphtor-docs");
+        assert_eq!(info.server_info.name, "kbdb");
     }
 
     #[test]
@@ -1163,7 +1160,7 @@ mod tests {
     #[test]
     fn search_local_docs_uses_readonly_store_while_database_lock_is_held() {
         let workspace = tempfile::tempdir().expect("tempdir");
-        let db_root = workspace.path().join(".graphtor");
+        let db_root = workspace.path().join(".kbdb");
         std::fs::create_dir_all(&db_root).expect("create db root");
         let db_path = db_root.join("primary.db");
 

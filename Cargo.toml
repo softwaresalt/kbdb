@@ -18,7 +18,7 @@ name = "graphtor_core"
 path = "src/lib.rs"
 
 [[bin]]
-name = "graphtor-docs"
+name = "kbdb"
 path = "src/main.rs"
 
 [dependencies]

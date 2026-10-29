@@ -7,7 +7,7 @@
 //!
 //! # Multi-file discovery
 //!
-//! When multiple `*.sources.yaml` files are present under `.graphtor/config/`,
+//! When multiple `*.sources.yaml` files are present under `.kbdb/config/`,
 //! [`discover_source_files`] returns them in alphabetical order and
 //! [`load_multi_file_config`] merges them into a single [`SourceConfig`].
 //! Each source in a multi-file config must declare an explicit `database`
@@ -369,7 +369,7 @@ mod tests {
         write_yaml(
             d,
             "graph.sources.yaml",
-            "sources:\n  - type: database\n    id: shared-runbooks\n    path: .graphtor/shared.db\n",
+            "sources:\n  - type: database\n    id: shared-runbooks\n    path: .kbdb/shared.db\n",
         );
 
         let files = discover_source_files(d).expect("discover_source_files");
@@ -395,7 +395,7 @@ mod tests {
             "mixed.sources.yaml",
             "sources:\n  \
              - type: local\n    id: no-db\n    path: /docs\n  \
-             - type: database\n    id: shared-runbooks\n    path: .graphtor/shared.db\n",
+             - type: database\n    id: shared-runbooks\n    path: .kbdb/shared.db\n",
         );
 
         let files = discover_source_files(d).expect("discover_source_files");

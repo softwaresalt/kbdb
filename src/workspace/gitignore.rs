@@ -1,6 +1,6 @@
 //! `.gitignore` management for the workspace installation.
 //!
-//! Appends `.graphtor/` to the project `.gitignore` during install and
+//! Appends `.kbdb/` to the project `.gitignore` during install and
 //! removes the entry during uninstall. Both operations are idempotent.
 
 use std::fs;
@@ -9,13 +9,13 @@ use std::path::Path;
 use graphtor_core::path::is_reparse_point;
 use graphtor_core::GraphtorError;
 
-/// The gitignore entry managed by graphtor-docs.
-const GITIGNORE_ENTRY: &str = ".graphtor/";
+/// The gitignore entry managed by kbdb.
+const GITIGNORE_ENTRY: &str = ".kbdb/";
 
 /// Marker comment written before the managed entry.
-const MARKER_HEADER: &str = "# graphtor-docs — managed by graphtor-docs install";
+const MARKER_HEADER: &str = "# kbdb — managed by kbdb install";
 
-/// Append `.graphtor/` to `project_root/.gitignore`.
+/// Append `.kbdb/` to `project_root/.gitignore`.
 ///
 /// - If `.gitignore` does not exist it is created.
 /// - If the entry already exists the function returns without modification
@@ -42,7 +42,7 @@ pub fn add_gitignore_entry(project_root: &Path) -> Result<(), GraphtorError> {
     if is_reparse_point(&path) {
         return Err(GraphtorError::Config {
             message: ".gitignore is a symlink or junction; refusing to write the managed \
-                      graphtor-docs entry through a linked file"
+                      kbdb entry through a linked file"
                 .to_string(),
             field: None,
         });
@@ -84,12 +84,12 @@ pub fn add_gitignore_entry(project_root: &Path) -> Result<(), GraphtorError> {
 }
 
 /// Returns `true` when `project_root/.gitignore` exists and contains the
-/// graphtor-docs managed marker header — i.e. a managed block that
+/// kbdb managed marker header — i.e. a managed block that
 /// [`add_gitignore_entry`] wrote is actually present.
 ///
 /// Uninstall planning uses this (rather than merely inferring from the
 /// workspace footprint) so that a Full install created with `--no-gitignore`
-/// (or one whose `.graphtor/` line is a user's own, unmarked entry) is never
+/// (or one whose `.kbdb/` line is a user's own, unmarked entry) is never
 /// scheduled for gitignore cleanup.
 #[must_use]
 pub fn has_managed_gitignore_block(project_root: &Path) -> bool {
@@ -108,15 +108,15 @@ pub fn has_managed_gitignore_block(project_root: &Path) -> bool {
     existing.lines().any(|l: &str| l.trim() == MARKER_HEADER)
 }
 
-/// Remove ONLY the graphtor-docs managed block (the [`MARKER_HEADER`] comment
-/// and the `.graphtor/` entry line it introduces) from `.gitignore`.
+/// Remove ONLY the kbdb managed block (the [`MARKER_HEADER`] comment
+/// and the `.kbdb/` entry line it introduces) from `.gitignore`.
 ///
 /// The managed entry is identified by its adjacency to the marker header:
 /// [`add_gitignore_entry`] always writes the entry on the line immediately
 /// after the marker, so removal strips the marker line and a single
-/// immediately-following `.graphtor/` entry line. A user's own, unmarked
-/// `.graphtor/` line elsewhere in the file is PRESERVED — uninstall must never
-/// delete a gitignore line graphtor-docs did not author.
+/// immediately-following `.kbdb/` entry line. A user's own, unmarked
+/// `.kbdb/` line elsewhere in the file is PRESERVED — uninstall must never
+/// delete a gitignore line kbdb did not author.
 ///
 /// If `.gitignore` does not exist or contains no managed marker, returns
 /// without modification (idempotent).
@@ -151,7 +151,7 @@ pub fn remove_gitignore_entry(project_root: &Path) -> Result<(), GraphtorError> 
     while idx < lines.len() {
         if lines[idx].trim() == MARKER_HEADER {
             // Skip the marker line, plus a single immediately-following
-            // managed `.graphtor/` entry line (our block writes the entry
+            // managed `.kbdb/` entry line (our block writes the entry
             // directly after the marker). Any unmarked user entry elsewhere is
             // untouched.
             idx += 1;
@@ -210,13 +210,13 @@ mod tests {
     fn remove_preserves_user_authored_unmarked_entry() {
         let tmp = tempfile::tempdir().expect("tempdir");
         let path = tmp.path().join(".gitignore");
-        // A user's own, unmarked `.graphtor/` line plus unrelated entries.
-        fs::write(&path, "target/\n.graphtor/\n.env\n").expect("seed");
+        // A user's own, unmarked `.kbdb/` line plus unrelated entries.
+        fs::write(&path, "target/\n.kbdb/\n.env\n").expect("seed");
         remove_gitignore_entry(tmp.path()).expect("remove");
         let content = fs::read_to_string(&path).expect("read");
         assert!(
             content.contains(GITIGNORE_ENTRY),
-            "user-authored unmarked .graphtor/ line must be preserved"
+            "user-authored unmarked .kbdb/ line must be preserved"
         );
         assert!(content.contains("target/"));
         assert!(content.contains(".env"));
@@ -245,12 +245,12 @@ mod tests {
             "no .gitignore -> no managed block"
         );
 
-        // An unmarked user `.graphtor/` line is not a managed block.
+        // An unmarked user `.kbdb/` line is not a managed block.
         let tmp2 = tempfile::tempdir().expect("tempdir");
-        fs::write(tmp2.path().join(".gitignore"), ".graphtor/\n").expect("seed");
+        fs::write(tmp2.path().join(".gitignore"), ".kbdb/\n").expect("seed");
         assert!(
             !has_managed_gitignore_block(tmp2.path()),
-            "unmarked .graphtor/ line is not a managed block"
+            "unmarked .kbdb/ line is not a managed block"
         );
 
         // add writes the marker -> managed block present.

@@ -16,12 +16,12 @@ fn write_yaml(dir: &Path, name: &str, content: &str) {
 }
 
 fn graphtor_bin() -> String {
-    env!("CARGO_BIN_EXE_graphtor-docs").to_string()
+    env!("CARGO_BIN_EXE_kbdb").to_string()
 }
 
-/// Set up a temporary workspace with a `.graphtor/config` directory.
+/// Set up a temporary workspace with a `.kbdb/config` directory.
 fn setup_workspace(dir: &Path) {
-    let config_dir = dir.join(".graphtor/config");
+    let config_dir = dir.join(".kbdb/config");
     fs::create_dir_all(&config_dir).expect("create config dir");
 }
 
@@ -42,7 +42,7 @@ fn setup_cross_db_duplicate_workspace(workspace: &Path) -> std::path::PathBuf {
     .expect("write readme");
 
     let shared_str = shared.to_string_lossy().replace('\\', "/");
-    let config_dir = workspace.join(".graphtor/config");
+    let config_dir = workspace.join(".kbdb/config");
 
     write_yaml(
         &config_dir,
@@ -210,8 +210,8 @@ fn serve_exits_nonzero_on_malformed_registry() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let workspace = tmp.path();
 
-    // Create .graphtor/config/ with a syntactically invalid sources.yaml.
-    let config_dir = workspace.join(".graphtor/config");
+    // Create .kbdb/config/ with a syntactically invalid sources.yaml.
+    let config_dir = workspace.join(".kbdb/config");
     fs::create_dir_all(&config_dir).expect("create config dir");
     write_yaml(
         &config_dir,

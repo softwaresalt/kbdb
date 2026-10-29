@@ -1,8 +1,8 @@
 //! Workspace plugin installation and lifecycle management.
 //!
 //! This module provides commands for installing, diagnosing, upgrading, and
-//! uninstalling `graphtor-docs` as a per-project workspace plugin. All
-//! runtime artifacts are stored under a `.graphtor/` directory at the
+//! uninstalling `kbdb` as a per-project workspace plugin. All
+//! runtime artifacts are stored under a `.kbdb/` directory at the
 //! project root.
 //!
 //! # Sub-modules
@@ -16,7 +16,7 @@
 //! - [`upgrade`]: Binary upgrade workflow.
 //! - [`uninstall`]: Workspace removal.
 //! - [`lock`]: Advisory workspace lock file.
-//! - [`serve_discovery`]: `.graphtor/` root auto-discovery for `serve`/`status`.
+//! - [`serve_discovery`]: `.kbdb/` root auto-discovery for `serve`/`status`.
 //! - [`serve_preflight`]: typed pre-transport exit/error observability seam
 //!   for `cmd_serve` (`056.003-T`).
 

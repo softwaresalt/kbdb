@@ -249,11 +249,11 @@ mod tests {
                 path: PathBuf::from("/tmp/does-not-exist.yaml"),
             },
             ServePreflightExit::NoDatabasesToServe {
-                graphtor_dir: PathBuf::from("/tmp/.graphtor"),
+                graphtor_dir: PathBuf::from("/tmp/.kbdb"),
             },
             ServePreflightExit::DuplicateIntakeConflict,
             ServePreflightExit::PreV4Schema {
-                db_path: PathBuf::from("/tmp/.graphtor/graph.db"),
+                db_path: PathBuf::from("/tmp/.kbdb/graph.db"),
             },
             ServePreflightExit::NoPrimaryStore,
         ]

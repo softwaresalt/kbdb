@@ -8,7 +8,7 @@
 use std::process::Command;
 
 fn graphtor_bin() -> std::path::PathBuf {
-    std::path::PathBuf::from(env!("CARGO_BIN_EXE_graphtor-docs"))
+    std::path::PathBuf::from(env!("CARGO_BIN_EXE_kbdb"))
 }
 
 /// With `--no-embed`, neither `sync` nor `prewarm` should emit the legacy
@@ -23,7 +23,7 @@ fn no_embed_skips_resolution_in_sync_and_prewarm() {
         std::fs::write(docs_dir.join("guide.md"), b"---\ntitle: Guide\nsource: /test/source\ningested_at: 2026-01-01T00:00:00Z\ndoc_type: markdown\nsource_path: guide.md\n---\n# Guide\n\nbody.\n").expect("write guide");
 
         // Provide a minimal sources.yaml so the binary does not fail closed.
-        let config_dir = workspace.path().join(".graphtor").join("config");
+        let config_dir = workspace.path().join(".kbdb").join("config");
         std::fs::create_dir_all(&config_dir).expect("create config dir");
         std::fs::write(
             config_dir.join("sources.yaml"),
@@ -40,7 +40,7 @@ fn no_embed_skips_resolution_in_sync_and_prewarm() {
             .arg(cmd)
             .arg("--no-embed")
             .output()
-            .unwrap_or_else(|e| panic!("run graphtor-docs {cmd}: {e}"));
+            .unwrap_or_else(|e| panic!("run kbdb {cmd}: {e}"));
 
         assert!(
             output.status.success(),

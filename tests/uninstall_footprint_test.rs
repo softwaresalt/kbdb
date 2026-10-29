@@ -7,7 +7,7 @@ use std::process::Command;
 use serde_json::Value;
 
 fn graphtor_bin() -> std::path::PathBuf {
-    std::path::PathBuf::from(env!("CARGO_BIN_EXE_graphtor-docs"))
+    std::path::PathBuf::from(env!("CARGO_BIN_EXE_kbdb"))
 }
 
 #[test]
@@ -59,7 +59,7 @@ fn uninstall_preserves_a_dropped_db_end_to_end() {
         .expect("run graphtor-docs install --with-ingestion");
     assert!(install_output.status.success());
 
-    let dropped_db = ws.join(".graphtor").join("dropped.db");
+    let dropped_db = ws.join(".kbdb").join("dropped.db");
     std::fs::write(&dropped_db, b"marker").expect("write dropped db");
 
     let uninstall_output = Command::new(graphtor_bin())
@@ -120,8 +120,8 @@ fn uninstall_removes_the_emptied_workspace_root_end_to_end() {
     );
 
     assert!(
-        !ws.join(".graphtor").exists(),
-        "the emptied .graphtor/ workspace root must be removed once the lock is released: \
+        !ws.join(".kbdb").exists(),
+        "the emptied .kbdb/ workspace root must be removed once the lock is released: \
          stdout={}",
         String::from_utf8_lossy(&uninstall_output.stdout)
     );
@@ -131,7 +131,7 @@ fn uninstall_removes_the_emptied_workspace_root_end_to_end() {
 fn uninstall_json_enumerates_all_destructive_mutations() {
     // F5 regression: the plan/result JSON must enumerate EVERY destructive
     // mutation before execution — not just managed subdirectories, but also
-    // the `.gitignore` cleanup, the MCP config changes, and the `.graphtor/`
+    // the `.gitignore` cleanup, the MCP config changes, and the `.kbdb/`
     // root removal.
     let workspace = tempfile::tempdir().expect("tempdir");
     let ws = workspace.path();
@@ -142,7 +142,7 @@ fn uninstall_json_enumerates_all_destructive_mutations() {
         .current_dir(ws)
         .args(["install", "--with-ingestion"])
         .output()
-        .expect("run graphtor-docs install --with-ingestion");
+        .expect("run kbdb install --with-ingestion");
     assert!(
         install_output.status.success(),
         "install failed: stderr={}",
@@ -153,7 +153,7 @@ fn uninstall_json_enumerates_all_destructive_mutations() {
         .current_dir(ws)
         .args(["uninstall", "--confirm", "--json"])
         .output()
-        .expect("run graphtor-docs uninstall --confirm --json");
+        .expect("run kbdb uninstall --confirm --json");
     assert!(
         uninstall_output.status.success(),
         "uninstall failed: stderr={}",
@@ -182,12 +182,16 @@ fn uninstall_json_enumerates_all_destructive_mutations() {
     );
     assert_eq!(
         result["planned_root_removal"], true,
-        "the plan must record that the emptied .graphtor/ root will be removed: {stdout}"
+        "the plan must record that the emptied .kbdb/ root will be removed: {stdout}"
     );
     assert!(
-        result["removed"].as_array().is_some_and(|a| a
-            .iter()
-            .any(|p| p.as_str().unwrap_or_default().ends_with(".graphtor"))),
-        "the executed result must report the removed .graphtor/ root: {stdout}"
+        result["removed"]
+            .as_array()
+            .is_some_and(|a| a.iter().any(|p| std::path::Path::new(
+                p.as_str().unwrap_or_default()
+            )
+            .file_name()
+            .is_some_and(|name| name == ".kbdb"))),
+        "the executed result must report the removed .kbdb/ root: {stdout}"
     );
 }
