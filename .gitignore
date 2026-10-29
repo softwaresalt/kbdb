@@ -56,6 +56,7 @@ venv.bak/
 .cargo-home/
 .tmp-build/
 .scripts/__pycache__/
+.github/copilot/
 
 # mkdocs documentation
 /site
@@ -109,14 +110,14 @@ tmp/
 .autoharness/backups/
 .autoharness/staging/
 
-# graphtor workspace runtime (databases, state, cloned data)
-.graphtor/*.db
-.graphtor/sync_state.json
-.graphtor/data/
-.graphtor/bin/
-.graphtor/cache/
-.graphtor/logs/
-.graphtor/config/sources.yaml
+# kbdb workspace runtime (databases, state, cloned data)
+.kbdb/*.db
+.kbdb/sync_state.json
+.kbdb/data/
+.kbdb/bin/
+.kbdb/cache/
+.kbdb/logs/
+.kbdb/config/sources.yaml
 
 # backlogit runtime artifacts
 .backlogit/backlogit.db
@@ -126,8 +127,8 @@ tmp/
 .backlogit/logs/
 .backlogit/runtime/
 
-# graphtor-docs — managed by graphtor-docs install
-.graphtor/
+# kbdb — managed by kbdb install
+.kbdb/
 
 # Agent lock files (autoharness file-lock skill)
 .*.lock

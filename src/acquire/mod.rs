@@ -245,7 +245,7 @@ mod tests {
     fn execute_ignores_internal_v4_migration_snapshot_files() {
         let tmp = tempfile::tempdir().expect("tempdir");
         let root = tmp.path();
-        let data_root = root.join(".graphtor").join("data");
+        let data_root = root.join(".kbdb").join("data");
         fs::create_dir_all(&data_root).expect("create data root");
 
         let live_file = root.join("guide.md");

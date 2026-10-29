@@ -1,6 +1,6 @@
 //! Workspace `sources.yaml` initialization.
 //!
-//! Generates a template `sources.yaml` at `.graphtor/config/sources.yaml`
+//! Generates a template `sources.yaml` at `.kbdb/config/sources.yaml`
 //! with commented examples for Git and local sources. Idempotent: will not
 //! overwrite an existing file unless `force = true` is passed.
 
@@ -10,10 +10,10 @@ use std::path::Path;
 use graphtor_core::GraphtorError;
 
 /// Default template content for a new `sources.yaml`.
-const SOURCES_YAML_TEMPLATE: &str = r#"# graphtor-docs sources.yaml
+const SOURCES_YAML_TEMPLATE: &str = r#"# kbdb sources.yaml
 # Documentation source registry. Add local Markdown sources below.
 # Only docline-emitted standardized Markdown is accepted.
-# Run `graphtor-docs sync` to ingest all sources.
+# Run `kbdb sync` to ingest all sources.
 #
 # Supported source types:
 #   local — scan a local directory for standardized Markdown files
@@ -81,7 +81,7 @@ mod tests {
     #[test]
     fn creates_template() {
         let tmp = tempfile::tempdir().expect("tempdir");
-        let ws = tmp.path().join(".graphtor");
+        let ws = tmp.path().join(".kbdb");
         fs::create_dir_all(&ws).expect("create ws");
         let result = init_sources_yaml(&ws, false).expect("init");
         assert!(result.created);
@@ -93,7 +93,7 @@ mod tests {
     #[test]
     fn does_not_overwrite_without_force() {
         let tmp = tempfile::tempdir().expect("tempdir");
-        let ws = tmp.path().join(".graphtor");
+        let ws = tmp.path().join(".kbdb");
         fs::create_dir_all(&ws).expect("create ws");
         init_sources_yaml(&ws, false).expect("first");
         // Write custom content.
@@ -107,7 +107,7 @@ mod tests {
     #[test]
     fn force_overwrites() {
         let tmp = tempfile::tempdir().expect("tempdir");
-        let ws = tmp.path().join(".graphtor");
+        let ws = tmp.path().join(".kbdb");
         fs::create_dir_all(&ws).expect("create ws");
         let config = ws.join("config").join("sources.yaml");
         fs::create_dir_all(ws.join("config")).expect("mkdir");

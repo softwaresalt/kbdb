@@ -5,7 +5,7 @@
 //! search) and return the typed result structs produced by the `db` layer.
 //! They encapsulate the cross-store aggregation semantics — merge ordering,
 //! deduplication, source filtering, and result limits — so that both the MCP
-//! tool handlers in [`crate::mcp::server`] and the `graphtor-docs` CLI
+//! tool handlers in [`crate::mcp::server`] and the `kbdb` CLI
 //! subcommands execute *identical* query logic.
 //!
 //! # Design

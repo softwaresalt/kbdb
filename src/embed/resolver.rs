@@ -9,7 +9,7 @@
 //! This module centralizes the resolution policy:
 //!
 //! 1. Honour `--no-embed` (or equivalent flag) by skipping resolution.
-//! 2. If `GRAPHTOR_EMBED_MODEL_DIR` is set, load the model from that local
+//! 2. If `KBDB_EMBED_MODEL_DIR` is set, load the model from that local
 //!    directory (no network) via `EmbeddingModel::from_path`.
 //! 3. Otherwise attempt to load the canonical embedding model via the Hugging
 //!    Face Hub cache (`EmbeddingModel::load`).
@@ -43,7 +43,8 @@ pub const DEFAULT_MODEL_ID: &str = "sentence-transformers/all-MiniLM-L6-v2";
 /// supports air-gapped or offline operation and sidesteps Hub-download
 /// failures (for example, an outdated `hf-hub` client that cannot follow the
 /// Hub's current redirect responses).
-pub const MODEL_DIR_ENV: &str = "GRAPHTOR_EMBED_MODEL_DIR";
+pub const MODEL_DIR_ENV: &str = "KBDB_EMBED_MODEL_DIR";
+const LEGACY_MODEL_DIR_ENV: &str = "GRAPHTOR_EMBED_MODEL_DIR";
 
 /// Where the resolver should obtain the embedding model.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -125,7 +126,10 @@ pub fn resolve_embedding_model(
     caller: ResolverCaller,
     no_embed: bool,
 ) -> Result<Option<EmbeddingModel>, GraphtorError> {
-    let source = select_model_source(no_embed, std::env::var(MODEL_DIR_ENV).ok().as_deref());
+    let env_override = std::env::var(MODEL_DIR_ENV)
+        .or_else(|_| std::env::var(LEGACY_MODEL_DIR_ENV))
+        .ok();
+    let source = select_model_source(no_embed, env_override.as_deref());
     match source {
         ModelSource::Disabled => {
             info!(

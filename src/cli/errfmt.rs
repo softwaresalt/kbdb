@@ -8,7 +8,7 @@
 //! Caused by:
 //!   path violation: 'D:\docs' is outside the workspace root 'C:\Tools'
 //!
-//! hint: every source path in .graphtor/config/sources.yaml must resolve inside
+//! hint: every source path in .kbdb/config/sources.yaml must resolve inside
 //!       the current working directory ('C:\Tools'). ...
 //! ```
 //!
@@ -170,12 +170,12 @@ fn actionable_hint(err: &anyhow::Error) -> Option<String> {
         .find_map(|cause| cause.downcast_ref::<GraphtorError>())?;
     match graphtor {
         GraphtorError::PathViolation { allowed_root, .. } => Some(format!(
-            "the path must resolve inside the workspace root ('{}'). Run graphtor-docs from \
+            "the path must resolve inside the workspace root ('{}'). Run kbdb from \
              the directory that contains the target, or move the target inside the workspace.",
             allowed_root.display()
         )),
         GraphtorError::DatabaseLocked { .. } => Some(
-            "another graphtor-docs process may be running. Wait for it to finish, or remove \
+            "another kbdb process may be running. Wait for it to finish, or remove \
              the stale lock file if you are sure no process is active."
                 .to_string(),
         ),
@@ -268,8 +268,8 @@ fn format_embeddings_skipped_warning(chunks_created: usize, color: bool) -> Stri
          those chunks will not be found by semantic search."
     );
     out.push_str(
-        "\n  set GRAPHTOR_EMBED_MODEL_DIR to a local all-MiniLM-L6-v2 directory (or fix the \
-         Hugging Face cache) and re-run `graphtor-docs sync --full` to embed them.",
+        "\n  set KBDB_EMBED_MODEL_DIR to a local all-MiniLM-L6-v2 directory (or fix the \
+         Hugging Face cache) and re-run `kbdb sync --full` to embed them.",
     );
     out
 }
@@ -486,7 +486,7 @@ mod tests {
         assert!(out.contains("warning: embeddings were skipped"), "{out}");
         assert!(out.contains("4082 chunk"), "{out}");
         assert!(out.contains("without generating embeddings"), "{out}");
-        assert!(out.contains("GRAPHTOR_EMBED_MODEL_DIR"), "{out}");
+        assert!(out.contains("KBDB_EMBED_MODEL_DIR"), "{out}");
         assert!(out.contains("sync --full"), "{out}");
         // Must not overstate: chunks may retain vectors on incremental re-sync,
         // and semantic search fails (not "returns no results") without the model.

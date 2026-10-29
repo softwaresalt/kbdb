@@ -1457,7 +1457,7 @@ mod tests {
 
         let database_source = Source::Database(crate::DatabaseSource {
             id: "legacy".to_string(),
-            path: root.join(".graphtor").join("legacy.db"),
+            path: root.join(".kbdb").join("legacy.db"),
         });
         let state_path = root.join(".sync_state.json");
 
@@ -2719,7 +2719,7 @@ mod tests {
         let state_path = root.join("sync_state.json");
 
         let plan = AcquisitionPlan {
-            data_root: root.join(".graphtor").join("data"),
+            data_root: root.join(".kbdb").join("data"),
             allowed_root: root.to_path_buf(),
             sources: vec![PlannedSource {
                 source: Source::Local(LocalSource {
@@ -2807,7 +2807,7 @@ mod tests {
         fs::remove_file(&state_path).expect("remove state");
 
         let plan = AcquisitionPlan {
-            data_root: root.join(".graphtor").join("data"),
+            data_root: root.join(".kbdb").join("data"),
             allowed_root: root.to_path_buf(),
             sources: vec![PlannedSource {
                 source: source.clone(),
@@ -2836,7 +2836,7 @@ mod tests {
     /// Regression: `seed_sync_state_from_live_sources` passed `None` as
     /// `ignored_root` to `scan_tracked_source_mtimes`.  For a workspace-root
     /// source this caused stale snapshot markdown files under
-    /// `.graphtor/data/v4-migration-snapshots/` to be included in the seeded
+    /// `.kbdb/data/v4-migration-snapshots/` to be included in the seeded
     /// sync state.  On the next incremental run the snapshot path appeared as
     /// "deleted" (because the migration cleanup had removed the snapshot
     /// directory), and the delete path used the shared `source_path` frontmatter
@@ -2855,7 +2855,7 @@ mod tests {
         let root = temp.path();
         // Workspace-root source: source_dir equals the workspace root itself.
         let source_dir = root.to_path_buf();
-        let data_root = root.join(".graphtor").join("data");
+        let data_root = root.join(".kbdb").join("data");
         fs::create_dir_all(&data_root).expect("create data root");
 
         // ── 1. Create the live document at the workspace root ────────────
@@ -3051,7 +3051,7 @@ mod tests {
 
         // ── 3. Seed sync state from live sources (simulates regular --full) ─
         let plan = AcquisitionPlan {
-            data_root: root.join(".graphtor").join("data"),
+            data_root: root.join(".kbdb").join("data"),
             allowed_root: root.to_path_buf(),
             sources: vec![PlannedSource {
                 source: source.clone(),
@@ -3160,7 +3160,7 @@ mod tests {
         // The live scan sees only new.md; old.md is absent.
         // old.md's contract path "shared/guide.md" is now claimed by new.md.
         let plan = AcquisitionPlan {
-            data_root: root.join(".graphtor").join("data"),
+            data_root: root.join(".kbdb").join("data"),
             allowed_root: root.to_path_buf(),
             sources: vec![PlannedSource {
                 source: source.clone(),
@@ -3264,7 +3264,7 @@ mod tests {
 
         // ── 3. Seed sync state from live sources ─────────────────────────
         let plan = AcquisitionPlan {
-            data_root: root.join(".graphtor").join("data"),
+            data_root: root.join(".kbdb").join("data"),
             allowed_root: root.to_path_buf(),
             sources: vec![PlannedSource {
                 source: source.clone(),
@@ -3375,7 +3375,7 @@ mod tests {
         });
 
         let plan = AcquisitionPlan {
-            data_root: root.join(".graphtor").join("data"),
+            data_root: root.join(".kbdb").join("data"),
             allowed_root: root.to_path_buf(),
             sources: vec![PlannedSource {
                 source: source.clone(),

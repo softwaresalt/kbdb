@@ -588,7 +588,7 @@ mod tests {
         assert_eq!(
             served,
             vec![validate_path(&top_level, root.path()).unwrap()],
-            "only the top-level .graphtor/*.db entry should be discovered"
+            "only the top-level .kbdb/*.db entry should be discovered"
         );
     }
 
@@ -686,10 +686,10 @@ mod tests {
         // Characterizes `serve_explicit_db_path_without_registry_reaches_v4_gate`
         // (tests/explicit_db_target_no_registry_test.rs): an explicit
         // `--db-path` may live anywhere under the project root, not only
-        // inside `.graphtor/`. Auto-discovery must still validate it against
+        // inside `.kbdb/`. Auto-discovery must still validate it against
         // the broader `candidate_root`, not the narrower `scan_root`.
         let project_root = temp_root();
-        let graphtor_dir = project_root.path().join(".graphtor");
+        let graphtor_dir = project_root.path().join(".kbdb");
         fs::create_dir_all(&graphtor_dir).unwrap();
         let explicit_outside_graphtor = touch(project_root.path(), "explicit-pre-v4.db");
 
@@ -699,9 +699,7 @@ mod tests {
             std::slice::from_ref(&explicit_outside_graphtor),
             None,
         )
-        .expect(
-            "an explicit candidate outside .graphtor/ but inside the project root must validate",
-        );
+        .expect("an explicit candidate outside .kbdb/ but inside the project root must validate");
 
         assert_eq!(
             served,
@@ -788,21 +786,21 @@ mod tests {
     fn explicit_database_entry_outside_graphtor_but_inside_project_root_is_rejected() {
         // LOCKED plan requirement (P1-T6): an explicit `type: database` entry
         // must stay within the SAME authorized root as auto-discovery
-        // (`.graphtor/` — `scan_root`), not merely the broader project root
+        // (`.kbdb/` — `scan_root`), not merely the broader project root
         // (`candidate_root`) that `existing_candidates`/`--db-path` are
         // allowed to use. A db file dropped in the project root but OUTSIDE
-        // `.graphtor/` must be rejected with a validation error (050.006-T (b)),
+        // `.kbdb/` must be rejected with a validation error (050.006-T (b)),
         // never silently ignored, even though it is still fully within
         // `candidate_root`.
         let project_root = temp_root();
-        let scan_root = project_root.path().join(".graphtor");
-        fs::create_dir_all(&scan_root).expect("create .graphtor");
+        let scan_root = project_root.path().join(".kbdb");
+        fs::create_dir_all(&scan_root).expect("create .kbdb");
         let outside_graphtor_db = touch(project_root.path(), "outside.db");
         let config = config_with(vec![database_source("outside-alias", &outside_graphtor_db)]);
 
         let err = discover_served_databases(&scan_root, project_root.path(), &[], Some(&config))
             .expect_err(
-                "an explicit type: database entry outside .graphtor/ (but inside the project \
+                "an explicit type: database entry outside .kbdb/ (but inside the project \
                  root) must be rejected with a validation error — it must stay within the same \
                  authorized root as auto-discovery, not the broader project root",
             );
@@ -1209,7 +1207,7 @@ mod tests {
         // A `.db` sitting in the external target the link points at.
         touch(external.path(), "escaped.db");
 
-        let scan_root = project.path().join(".graphtor");
+        let scan_root = project.path().join(".kbdb");
         if try_symlink_dir(external.path(), &scan_root).is_err() {
             return; // platform refused symlink creation — skip
         }
@@ -1217,13 +1215,13 @@ mod tests {
         let result = discover_served_databases(&scan_root, project.path(), &[], None);
         assert!(
             matches!(result, Err(GraphtorError::PathViolation { .. })),
-            "a symlinked .graphtor root escaping the project must be rejected: {result:?}"
+            "a symlinked .kbdb root escaping the project must be rejected: {result:?}"
         );
     }
 
     #[test]
     fn symlinked_graphtor_scan_root_pointing_inside_project_is_still_rejected() {
-        // Isolation guard for the `is_reparse_point` check: a `.graphtor` root
+        // Isolation guard for the `is_reparse_point` check: a `.kbdb` root
         // that is a symlink/junction whose target is INSIDE the project would
         // PASS `validate_path` (canonicalization stays within candidate_root),
         // so ONLY the `is_reparse_point` guard rejects it. This test fails if
@@ -1231,11 +1229,11 @@ mod tests {
         // which `validate_path` also rejects.
         let project = temp_root();
         // A real in-project directory the link will point at, holding a `.db`.
-        let real_dir = project.path().join(".graphtor_real");
+        let real_dir = project.path().join(".kbdb_real");
         fs::create_dir_all(&real_dir).expect("create in-project real dir");
         touch(&real_dir, "inside.db");
 
-        let scan_root = project.path().join(".graphtor");
+        let scan_root = project.path().join(".kbdb");
         if try_symlink_dir(&real_dir, &scan_root).is_err() {
             return; // platform refused symlink creation — skip
         }
@@ -1250,21 +1248,21 @@ mod tests {
         let result = discover_served_databases(&scan_root, project.path(), &[], None);
         assert!(
             matches!(result, Err(GraphtorError::PathViolation { .. })),
-            "a symlinked .graphtor root must be rejected even when its target is in-project: {result:?}"
+            "a symlinked .kbdb root must be rejected even when its target is in-project: {result:?}"
         );
     }
 
     #[test]
     fn real_graphtor_scan_root_still_discovers_after_containment_guard() {
         // Regression guard: the containment check must NOT reject a normal,
-        // real `.graphtor` directory that lives inside the project.
+        // real `.kbdb` directory that lives inside the project.
         let project = temp_root();
-        let scan_root = project.path().join(".graphtor");
-        fs::create_dir_all(&scan_root).expect("create real .graphtor");
+        let scan_root = project.path().join(".kbdb");
+        fs::create_dir_all(&scan_root).expect("create real .kbdb");
         let dropped = touch(&scan_root, "real.db");
 
         let served = discover_served_databases(&scan_root, project.path(), &[], None)
-            .expect("a real in-project .graphtor root must be accepted");
+            .expect("a real in-project .kbdb root must be accepted");
         assert_eq!(served.len(), 1);
         assert_eq!(served[0], validate_path(&dropped, project.path()).unwrap());
     }

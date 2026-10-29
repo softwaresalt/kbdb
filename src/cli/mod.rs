@@ -1,4 +1,4 @@
-//! Command-line interface definitions for `graphtor-docs`.
+//! Command-line interface definitions for `kbdb`.
 //!
 //! Defines the top-level [`Cli`] struct and [`Command`] enum parsed by
 //! [`clap`]. Each variant maps to a distinct binary subcommand.
@@ -29,7 +29,7 @@ pub enum OutputFormat {
 /// `GraphRAG` documentation index — MCP plugin server and ingestion pipeline.
 #[derive(Debug, Parser)]
 #[command(
-    name = "graphtor-docs",
+    name = "kbdb",
     version,
     about = "GraphRAG documentation index — MCP plugin and ingestion pipeline",
     long_about = None
@@ -51,20 +51,14 @@ pub struct Cli {
 
     /// Path to the `sources.yaml` documentation registry.
     ///
-    /// Defaults to `.graphtor/config/sources.yaml` relative to the current
+    /// Defaults to `.kbdb/config/sources.yaml` relative to the current
     /// working directory.
-    #[arg(
-        short,
-        long,
-        global = true,
-        env = "GRAPHTOR_SOURCES",
-        value_name = "FILE"
-    )]
+    #[arg(short, long, global = true, env = "KBDB_SOURCES", value_name = "FILE")]
     pub config: Option<PathBuf>,
 
     /// Path to the `CozoDB` database file.
     ///
-    /// Defaults to `.graphtor/graph.db` relative to the current working
+    /// Defaults to `.kbdb/graph.db` relative to the current working
     /// directory.
     ///
     /// `--data-dir` is a deprecated alias for this flag; use `--db-path` instead.
@@ -73,7 +67,7 @@ pub struct Cli {
         long = "db-path",
         alias = "data-dir",
         global = true,
-        env = "GRAPHTOR_DB_PATH",
+        env = "KBDB_DB_PATH",
         value_name = "FILE"
     )]
     pub db_path: Option<PathBuf>,
@@ -108,15 +102,15 @@ pub enum Command {
 
     /// Generate a template `sources.yaml` in the current directory.
     ///
-    /// Creates a `.graphtor/config/sources.yaml` with commented examples for
+    /// Creates a `.kbdb/config/sources.yaml` with commented examples for
     /// Git and local sources. Does not overwrite an existing file.
     Init(InitArgs),
 
-    /// Install graphtor-docs into the current workspace.
+    /// Install kbdb into the current workspace.
     ///
-    /// By DEFAULT, creates ONLY the `.graphtor/` root directory plus a
+    /// By DEFAULT, creates ONLY the `.kbdb/` root directory plus a
     /// minimal serve `.mcp.json` entry — a consumption-first footprint for
-    /// serving an already-generated `.db` file dropped into `.graphtor/`.
+    /// serving an already-generated `.db` file dropped into `.kbdb/`.
     /// No `sources.yaml`, no `bin/`/`data/`/`cache/`/`config/`/`logs/`
     /// subdirectories, no copied binary, and no `.gitignore` management.
     ///
@@ -134,20 +128,20 @@ pub enum Command {
     /// report.
     Doctor,
 
-    /// Upgrade the installed graphtor-docs binary.
+    /// Upgrade the installed kbdb binary.
     ///
-    /// Replaces the binary in `.graphtor/bin/` with the currently running
+    /// Replaces the binary in `.kbdb/bin/` with the currently running
     /// binary. Preserves config and data. Use `--force` to replace even when
     /// the installed binary appears up-to-date.
     Upgrade(UpgradeArgs),
 
-    /// Uninstall graphtor-docs from the current workspace.
+    /// Uninstall kbdb from the current workspace.
     ///
-    /// Removes `.graphtor/` and MCP client config files. Requires
+    /// Removes `.kbdb/` and MCP client config files. Requires
     /// `--confirm`. Cleans `.gitignore` entries.
     Uninstall(UninstallArgs),
 
-    /// Print a JSON-RPC 2.0 manifest of graphtor-docs MCP tools.
+    /// Print a JSON-RPC 2.0 manifest of kbdb MCP tools.
     ///
     /// Without `--json`, prints a human-readable table of tool names and
     /// descriptions.  With `--json`, emits a `tools/list`-compatible response
@@ -225,7 +219,7 @@ pub struct SyncArgs {
 
     /// Root directory for derived data stores (graph.db, cache).
     ///
-    /// Defaults to `.graphtor/data` relative to the current working directory
+    /// Defaults to `.kbdb/data` relative to the current working directory
     /// when not specified.
     #[arg(long, value_name = "DIR")]
     pub data_root: Option<PathBuf>,
@@ -293,7 +287,7 @@ pub struct InstallArgs {
     /// Create the full ingestion-capable scaffold instead of the
     /// consumption-first minimal default.
     ///
-    /// Without this flag, `install` creates ONLY the `.graphtor/` root
+    /// Without this flag, `install` creates ONLY the `.kbdb/` root
     /// directory plus a minimal serve `.mcp.json` entry. With this flag,
     /// `install` creates `bin/`, `data/`, `cache/`, `config/`, `logs/`,
     /// copies the binary, writes a template `sources.yaml`, and manages
@@ -455,7 +449,7 @@ mod tests {
             "help must document the --with-ingestion opt-in flag: {help}"
         );
         assert!(
-            !help.contains("Creates the `.graphtor/` directory scaffold: `bin/`, `data/`,"),
+            !help.contains("Creates the `.kbdb/` directory scaffold: `bin/`, `data/`,"),
             "help must no longer claim the default install always creates the full \
              scaffold: {help}"
         );

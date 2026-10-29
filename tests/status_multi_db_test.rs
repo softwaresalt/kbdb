@@ -7,7 +7,7 @@ use serde_json::Value;
 
 /// Helper: path to the compiled binary.
 fn graphtor_bin() -> std::path::PathBuf {
-    std::path::PathBuf::from(env!("CARGO_BIN_EXE_graphtor-docs"))
+    std::path::PathBuf::from(env!("CARGO_BIN_EXE_kbdb"))
 }
 
 #[test]
@@ -22,7 +22,7 @@ fn status_lists_sources_from_multiple_databases() {
     std::fs::write(src_a.join("a.md"), b"---\ntitle: A\nsource: /test/s\ningested_at: 2026-01-01T00:00:00Z\ndoc_type: markdown\nsource_path: a.md\n---\n# A\n\nContent A.\n").expect("write a");
     std::fs::write(src_b.join("b.md"), b"---\ntitle: B\nsource: /test/s\ningested_at: 2026-01-01T00:00:00Z\ndoc_type: markdown\nsource_path: b.md\n---\n# B\n\nContent B.\n").expect("write b");
 
-    let graphtor_dir = ws.join(".graphtor");
+    let graphtor_dir = ws.join(".kbdb");
     let config_dir = graphtor_dir.join("config");
     std::fs::create_dir_all(&config_dir).expect("create config dir");
     let sources_yaml = format!(
@@ -87,7 +87,7 @@ fn status_succeeds_while_database_lock_is_held() {
     std::fs::write(src_a.join("a.md"), b"---\ntitle: A\nsource: /test/s\ningested_at: 2026-01-01T00:00:00Z\ndoc_type: markdown\nsource_path: a.md\n---\n# A\n\nContent A.\n").expect("write a");
     std::fs::write(src_b.join("b.md"), b"---\ntitle: B\nsource: /test/s\ningested_at: 2026-01-01T00:00:00Z\ndoc_type: markdown\nsource_path: b.md\n---\n# B\n\nContent B.\n").expect("write b");
 
-    let graphtor_dir = ws.join(".graphtor");
+    let graphtor_dir = ws.join(".kbdb");
     let config_dir = graphtor_dir.join("config");
     std::fs::create_dir_all(&config_dir).expect("create config dir");
     let sources_yaml = format!(
@@ -152,7 +152,7 @@ fn status_json_single_database_always_emits_databases_array() {
     std::fs::create_dir_all(&docs_dir).expect("create docs dir");
     std::fs::write(docs_dir.join("guide.md"), b"---\ntitle: Guide\nsource: /test/s\ningested_at: 2026-01-01T00:00:00Z\ndoc_type: markdown\nsource_path: guide.md\n---\n# Guide\n\nHello world.\n").expect("write guide");
 
-    let config_dir = ws.join(".graphtor").join("config");
+    let config_dir = ws.join(".kbdb").join("config");
     std::fs::create_dir_all(&config_dir).expect("create config dir");
     std::fs::write(
         config_dir.join("sources.yaml"),
@@ -298,14 +298,14 @@ fn status_json_fails_closed_when_explicit_config_is_missing() {
 fn status_reports_auto_discovered_dropped_db_with_no_source_registry() {
     // Zero-config consumption workspace: no `sources.yaml` anywhere, just a
     // pre-built v4 database with a populated `doc_sources` row dropped
-    // directly into `.graphtor/`. `status` must resolve the SAME shared
+    // directly into `.kbdb/`. `status` must resolve the SAME shared
     // `serve_discovery` auto-discovery set that `serve` uses (P1-T5), so it
     // reports this database and synthesizes its source metadata from the
     // database's own stored `doc_sources` rather than an empty list.
     let workspace = tempfile::tempdir().expect("tempdir");
     let ws = workspace.path();
-    let graphtor_dir = ws.join(".graphtor");
-    std::fs::create_dir_all(&graphtor_dir).expect("create .graphtor");
+    let graphtor_dir = ws.join(".kbdb");
+    std::fs::create_dir_all(&graphtor_dir).expect("create .kbdb");
 
     let dropped_db = graphtor_dir.join("dropped.db");
     let store =
@@ -357,8 +357,8 @@ fn list_sources_cli_reports_auto_discovered_dropped_db_with_no_source_registry()
     // resolve the identical discovered-db set (P1-T5).
     let workspace = tempfile::tempdir().expect("tempdir");
     let ws = workspace.path();
-    let graphtor_dir = ws.join(".graphtor");
-    std::fs::create_dir_all(&graphtor_dir).expect("create .graphtor");
+    let graphtor_dir = ws.join(".kbdb");
+    std::fs::create_dir_all(&graphtor_dir).expect("create .kbdb");
 
     let dropped_db = graphtor_dir.join("dropped.db");
     let store =
@@ -412,7 +412,7 @@ fn status_fails_closed_on_malformed_registry() {
     // phantom primary-database output.
     let workspace = tempfile::tempdir().expect("tempdir");
     let ws = workspace.path();
-    let config_dir = ws.join(".graphtor").join("config");
+    let config_dir = ws.join(".kbdb").join("config");
     std::fs::create_dir_all(&config_dir).expect("create config dir");
     std::fs::write(
         config_dir.join("sources.yaml"),

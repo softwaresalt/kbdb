@@ -7,7 +7,7 @@ use graphtor_core::db::{upsert_source, DataStore, SourceRecord};
 use serde_json::Value;
 
 fn graphtor_bin() -> PathBuf {
-    PathBuf::from(env!("CARGO_BIN_EXE_graphtor-docs"))
+    PathBuf::from(env!("CARGO_BIN_EXE_kbdb"))
 }
 
 fn seed_status_database(db_path: &Path, cwd: &Path) {
@@ -131,7 +131,7 @@ fn serve_explicit_db_path_without_registry_reaches_v4_gate() {
         "serve should reach the migration gate for an explicit db target without a registry: {stderr}"
     );
     assert!(
-        stderr.contains("run `graphtor-docs sync` to rebuild the index before starting serve"),
+        stderr.contains("run `kbdb sync` to rebuild the index before starting serve"),
         "serve should explain how to clear the migration gate: {stderr}"
     );
     assert!(

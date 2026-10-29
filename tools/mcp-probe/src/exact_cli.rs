@@ -106,9 +106,9 @@ use sysinfo::{Pid, ProcessRefreshKind, System, UpdateKind};
 /// verifier -- or `T4` -- should type to cross-check identity
 /// interactively, rather than attempting to fabricate an automated
 /// equivalent that does not exist.
-pub const MANUAL_VERIFICATION_INVOCATION: &str = "/mcp show graphtor-docs";
+pub const MANUAL_VERIFICATION_INVOCATION: &str = "/mcp show kbdb";
 
-const DEFAULT_ENTRY_NAME: &str = "graphtor-docs";
+const DEFAULT_ENTRY_NAME: &str = "kbdb";
 const DEFAULT_LEG_DEADLINE_SECS: u64 = 45;
 const DEFAULT_GATE1_DEADLINE_SECS: u64 = 15;
 /// Absolute cap on bytes captured in memory from a child's stdout via
@@ -2274,12 +2274,12 @@ mod tests {
     #[test]
     fn extract_last_mcp_status_finds_last_matching_transition() {
         let stdout = "\
-{\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"graphtor-docs\",\"status\":\"pending\"}}
+{\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"kbdb\",\"status\":\"pending\"}}
 {\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"other\",\"status\":\"connected\"}}
-{\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"graphtor-docs\",\"status\":\"connected\"}}
+{\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"kbdb\",\"status\":\"connected\"}}
 {\"type\":\"result\",\"exitCode\":0}
 ";
-        let (status, exit_code) = extract_last_mcp_status(stdout, "graphtor-docs");
+        let (status, exit_code) = extract_last_mcp_status(stdout, "kbdb");
         assert_eq!(status.as_deref(), Some("connected"));
         assert_eq!(exit_code, Some(0));
     }
@@ -2287,15 +2287,15 @@ mod tests {
     #[test]
     fn extract_last_mcp_status_handles_no_matching_entry() {
         let stdout = "{\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"other\",\"status\":\"connected\"}}\n";
-        let (status, exit_code) = extract_last_mcp_status(stdout, "graphtor-docs");
+        let (status, exit_code) = extract_last_mcp_status(stdout, "kbdb");
         assert_eq!(status, None);
         assert_eq!(exit_code, None);
     }
 
     #[test]
     fn extract_last_mcp_status_ignores_unparseable_lines() {
-        let stdout = "not json\n{\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"graphtor-docs\",\"status\":\"connected\"}}\n";
-        let (status, _) = extract_last_mcp_status(stdout, "graphtor-docs");
+        let stdout = "not json\n{\"type\":\"session.mcp_server_status_changed\",\"data\":{\"serverName\":\"kbdb\",\"status\":\"connected\"}}\n";
+        let (status, _) = extract_last_mcp_status(stdout, "kbdb");
         assert_eq!(status.as_deref(), Some("connected"));
     }
 

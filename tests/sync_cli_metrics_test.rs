@@ -11,7 +11,7 @@ fn sync_metrics_flag_emits_raw_json_metrics() {
     std::fs::create_dir_all(&docs_dir).expect("create docs dir");
     std::fs::write(docs_dir.join("guide.md"), b"---\ntitle: Guide\nsource: /test/s\ningested_at: 2026-01-01T00:00:00Z\ndoc_type: markdown\nsource_path: guide.md\n---\n# Guide\n\nHello world.\n").expect("write guide");
 
-    let config_dir = workspace.path().join(".graphtor").join("config");
+    let config_dir = workspace.path().join(".kbdb").join("config");
     std::fs::create_dir_all(&config_dir).expect("create config dir");
     std::fs::write(
         config_dir.join("sources.yaml"),
@@ -21,7 +21,7 @@ fn sync_metrics_flag_emits_raw_json_metrics() {
 
     let db_path = workspace.path().join("graph.db");
 
-    let exe = std::path::PathBuf::from(env!("CARGO_BIN_EXE_graphtor-docs"));
+    let exe = std::path::PathBuf::from(env!("CARGO_BIN_EXE_kbdb"));
 
     let output = Command::new(&exe)
         .current_dir(workspace.path())

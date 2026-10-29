@@ -1,6 +1,6 @@
 //! Workspace upgrade workflow.
 //!
-//! Replaces the installed binary in `.graphtor/bin/` with the currently
+//! Replaces the installed binary in `.kbdb/bin/` with the currently
 //! running binary. Preserves config and data directories.
 
 use std::fs;
@@ -30,14 +30,14 @@ pub struct UpgradeResult {
 
 /// Upgrade the installed binary in the workspace.
 ///
-/// Copies the running binary over `.graphtor/bin/graphtor-docs[.exe]`.
+/// Copies the running binary over `.kbdb/bin/kbdb[.exe]`.
 ///
 /// When `force` is `false`, computes the SHA-256 hash of both the running
 /// and installed binaries and skips the copy when they match.  Pass
 /// `force = true` to always replace regardless of content.
 ///
 /// A consumption-first MINIMAL install (P2-T1) has no managed binary to
-/// upgrade at all — `.graphtor/bin/` was never created — so this is a safe
+/// upgrade at all — `.kbdb/bin/` was never created — so this is a safe
 /// no-op success (never an error, and never creates a `bin/` scaffold as a
 /// side effect) regardless of `force`. A full install upgrades exactly as
 /// before.
@@ -46,7 +46,7 @@ pub struct UpgradeResult {
 ///
 /// Returns [`GraphtorError::Config`] on I/O failure or when the running
 /// binary path cannot be determined. Returns [`GraphtorError::PathViolation`]
-/// when the installed-binary destination — the `.graphtor/bin/` directory or
+/// when the installed-binary destination — the `.kbdb/bin/` directory or
 /// the binary file itself — is a symlink or junction, since copying through a
 /// linked destination would escape the workspace.
 pub fn upgrade(workspace_dir: &Path, force: bool) -> Result<UpgradeResult, GraphtorError> {
@@ -60,7 +60,7 @@ pub fn upgrade(workspace_dir: &Path, force: bool) -> Result<UpgradeResult, Graph
     if !workspace_dir.is_dir() {
         return Err(GraphtorError::Config {
             message: format!(
-                "no {} directory found; run `graphtor-docs install` first",
+                "no {} directory found; run `kbdb install` first",
                 crate::workspace::paths::GRAPHTOR_DIR
             ),
             field: None,
@@ -73,7 +73,7 @@ pub fn upgrade(workspace_dir: &Path, force: bool) -> Result<UpgradeResult, Graph
         return Ok(UpgradeResult {
             upgraded: false,
             message: "consumption-first minimal install has no managed binary to upgrade \
-                      (graphtor-docs resolves via PATH)"
+                      (kbdb resolves via PATH)"
                 .to_string(),
         });
     }
@@ -208,7 +208,7 @@ mod tests {
         let msg = err.to_string();
         assert!(
             msg.contains("install"),
-            "error must point the operator at `graphtor-docs install`: {msg}"
+            "error must point the operator at `kbdb install`: {msg}"
         );
     }
 
@@ -267,7 +267,7 @@ mod tests {
         let external = tempfile::tempdir().expect("external tempdir");
         // A foreign binary at the copy destination inside the link target. The
         // guard must reject before the copy, so this survives byte-for-byte.
-        let foreign_bin = external.path().join("graphtor-docs.exe");
+        let foreign_bin = external.path().join("kbdb.exe");
         fs::write(&foreign_bin, b"foreign").expect("seed foreign binary");
 
         let ws = tmp.path().join(crate::workspace::paths::GRAPHTOR_DIR);

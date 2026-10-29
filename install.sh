@@ -1,32 +1,32 @@
 #!/usr/bin/env sh
-# install.sh — graphtor-docs installer for macOS and Linux
+# install.sh — kbdb installer for macOS and Linux
 #
 # Usage:
 #   curl -sSf https://raw.githubusercontent.com/softwaresalt/graphtor-docs/main/install.sh | sh
 #
 # Environment variables (optional overrides):
-#   GRAPHTOR_INSTALL_DIR  — where to place the binary (default: ~/.local/bin)
-#   GRAPHTOR_VERSION      — pin a specific release tag  (default: latest stable)
+#   KBDB_INSTALL_DIR  — where to place the binary (default: ~/.local/bin)
+#   KBDB_VERSION      — pin a specific release tag  (default: latest stable)
 #
 # The installer:
 #   1. Detects OS and CPU architecture
 #   2. Maps them to the corresponding Rust target triple
-#   3. Fetches the latest stable GitHub release tag (or uses GRAPHTOR_VERSION)
+#   3. Fetches the latest stable GitHub release tag (or uses KBDB_VERSION)
 #   4. Downloads the .tar.gz archive and SHA256SUMS
 #   5. Verifies the checksum
-#   6. Extracts the binary to GRAPHTOR_INSTALL_DIR
+#   6. Extracts the binary to KBDB_INSTALL_DIR
 #   7. Prints PATH guidance if the install dir is not already on PATH
 
 set -eu
 
 REPO="softwaresalt/graphtor-docs"
-BINARY="graphtor-docs"
+BINARY="kbdb"
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
-info()  { printf '\033[0;34m[graphtor]\033[0m %s\n' "$*"; }
-warn()  { printf '\033[0;33m[graphtor]\033[0m %s\n' "$*" >&2; }
-error() { printf '\033[0;31m[graphtor]\033[0m %s\n' "$*" >&2; exit 1; }
+info()  { printf '\033[0;34m[kbdb]\033[0m %s\n' "$*"; }
+warn()  { printf '\033[0;33m[kbdb]\033[0m %s\n' "$*" >&2; }
+error() { printf '\033[0;31m[kbdb]\033[0m %s\n' "$*" >&2; exit 1; }
 
 need() {
     command -v "$1" >/dev/null 2>&1 || error "Required tool not found: $1. Please install it and try again."
@@ -56,7 +56,7 @@ case "${OS}" in
             x86_64)  TARGET="x86_64-unknown-linux-gnu" ;;
             aarch64)
                 error "Pre-built Linux/aarch64 binaries are not yet published. Build from source instead:
-  cargo install --git https://github.com/softwaresalt/graphtor-docs --bin graphtor-docs --locked"
+  cargo install --git https://github.com/softwaresalt/graphtor-docs --bin kbdb --locked"
                 ;;
             *) error "Unsupported Linux architecture: ${ARCH}" ;;
         esac
@@ -74,9 +74,10 @@ esac
 info "Detected platform: ${OS}/${ARCH} → target ${TARGET}"
 
 # ── Version resolution ────────────────────────────────────────────────────────
-if [ -z "${GRAPHTOR_VERSION:-}" ]; then
+KBDB_VERSION="${KBDB_VERSION:-${GRAPHTOR_VERSION:-}}"
+if [ -z "${KBDB_VERSION}" ]; then
     info "Resolving latest stable release…"
-    GRAPHTOR_VERSION="$(
+    KBDB_VERSION="$(
         curl -sSf "https://api.github.com/repos/${REPO}/releases/latest" \
           | grep '"tag_name"' \
           | head -1 \
@@ -84,17 +85,17 @@ if [ -z "${GRAPHTOR_VERSION:-}" ]; then
     )"
 fi
 
-[ -n "${GRAPHTOR_VERSION}" ] || error "Could not determine the latest release tag. Check your network connection."
+[ -n "${KBDB_VERSION}" ] || error "Could not determine the latest release tag. Check your network connection."
 
-info "Installing ${BINARY} ${GRAPHTOR_VERSION}…"
+info "Installing ${BINARY} ${KBDB_VERSION}…"
 
 # ── Install directory ─────────────────────────────────────────────────────────
-INSTALL_DIR="${GRAPHTOR_INSTALL_DIR:-${HOME}/.local/bin}"
+INSTALL_DIR="${KBDB_INSTALL_DIR:-${GRAPHTOR_INSTALL_DIR:-${HOME}/.local/bin}}"
 mkdir -p "${INSTALL_DIR}"
 
 # ── Download ──────────────────────────────────────────────────────────────────
-BASE_URL="https://github.com/${REPO}/releases/download/${GRAPHTOR_VERSION}"
-ARCHIVE="${BINARY}-${GRAPHTOR_VERSION}-${TARGET}.tar.gz"
+BASE_URL="https://github.com/${REPO}/releases/download/${KBDB_VERSION}"
+ARCHIVE="${BINARY}-${KBDB_VERSION}-${TARGET}.tar.gz"
 SUMS_FILE="SHA256SUMS"
 
 TMP="$(mktemp -d)"

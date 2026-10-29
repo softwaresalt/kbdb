@@ -1,6 +1,6 @@
 //! Cross-platform workspace path resolution.
 //!
-//! Resolves the `.graphtor/` workspace root by walking up the directory tree
+//! Resolves the `.kbdb/` workspace root by walking up the directory tree
 //! from the current working directory. Handles Windows UNC paths, macOS
 //! case-insensitive filesystems, and Linux symlinks. Paths are stored with
 //! forward-slash separators for portability but accessed via native
@@ -11,9 +11,9 @@ use std::path::{Component, Path, PathBuf};
 use graphtor_core::GraphtorError;
 
 /// Name of the workspace directory created inside a project root.
-pub const GRAPHTOR_DIR: &str = ".graphtor";
+pub const GRAPHTOR_DIR: &str = ".kbdb";
 
-/// Sub-directories created under `.graphtor/`.
+/// Sub-directories created under `.kbdb/`.
 pub const GRAPHTOR_SUBDIRS: &[&str] = &["bin", "data", "cache", "config", "logs"];
 
 /// The ingestion-scaffold sub-directories: the subset of [`GRAPHTOR_SUBDIRS`]
@@ -25,15 +25,15 @@ pub const GRAPHTOR_SUBDIRS: &[&str] = &["bin", "data", "cache", "config", "logs"
 /// valid consumption-only workspace as a (broken) full install.
 pub const GRAPHTOR_INGESTION_SUBDIRS: &[&str] = &["bin", "data", "cache", "logs"];
 
-/// Locate the `.graphtor/` workspace directory.
+/// Locate the `.kbdb/` workspace directory.
 ///
-/// Searches upward from `start_dir` until a `.graphtor/` directory is found
-/// or the filesystem root is reached. Returns the path to the `.graphtor/`
+/// Searches upward from `start_dir` until a `.kbdb/` directory is found
+/// or the filesystem root is reached. Returns the path to the `.kbdb/`
 /// directory (not the project root).
 ///
 /// # Errors
 ///
-/// Returns [`GraphtorError::Config`] when no `.graphtor/` directory is found.
+/// Returns [`GraphtorError::Config`] when no `.kbdb/` directory is found.
 pub fn find_workspace_dir(start_dir: &Path) -> Result<PathBuf, GraphtorError> {
     let canonical = start_dir
         .canonicalize()
@@ -52,9 +52,7 @@ pub fn find_workspace_dir(start_dir: &Path) -> Result<PathBuf, GraphtorError> {
             Some(parent) => current = parent,
             None => {
                 return Err(GraphtorError::Config {
-                    message: format!(
-                        "no {GRAPHTOR_DIR} directory found; run `graphtor-docs install` first"
-                    ),
+                    message: format!("no {GRAPHTOR_DIR} directory found; run `kbdb install` first"),
                     field: None,
                 })
             }
@@ -62,7 +60,7 @@ pub fn find_workspace_dir(start_dir: &Path) -> Result<PathBuf, GraphtorError> {
     }
 }
 
-/// Resolve the project root (parent of `.graphtor/`) from the current
+/// Resolve the project root (parent of `.kbdb/`) from the current
 /// working directory.
 ///
 /// # Errors
@@ -137,7 +135,7 @@ mod tests {
     fn find_workspace_dir_finds_parent() {
         let tmp = tempfile::tempdir().expect("tempdir");
         let ws = tmp.path().join(GRAPHTOR_DIR);
-        std::fs::create_dir_all(&ws).expect("create .graphtor");
+        std::fs::create_dir_all(&ws).expect("create .kbdb");
         // Start from a nested subdir.
         let sub = tmp.path().join("a").join("b");
         std::fs::create_dir_all(&sub).expect("create subdir");

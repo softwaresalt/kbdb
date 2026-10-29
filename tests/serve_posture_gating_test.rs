@@ -14,7 +14,7 @@ use std::process::{Command, Stdio};
 use graphtor_core::db::DataStore;
 
 fn graphtor_bin() -> PathBuf {
-    PathBuf::from(env!("CARGO_BIN_EXE_graphtor-docs"))
+    PathBuf::from(env!("CARGO_BIN_EXE_kbdb"))
 }
 
 /// Build a populated, fully-checkpointed v4 fixture database at `db_path`.
@@ -96,7 +96,7 @@ fn run_serve_with_closed_stdin_and_args(
 }
 
 fn write_sources_yaml(workspace: &Path, contents: &str) {
-    let config_dir = workspace.join(".graphtor").join("config");
+    let config_dir = workspace.join(".kbdb").join("config");
     std::fs::create_dir_all(&config_dir).expect("create config dir");
     std::fs::write(config_dir.join("sources.yaml"), contents).expect("write sources.yaml");
 }
@@ -106,8 +106,8 @@ fn write_sources_yaml(workspace: &Path, contents: &str) {
 #[test]
 fn pure_consumption_workspace_opens_only_engine_readonly_and_skips_sync() {
     let workspace = tempfile::tempdir().expect("tempdir");
-    let graphtor_dir = workspace.path().join(".graphtor");
-    std::fs::create_dir_all(&graphtor_dir).expect("create .graphtor");
+    let graphtor_dir = workspace.path().join(".kbdb");
+    std::fs::create_dir_all(&graphtor_dir).expect("create .kbdb");
     let dropped = graphtor_dir.join("dropped.db");
     build_v4_fixture(&dropped, workspace.path());
 
@@ -155,7 +155,7 @@ fn mixed_workspace_gates_generation_and_readonly_independently() {
         "sources:\n  - type: local\n    id: guide\n    path: docs\n    include:\n      - \"**/*.md\"\n",
     );
     // An unrelated, co-resident dropped db that no configured source targets.
-    let graphtor_dir = workspace.path().join(".graphtor");
+    let graphtor_dir = workspace.path().join(".kbdb");
     let dropped = graphtor_dir.join("dropped-unrelated.db");
     build_v4_fixture(&dropped, workspace.path());
 
@@ -189,7 +189,7 @@ fn mixed_workspace_gates_generation_and_readonly_independently() {
 #[test]
 fn zero_config_empty_workspace_exits_gracefully_with_no_databases_message() {
     let workspace = tempfile::tempdir().expect("tempdir");
-    std::fs::create_dir_all(workspace.path().join(".graphtor")).expect("create .graphtor");
+    std::fs::create_dir_all(workspace.path().join(".kbdb")).expect("create .kbdb");
 
     let output = Command::new(graphtor_bin())
         .current_dir(workspace.path())
@@ -242,8 +242,8 @@ fn valid_but_empty_sources_yaml_with_no_db_file_exits_gracefully() {
 #[test]
 fn startup_log_reports_resolved_posture_and_discovered_count() {
     let workspace = tempfile::tempdir().expect("tempdir");
-    let graphtor_dir = workspace.path().join(".graphtor");
-    std::fs::create_dir_all(&graphtor_dir).expect("create .graphtor");
+    let graphtor_dir = workspace.path().join(".kbdb");
+    std::fs::create_dir_all(&graphtor_dir).expect("create .kbdb");
     build_v4_fixture(&graphtor_dir.join("a.db"), workspace.path());
     build_v4_fixture(&graphtor_dir.join("b.db"), workspace.path());
 
@@ -269,11 +269,11 @@ fn startup_log_reports_resolved_posture_and_discovered_count() {
 #[test]
 fn auto_discovered_pre_v4_db_is_refused_via_the_same_v4_gate() {
     let workspace = tempfile::tempdir().expect("tempdir");
-    let graphtor_dir = workspace.path().join(".graphtor");
-    std::fs::create_dir_all(&graphtor_dir).expect("create .graphtor");
+    let graphtor_dir = workspace.path().join(".kbdb");
+    std::fs::create_dir_all(&graphtor_dir).expect("create .kbdb");
     // A dropped, auto-discovered db with pre-v4 schema — no source config
     // and no explicit --db-path, so this is discovered purely via the
-    // `.graphtor/` root scan and classified ReadOnly.
+    // `.kbdb/` root scan and classified ReadOnly.
     build_v3_fixture(&graphtor_dir.join("pre-v4-dropped.db"), workspace.path());
 
     let output = Command::new(graphtor_bin())
@@ -294,7 +294,7 @@ fn auto_discovered_pre_v4_db_is_refused_via_the_same_v4_gate() {
          explicit --db-path target: {stderr}"
     );
     assert!(
-        stderr.contains("run `graphtor-docs sync` to rebuild the index before starting serve"),
+        stderr.contains("run `kbdb sync` to rebuild the index before starting serve"),
         "serve should explain how to clear the migration gate: {stderr}"
     );
 }
@@ -321,7 +321,7 @@ fn read_only_flag_forces_readonly_posture_even_with_a_real_source_present() {
         workspace.path(),
         "sources:\n  - type: local\n    id: guide\n    path: docs\n    include:\n      - \"**/*.md\"\n",
     );
-    let graphtor_dir = workspace.path().join(".graphtor");
+    let graphtor_dir = workspace.path().join(".kbdb");
     let dropped = graphtor_dir.join("dropped-unrelated.db");
     build_v4_fixture(&dropped, workspace.path());
 
@@ -374,7 +374,7 @@ fn without_read_only_flag_the_same_workspace_still_promotes_generation() {
         workspace.path(),
         "sources:\n  - type: local\n    id: guide\n    path: docs\n    include:\n      - \"**/*.md\"\n",
     );
-    let graphtor_dir = workspace.path().join(".graphtor");
+    let graphtor_dir = workspace.path().join(".kbdb");
     let dropped = graphtor_dir.join("dropped-unrelated.db");
     build_v4_fixture(&dropped, workspace.path());
 

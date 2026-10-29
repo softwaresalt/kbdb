@@ -26,7 +26,7 @@ fn build_v4_fixture(db_path: &Path, root: &Path) {
 }
 
 fn write_sources_yaml(workspace: &Path, contents: &str) {
-    let config_dir = workspace.join(".graphtor").join("config");
+    let config_dir = workspace.join(".kbdb").join("config");
     std::fs::create_dir_all(&config_dir).expect("create config dir");
     std::fs::write(config_dir.join("sources.yaml"), contents).expect("write sources.yaml");
 }
@@ -36,8 +36,8 @@ fn write_sources_yaml(workspace: &Path, contents: &str) {
 #[test]
 fn initialize_handshake_succeeds_against_a_readonly_consumption_workspace() {
     let workspace = tempfile::tempdir().expect("tempdir");
-    let graphtor_dir = workspace.path().join(".graphtor");
-    std::fs::create_dir_all(&graphtor_dir).expect("create .graphtor");
+    let graphtor_dir = workspace.path().join(".kbdb");
+    std::fs::create_dir_all(&graphtor_dir).expect("create .kbdb");
     build_v4_fixture(&graphtor_dir.join("dropped.db"), workspace.path());
 
     let report = run_initialize_handshake(workspace.path(), &[], DRIVER_TIMEOUT);
@@ -107,7 +107,7 @@ fn server_control_forces_read_only_even_with_a_real_source_present() {
         workspace.path(),
         "sources:\n  - type: local\n    id: guide\n    path: docs\n    include:\n      - \"**/*.md\"\n",
     );
-    let graphtor_dir = workspace.path().join(".graphtor");
+    let graphtor_dir = workspace.path().join(".kbdb");
     build_v4_fixture(&graphtor_dir.join("dropped-unrelated.db"), workspace.path());
 
     let report = run_read_only_server_control(workspace.path(), DRIVER_TIMEOUT);
@@ -153,8 +153,8 @@ fn server_control_never_shows_a_write_path_in_a_pure_readonly_workspace() {
     // workspace was never write-capable to begin with -- the previous
     // test is the one that actually exercises the forced override.
     let workspace = tempfile::tempdir().expect("tempdir");
-    let graphtor_dir = workspace.path().join(".graphtor");
-    std::fs::create_dir_all(&graphtor_dir).expect("create .graphtor");
+    let graphtor_dir = workspace.path().join(".kbdb");
+    std::fs::create_dir_all(&graphtor_dir).expect("create .kbdb");
     build_v4_fixture(&graphtor_dir.join("dropped.db"), workspace.path());
 
     let report = run_read_only_server_control(workspace.path(), DRIVER_TIMEOUT);

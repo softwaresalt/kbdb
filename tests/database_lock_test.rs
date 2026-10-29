@@ -10,7 +10,7 @@ fn lock_root() -> tempfile::TempDir {
 #[test]
 fn database_lock_conflicts_are_scoped_per_database() {
     let tempdir = lock_root();
-    let workspace_dir = tempdir.path().join(".graphtor");
+    let workspace_dir = tempdir.path().join(".kbdb");
     std::fs::create_dir_all(&workspace_dir).expect("create workspace dir");
 
     let primary_db = workspace_dir.join("primary.db");
@@ -33,7 +33,7 @@ fn database_lock_conflicts_are_scoped_per_database() {
 #[test]
 fn database_lock_releases_on_drop() {
     let tempdir = lock_root();
-    let workspace_dir = tempdir.path().join(".graphtor");
+    let workspace_dir = tempdir.path().join(".kbdb");
     std::fs::create_dir_all(&workspace_dir).expect("create workspace dir");
 
     let primary_db = workspace_dir.join("primary.db");
@@ -54,7 +54,7 @@ fn database_lock_releases_on_drop() {
 #[test]
 fn stale_database_lock_is_replaced_using_embedded_timestamp() {
     let tempdir = lock_root();
-    let workspace_dir = tempdir.path().join(".graphtor");
+    let workspace_dir = tempdir.path().join(".kbdb");
     std::fs::create_dir_all(&workspace_dir).expect("create workspace dir");
 
     let primary_db = workspace_dir.join("primary.db");
@@ -68,7 +68,7 @@ fn stale_database_lock_is_replaced_using_embedded_timestamp() {
 #[test]
 fn fresh_database_lock_with_dead_pid_is_replaced() {
     let tempdir = lock_root();
-    let workspace_dir = tempdir.path().join(".graphtor");
+    let workspace_dir = tempdir.path().join(".kbdb");
     std::fs::create_dir_all(&workspace_dir).expect("create workspace dir");
 
     let primary_db = workspace_dir.join("primary.db");
@@ -87,7 +87,7 @@ fn fresh_database_lock_with_dead_pid_is_replaced() {
 #[test]
 fn stale_replacement_marker_does_not_block_stale_database_lock_replacement() {
     let tempdir = lock_root();
-    let workspace_dir = tempdir.path().join(".graphtor");
+    let workspace_dir = tempdir.path().join(".kbdb");
     std::fs::create_dir_all(&workspace_dir).expect("create workspace dir");
 
     let primary_db = workspace_dir.join("primary.db");

@@ -181,10 +181,10 @@ jobs:
         shell: bash
         run: |
           TAG="${GITHUB_REF_NAME}"
-          ARCHIVE_NAME="graphtor-docs-${TAG}-${{ matrix.target }}.tar.gz"
+          ARCHIVE_NAME="kbdb-${TAG}-${{ matrix.target }}.tar.gz"
           STAGING="staging-${{ matrix.target }}"
           mkdir -p "${STAGING}"
-          cp "target/${{ matrix.target }}/release/graphtor-docs${{ matrix.binary_suffix }}" "${STAGING}/"
+          cp "target/${{ matrix.target }}/release/kbdb${{ matrix.binary_suffix }}" "${STAGING}/"
           cp README.md "${STAGING}/"
           tar -czf "${ARCHIVE_NAME}" -C "${STAGING}" .
           echo "ASSET=${ARCHIVE_NAME}" >> "$GITHUB_ENV"
@@ -195,10 +195,10 @@ jobs:
         shell: pwsh
         run: |
           $tag = "$env:GITHUB_REF_NAME"
-          $archiveName = "graphtor-docs-$tag-${{ matrix.target }}.zip"
+          $archiveName = "kbdb-$tag-${{ matrix.target }}.zip"
           $staging = "staging-${{ matrix.target }}"
           New-Item -ItemType Directory -Path $staging -Force | Out-Null
-          Copy-Item "target\${{ matrix.target }}\release\graphtor-docs${{ matrix.binary_suffix }}" "$staging\"
+          Copy-Item "target\${{ matrix.target }}\release\kbdb${{ matrix.binary_suffix }}" "$staging\"
           Copy-Item "README.md" "$staging\"
           Compress-Archive -Path "$staging\*" -DestinationPath $archiveName
           "ASSET=$archiveName" | Out-File -FilePath $env:GITHUB_ENV -Append

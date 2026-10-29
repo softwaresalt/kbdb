@@ -40,25 +40,27 @@ const LEGACY_CONFIG_PATHS: &[&str] = &[
     ".github/copilot/mcp.json",
 ];
 
-/// The fixed, LOCKED key graphtor-docs manages in `mcpServers`.
-const MCP_SERVER_KEY: &str = "graphtor-docs";
+/// The fixed, LOCKED key kbdb manages in `mcpServers`.
+const MCP_SERVER_KEY: &str = "kbdb";
 
-/// Provenance marker key written into every graphtor-docs-managed server
+/// Provenance marker key written into every kbdb-managed server
 /// entry. Its presence (set to `true`), not the command string, is the
 /// forward-looking identity used to recognize a managed entry — the command
 /// value changes shape (bare PATH command vs. absolute pinned path)
 /// depending on whether a managed binary exists, so the marker is the only
 /// stable signal across that variation.
-const MANAGED_MARKER_KEY: &str = "x-graphtor-managed";
+const MANAGED_MARKER_KEY: &str = "x-kbdb-managed";
 
 /// Historical RELATIVE command shapes written by the pre-marker writer
 /// (before this module introduced the resolution ladder + provenance
 /// marker). Used ONLY for EXACT-equality backward-compat recognition when
 /// migrating an unmarked entry in place — NEVER a substring/contains test. A
 /// user-authored command that merely embeds one of these strings as a
-/// prefix or suffix (e.g. `/opt/tools/.graphtor/bin/graphtor-docs`) is a
+/// prefix or suffix (e.g. `/opt/tools/.kbdb/bin/kbdb`) is a
 /// genuine collision (case 4), not a legacy entry to migrate.
 const LEGACY_COMMAND_SHAPES: &[&str] = &[
+    ".kbdb/bin/kbdb",
+    ".kbdb/bin/kbdb.exe",
     ".graphtor/bin/graphtor-docs",
     ".graphtor/bin/graphtor-docs.exe",
 ];
@@ -150,7 +152,7 @@ pub fn generate_mcp_config(project_root: &Path) -> Result<Option<McpConfigOutcom
         return Err(GraphtorError::Config {
             message: format!(
                 "{MCP_CONFIG_PATH} is a symlink or junction; refusing to write the managed \
-                 graphtor-docs MCP entry through a linked file"
+                 kbdb MCP entry through a linked file"
             ),
             field: None,
         });
@@ -218,8 +220,8 @@ pub fn generate_mcp_config(project_root: &Path) -> Result<Option<McpConfigOutcom
         ExistingEntryClass::Collision => Err(GraphtorError::Config {
             message: format!(
                 "'{MCP_SERVER_KEY}' already exists in {MCP_CONFIG_PATH} and is not a \
-                 graphtor-docs-managed entry; refusing to overwrite it. Remove or rename the \
-                 conflicting entry to let graphtor-docs manage '{MCP_SERVER_KEY}'."
+                 kbdb-managed entry; refusing to overwrite it. Remove or rename the \
+                 conflicting entry to let kbdb manage '{MCP_SERVER_KEY}'."
             ),
             field: Some(format!("mcpServers.{MCP_SERVER_KEY}")),
         }),
@@ -281,7 +283,7 @@ fn resolve_command(project_root: &Path) -> Result<String, GraphtorError> {
         let canonical = validate_path(&managed_binary, project_root)?;
         return Ok(canonical.display().to_string());
     }
-    Ok("graphtor-docs".to_string())
+    Ok("kbdb".to_string())
 }
 
 /// Returns `true` when `entry` carries the managed-entry provenance marker.
@@ -700,8 +702,8 @@ mod tests {
     /// fallback still recognizes pre-marker entries.
     const MANAGED_DOC: &str = r#"{
   "mcpServers": {
-    "graphtor-docs": {
-      "command": ".graphtor/bin/graphtor-docs",
+    "kbdb": {
+      "command": ".kbdb/bin/kbdb",
       "args": ["serve"],
       "transport": "stdio"
     }
@@ -716,11 +718,11 @@ mod tests {
     /// genuine, content-verified no-op.
     const MARKED_DOC: &str = r#"{
   "mcpServers": {
-    "graphtor-docs": {
-      "command": "graphtor-docs",
+    "kbdb": {
+      "command": "kbdb",
       "args": ["serve"],
       "transport": "stdio",
-      "x-graphtor-managed": true
+      "x-kbdb-managed": true
     }
   }
 }
@@ -736,9 +738,9 @@ mod tests {
         assert_eq!(outcome.path, ".mcp.json");
         let content = fs::read_to_string(tmp.path().join(".mcp.json")).expect("read");
         let parsed: serde_json::Value = serde_json::from_str(&content).expect("valid json");
-        let entry = &parsed["mcpServers"]["graphtor-docs"];
+        let entry = &parsed["mcpServers"]["kbdb"];
         assert_eq!(
-            entry["command"], "graphtor-docs",
+            entry["command"], "kbdb",
             "no managed binary exists in a fresh tempdir, so the bare PATH command is used"
         );
         assert_eq!(
@@ -759,7 +761,7 @@ mod tests {
 
         let content = fs::read_to_string(tmp.path().join(".mcp.json")).expect("read");
         let parsed: serde_json::Value = serde_json::from_str(&content).expect("valid json");
-        let command = parsed["mcpServers"]["graphtor-docs"]["command"]
+        let command = parsed["mcpServers"]["kbdb"]["command"]
             .as_str()
             .expect("command string");
 
@@ -841,16 +843,10 @@ mod tests {
         let after = fs::read_to_string(&path).expect("read");
         assert!(after.contains("engram"), "existing server preserved");
         let parsed: serde_json::Value = serde_json::from_str(&after).expect("valid json");
-        assert_eq!(
-            parsed["mcpServers"]["graphtor-docs"]["command"],
-            "graphtor-docs"
-        );
-        assert_eq!(
-            parsed["mcpServers"]["graphtor-docs"][MANAGED_MARKER_KEY],
-            true
-        );
+        assert_eq!(parsed["mcpServers"]["kbdb"]["command"], "kbdb");
+        assert_eq!(parsed["mcpServers"]["kbdb"][MANAGED_MARKER_KEY], true);
         // preserve_order keeps the pre-existing server first.
-        assert!(after.find("engram") < after.find("graphtor-docs"));
+        assert!(after.find("engram") < after.find("kbdb"));
     }
 
     #[test]
@@ -864,8 +860,8 @@ mod tests {
         let shared = r#"{
   "mcpServers": {
     "engram": { "command": "engram", "args": ["shim"] },
-    "graphtor-docs": {
-      "command": ".graphtor/bin/graphtor-docs",
+    "kbdb": {
+      "command": ".kbdb/bin/kbdb",
       "args": ["serve"],
       "transport": "stdio"
     }
@@ -885,13 +881,13 @@ mod tests {
             "unrelated server preserved through migration"
         );
         let parsed: serde_json::Value = serde_json::from_str(&after).expect("valid json");
-        let entry = &parsed["mcpServers"]["graphtor-docs"];
+        let entry = &parsed["mcpServers"]["kbdb"];
         assert_eq!(
             entry[MANAGED_MARKER_KEY], true,
             "migration must add the provenance marker"
         );
         assert_eq!(
-            entry["command"], "graphtor-docs",
+            entry["command"], "kbdb",
             "migration must refresh the command via the resolution ladder"
         );
     }
@@ -905,8 +901,8 @@ mod tests {
         let path = tmp.path().join(".mcp.json");
         let user_doc = r#"{
   "mcpServers": {
-    "graphtor-docs": {
-      "command": "my-custom-graphtor",
+    "kbdb": {
+      "command": "my-custom-kbdb",
       "args": ["run", "--custom"]
     }
   }
@@ -935,8 +931,8 @@ mod tests {
         let path = tmp.path().join(".mcp.json");
         let user_doc = r#"{
   "mcpServers": {
-    "graphtor-docs": {
-      "command": ".graphtor/bin/graphtor-docs",
+    "kbdb": {
+      "command": ".kbdb/bin/kbdb",
       "args": ["serve", "--verbose"],
       "transport": "stdio"
     }
@@ -1080,8 +1076,8 @@ mod tests {
         let shared = r#"{
   "mcpServers": {
     "engram": { "command": "engram", "args": ["shim"] },
-    "graphtor-docs": {
-      "command": ".graphtor/bin/graphtor-docs",
+    "kbdb": {
+      "command": ".kbdb/bin/kbdb",
       "args": ["serve"],
       "transport": "stdio"
     }
@@ -1102,10 +1098,7 @@ mod tests {
         assert!(path.exists(), "file with other servers must be kept");
         let after = fs::read_to_string(&path).expect("read");
         assert!(after.contains("engram"), "unrelated server preserved");
-        assert!(
-            !after.contains(".graphtor/bin/graphtor-docs"),
-            "managed entry pruned"
-        );
+        assert!(!after.contains(".kbdb/bin/kbdb"), "managed entry pruned");
     }
 
     #[test]
@@ -1113,22 +1106,22 @@ mod tests {
         // Copilot mcp_config.rs:389: pruning must be restricted to the fixed
         // MCP_SERVER_KEY. A user-authored copy under a DIFFERENT key that
         // happens to carry the managed marker (or the legacy shape) must be
-        // preserved — only `graphtor-docs` is ever pruned.
+        // preserved — only `kbdb` is ever pruned.
         let tmp = tempfile::tempdir().expect("tempdir");
         let path = tmp.path().join(".mcp.json");
         let shared = r#"{
   "mcpServers": {
-    "graphtor-docs": {
-      "command": "graphtor-docs",
+    "kbdb": {
+      "command": "kbdb",
       "args": ["serve"],
       "transport": "stdio",
-      "x-graphtor-managed": true
+      "x-kbdb-managed": true
     },
-    "my-graphtor-docs": {
-      "command": ".graphtor/bin/graphtor-docs",
+    "my-kbdb": {
+      "command": ".kbdb/bin/kbdb",
       "args": ["serve"],
       "transport": "stdio",
-      "x-graphtor-managed": true
+      "x-kbdb-managed": true
     }
   }
 }
@@ -1144,11 +1137,11 @@ mod tests {
             serde_json::from_str(&fs::read_to_string(&path).expect("read")).expect("parse");
         let servers = parsed["mcpServers"].as_object().expect("mcpServers object");
         assert!(
-            !servers.contains_key("graphtor-docs"),
-            "the managed graphtor-docs key must be pruned"
+            !servers.contains_key("kbdb"),
+            "the managed kbdb key must be pruned"
         );
         assert!(
-            servers.contains_key("my-graphtor-docs"),
+            servers.contains_key("my-kbdb"),
             "a user copy under another key must be preserved even when it carries the marker"
         );
     }
@@ -1186,8 +1179,8 @@ mod tests {
         let path = tmp.path().join(".mcp.json");
         let shared = r#"{
   "mcpServers": {
-    "graphtor-docs": {
-      "command": "/opt/tools/.graphtor/bin/graphtor-docs",
+    "kbdb": {
+      "command": "/opt/tools/.kbdb/bin/kbdb",
       "args": ["serve"],
       "transport": "stdio"
     }
@@ -1204,7 +1197,7 @@ mod tests {
              only, never contains)"
         );
         let after = fs::read_to_string(&path).expect("read");
-        assert!(after.contains("/opt/tools/.graphtor/bin/graphtor-docs"));
+        assert!(after.contains("/opt/tools/.kbdb/bin/kbdb"));
     }
 
     #[test]
@@ -1213,8 +1206,8 @@ mod tests {
         let path = tmp.path().join(".mcp.json");
         let shared = r#"{
   "mcpServers": {
-    "graphtor-docs": {
-      "command": ".graphtor/bin/graphtor-docs-wrapper",
+    "kbdb": {
+      "command": ".kbdb/bin/kbdb-wrapper",
       "args": ["serve"],
       "transport": "stdio"
     }
@@ -1237,8 +1230,8 @@ mod tests {
         let path = tmp.path().join(".mcp.json");
         let shared = r#"{
   "mcpServers": {
-    "graphtor-docs": {
-      "command": ".graphtor/bin/graphtor-docs",
+    "kbdb": {
+      "command": ".kbdb/bin/kbdb",
       "args": ["serve", "--verbose"],
       "transport": "stdio"
     }
@@ -1266,8 +1259,8 @@ mod tests {
         let path = tmp.path().join(".mcp.json");
         let shared = r#"{
   "mcpServers": {
-    "graphtor-docs": {
-      "command": ".graphtor/bin/graphtor-docs",
+    "kbdb": {
+      "command": ".kbdb/bin/kbdb",
       "args": ["serve"],
       "transport": "stdio",
       "env": { "RUST_LOG": "debug" }
@@ -1297,8 +1290,8 @@ mod tests {
         let path = tmp.path().join(".mcp.json");
         let shared = r#"{
   "mcpServers": {
-    "graphtor-docs": {
-      "command": ".graphtor/bin/graphtor-docs.exe",
+    "kbdb": {
+      "command": ".kbdb/bin/kbdb.exe",
       "args": ["serve"],
       "transport": "stdio"
     }
@@ -1327,8 +1320,8 @@ mod tests {
         let shared = r#"{
   "mcpServers": {
     "engram": { "command": "engram", "args": ["shim"] },
-    "graphtor-docs": {
-      "command": ".graphtor/bin/graphtor-docs",
+    "kbdb": {
+      "command": ".kbdb/bin/kbdb",
       "args": ["serve"],
       "transport": "stdio"
     }

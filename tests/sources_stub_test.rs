@@ -12,7 +12,7 @@ use graphtor_core::config::{discover_source_files, load_multi_file_config};
 #[test]
 fn no_registry_returns_empty_list() {
     let dir = tempfile::tempdir().expect("tempdir");
-    let config_dir = dir.path().join(".graphtor").join("config");
+    let config_dir = dir.path().join(".kbdb").join("config");
     // config_dir does not exist
     let files = discover_source_files(&config_dir).expect("discover_source_files");
     assert!(
@@ -25,7 +25,7 @@ fn no_registry_returns_empty_list() {
 #[test]
 fn valid_registry_loads_correctly() {
     let dir = tempfile::tempdir().expect("tempdir");
-    let config_dir = dir.path().join(".graphtor").join("config");
+    let config_dir = dir.path().join(".kbdb").join("config");
     std::fs::create_dir_all(&config_dir).expect("create config dir");
 
     let sources_yaml = config_dir.join("sources.yaml");

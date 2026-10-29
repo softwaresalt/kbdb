@@ -1,7 +1,7 @@
-//! Workspace installation and `.graphtor/` directory scaffold.
+//! Workspace installation and `.kbdb/` directory scaffold.
 //!
-//! Creates the `.graphtor/` workspace directory structure under the
-//! project root and copies the running binary into `.graphtor/bin/`.
+//! Creates the `.kbdb/` workspace directory structure under the
+//! project root and copies the running binary into `.kbdb/bin/`.
 //! The install operation is idempotent — running it on an already-installed
 //! workspace is safe.
 
@@ -14,7 +14,7 @@ use graphtor_core::GraphtorError;
 /// Result of a workspace install operation.
 #[derive(Debug)]
 pub struct InstallResult {
-    /// Path to the created or pre-existing `.graphtor/` directory.
+    /// Path to the created or pre-existing `.kbdb/` directory.
     pub workspace_dir: PathBuf,
     /// Whether the workspace was freshly created (`true`) or already existed (`false`).
     pub created: bool,
@@ -22,10 +22,10 @@ pub struct InstallResult {
     pub binary_path: PathBuf,
 }
 
-/// Install graphtor-docs into `project_root`.
+/// Install kbdb into `project_root`.
 ///
-/// 1. Creates `.graphtor/{bin,data,cache,config,logs}/` (idempotent).
-/// 2. Copies the currently-executing binary to `.graphtor/bin/graphtor-docs[.exe]`.
+/// 1. Creates `.kbdb/{bin,data,cache,config,logs}/` (idempotent).
+/// 2. Copies the currently-executing binary to `.kbdb/bin/kbdb[.exe]`.
 ///
 /// This is the full, ingestion-capable scaffold used by `upgrade` and by
 /// `install --with-ingestion` (P2-T2a); the consumption-first default
@@ -54,11 +54,11 @@ pub fn install(project_root: &Path) -> Result<InstallResult, GraphtorError> {
         field: None,
     })?;
 
-    let bin_name = format!("graphtor-docs{}", if cfg!(windows) { ".exe" } else { "" });
+    let bin_name = format!("kbdb{}", if cfg!(windows) { ".exe" } else { "" });
     let dest = workspace_dir.join("bin").join(&bin_name);
 
     // Copy only when the source differs from the destination (avoid copying
-    // on top of ourselves when the binary is already in .graphtor/bin/).
+    // on top of ourselves when the binary is already in .kbdb/bin/).
     let should_copy = if dest.exists() {
         // Use file size as a cheap heuristic; a full hash is not worth the I/O
         // cost on the install fast path.
@@ -103,27 +103,26 @@ pub fn install(project_root: &Path) -> Result<InstallResult, GraphtorError> {
 
 /// Return the path to the installed binary, if present.
 pub fn installed_binary_path(workspace_dir: &Path) -> PathBuf {
-    workspace_dir.join("bin").join(format!(
-        "graphtor-docs{}",
-        if cfg!(windows) { ".exe" } else { "" }
-    ))
+    workspace_dir
+        .join("bin")
+        .join(format!("kbdb{}", if cfg!(windows) { ".exe" } else { "" }))
 }
 
 /// Result of a minimal (consumption-first) workspace install operation.
 #[derive(Debug)]
 pub struct MinimalInstallResult {
-    /// Path to the created or pre-existing `.graphtor/` directory.
+    /// Path to the created or pre-existing `.kbdb/` directory.
     pub workspace_dir: PathBuf,
     /// Whether the workspace was freshly created (`true`) or already existed (`false`).
     pub created: bool,
 }
 
-/// Install graphtor-docs into `project_root` using the consumption-first
+/// Install kbdb into `project_root` using the consumption-first
 /// MINIMAL footprint (P2-T1).
 ///
-/// Creates ONLY the `.graphtor/` root directory: no `bin/`, `data/`,
+/// Creates ONLY the `.kbdb/` root directory: no `bin/`, `data/`,
 /// `cache/`, `config/`, or `logs/` subdirectories are created, no binary is
-/// copied, and no `sources.yaml` is written. The `.graphtor/` root is the
+/// copied, and no `sources.yaml` is written. The `.kbdb/` root is the
 /// operator's drop location for an already-generated `.db` file — `serve`
 /// auto-discovers it with zero further configuration (P1-T1).
 ///
@@ -163,7 +162,7 @@ mod tests {
         assert!(result.created, "fresh install should report created");
         assert!(
             result.binary_path.exists(),
-            "the running binary should be copied to .graphtor/bin/"
+            "the running binary should be copied to .kbdb/bin/"
         );
         for sub in GRAPHTOR_SUBDIRS {
             assert!(result.workspace_dir.join(sub).is_dir(), "missing {sub}");
@@ -193,7 +192,7 @@ mod tests {
         let result = install_minimal(tmp.path()).expect("install_minimal");
 
         assert!(result.created);
-        assert!(result.workspace_dir.is_dir(), ".graphtor/ root must exist");
+        assert!(result.workspace_dir.is_dir(), ".kbdb/ root must exist");
         for sub in GRAPHTOR_SUBDIRS {
             assert!(
                 !result.workspace_dir.join(sub).exists(),

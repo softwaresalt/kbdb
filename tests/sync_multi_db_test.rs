@@ -18,7 +18,7 @@ fn sync_routes_sources_to_separate_database_files() {
     std::fs::write(src_a.join("a.md"), b"---\ntitle: A\nsource: /test/s\ningested_at: 2026-01-01T00:00:00Z\ndoc_type: markdown\nsource_path: a.md\n---\n# A\n\nContent A.\n").unwrap();
     std::fs::write(src_b.join("b.md"), b"---\ntitle: B\nsource: /test/s\ningested_at: 2026-01-01T00:00:00Z\ndoc_type: markdown\nsource_path: b.md\n---\n# B\n\nContent B.\n").unwrap();
 
-    let graphtor_dir = ws.join(".graphtor");
+    let graphtor_dir = ws.join(".kbdb");
     let config_dir = graphtor_dir.join("config");
     std::fs::create_dir_all(&config_dir).unwrap();
     let sources_yaml = format!(
@@ -37,7 +37,7 @@ fn sync_routes_sources_to_separate_database_files() {
     );
     std::fs::write(config_dir.join("sources.yaml"), &sources_yaml).unwrap();
 
-    let exe = std::path::PathBuf::from(env!("CARGO_BIN_EXE_graphtor-docs"));
+    let exe = std::path::PathBuf::from(env!("CARGO_BIN_EXE_kbdb"));
 
     let output = Command::new(&exe)
         .current_dir(ws)
@@ -73,7 +73,7 @@ fn sync_fails_gracefully_when_database_lock_is_held() {
     std::fs::create_dir_all(&src).expect("create docs");
     std::fs::write(src.join("a.md"), b"---\ntitle: A\nsource: /test/s\ningested_at: 2026-01-01T00:00:00Z\ndoc_type: markdown\nsource_path: a.md\n---\n# A\n\nContent A.\n").expect("write a");
 
-    let graphtor_dir = ws.join(".graphtor");
+    let graphtor_dir = ws.join(".kbdb");
     let config_dir = graphtor_dir.join("config");
     std::fs::create_dir_all(&config_dir).expect("create config dir");
     let sources_yaml = format!(
@@ -91,7 +91,7 @@ fn sync_fails_gracefully_when_database_lock_is_held() {
     let _lock = DatabaseLock::acquire(&graphtor_dir, &primary_db, false)
         .expect("database lock should be acquired");
 
-    let exe = std::path::PathBuf::from(env!("CARGO_BIN_EXE_graphtor-docs"));
+    let exe = std::path::PathBuf::from(env!("CARGO_BIN_EXE_kbdb"));
     let output = Command::new(&exe)
         .current_dir(ws)
         .arg("sync")
@@ -121,7 +121,7 @@ fn sync_creates_missing_parent_directories_for_custom_database_path() {
     std::fs::create_dir_all(&docs_dir).expect("create docs dir");
     std::fs::write(docs_dir.join("guide.md"), b"---\ntitle: Guide\nsource: /test/s\ningested_at: 2026-01-01T00:00:00Z\ndoc_type: markdown\nsource_path: guide.md\n---\n# Guide\n\nHello world.\n").expect("write guide");
 
-    let config_dir = ws.join(".graphtor").join("config");
+    let config_dir = ws.join(".kbdb").join("config");
     std::fs::create_dir_all(&config_dir).expect("create config dir");
     std::fs::write(
         config_dir.join("sources.yaml"),
@@ -129,10 +129,10 @@ fn sync_creates_missing_parent_directories_for_custom_database_path() {
     )
     .expect("write sources.yaml");
 
-    let custom_db = std::path::PathBuf::from(".graphtor")
+    let custom_db = std::path::PathBuf::from(".kbdb")
         .join("nested")
         .join("graph.db");
-    let exe = std::path::PathBuf::from(env!("CARGO_BIN_EXE_graphtor-docs"));
+    let exe = std::path::PathBuf::from(env!("CARGO_BIN_EXE_kbdb"));
     let output = Command::new(&exe)
         .current_dir(ws)
         .arg("--db-path")
@@ -162,7 +162,7 @@ fn sync_rejects_custom_database_path_escaping_workspace_root() {
     std::fs::create_dir_all(&docs_dir).expect("create docs dir");
     std::fs::write(docs_dir.join("guide.md"), b"---\ntitle: Guide\nsource: /test/s\ningested_at: 2026-01-01T00:00:00Z\ndoc_type: markdown\nsource_path: guide.md\n---\n# Guide\n\nHello world.\n").expect("write guide");
 
-    let config_dir = ws.join(".graphtor").join("config");
+    let config_dir = ws.join(".kbdb").join("config");
     std::fs::create_dir_all(&config_dir).expect("create config dir");
     std::fs::write(
         config_dir.join("sources.yaml"),
@@ -173,7 +173,7 @@ fn sync_rejects_custom_database_path_escaping_workspace_root() {
     let escaped_db = std::path::PathBuf::from("..")
         .join("escaped")
         .join("graph.db");
-    let exe = std::path::PathBuf::from(env!("CARGO_BIN_EXE_graphtor-docs"));
+    let exe = std::path::PathBuf::from(env!("CARGO_BIN_EXE_kbdb"));
     let output = Command::new(&exe)
         .current_dir(ws)
         .arg("--db-path")

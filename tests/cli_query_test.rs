@@ -14,7 +14,7 @@ use serde_json::Value;
 
 /// Helper: path to the compiled binary.
 fn graphtor_bin() -> std::path::PathBuf {
-    std::path::PathBuf::from(env!("CARGO_BIN_EXE_graphtor-docs"))
+    std::path::PathBuf::from(env!("CARGO_BIN_EXE_kbdb"))
 }
 
 /// Build a docline v1 conformant markdown string for a fixture document.
@@ -55,7 +55,7 @@ fn seed_workspace() -> tempfile::TempDir {
     std::fs::write(docs.join("alpha.md"), alpha).expect("write alpha");
     std::fs::write(docs.join("beta.md"), beta).expect("write beta");
 
-    let config_dir = ws.join(".graphtor").join("config");
+    let config_dir = ws.join(".kbdb").join("config");
     std::fs::create_dir_all(&config_dir).expect("create config dir");
     std::fs::write(
         config_dir.join("sources.yaml"),
@@ -68,7 +68,7 @@ fn seed_workspace() -> tempfile::TempDir {
         .arg("sync")
         .arg("--no-embed")
         .output()
-        .expect("run graphtor-docs sync");
+        .expect("run kbdb sync");
     assert!(
         sync_output.status.success(),
         "sync failed: status={:?}\nstderr={}\nstdout={}",
@@ -86,10 +86,10 @@ fn seed_workspace() -> tempfile::TempDir {
 fn run_query(ws: &Path, args: &[&str]) -> (bool, String, String) {
     let output = Command::new(graphtor_bin())
         .current_dir(ws)
-        .env("GRAPHTOR_EMBED_MODEL_DIR", bogus_model_dir(ws))
+        .env("KBDB_EMBED_MODEL_DIR", bogus_model_dir(ws))
         .args(args)
         .output()
-        .unwrap_or_else(|e| panic!("run graphtor-docs {args:?}: {e}"));
+        .unwrap_or_else(|e| panic!("run kbdb {args:?}: {e}"));
     (
         output.status.success(),
         String::from_utf8(output.stdout).expect("stdout utf-8"),
@@ -144,7 +144,7 @@ fn search_top_k_is_clamped_to_max() {
         )
         .expect("write clamp doc");
     }
-    let config_dir = ws.join(".graphtor").join("config");
+    let config_dir = ws.join(".kbdb").join("config");
     std::fs::create_dir_all(&config_dir).expect("create config dir");
     std::fs::write(
         config_dir.join("sources.yaml"),
@@ -157,7 +157,7 @@ fn search_top_k_is_clamped_to_max() {
         .arg("sync")
         .arg("--no-embed")
         .output()
-        .expect("run graphtor-docs sync");
+        .expect("run kbdb sync");
     assert!(
         sync.status.success(),
         "sync failed: {}",

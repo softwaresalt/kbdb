@@ -45,7 +45,7 @@ use graphtor_core::db::DataStore;
 const DRIVER_TIMEOUT: Duration = Duration::from_secs(20);
 
 fn graphtor_bin() -> String {
-    env!("CARGO_BIN_EXE_graphtor-docs").to_string()
+    env!("CARGO_BIN_EXE_kbdb").to_string()
 }
 
 fn write_yaml(dir: &Path, name: &str, content: &str) {
@@ -123,7 +123,7 @@ fn config_override_not_found_exit_traces_and_preserves_message() {
 #[test]
 fn no_databases_to_serve_exit_traces_and_preserves_message() {
     let workspace = tempfile::tempdir().expect("tempdir");
-    fs::create_dir_all(workspace.path().join(".graphtor")).expect("create .graphtor");
+    fs::create_dir_all(workspace.path().join(".kbdb")).expect("create .kbdb");
 
     let output = Command::new(graphtor_bin())
         .current_dir(workspace.path())
@@ -146,8 +146,8 @@ fn no_databases_to_serve_exit_traces_and_preserves_message() {
 #[test]
 fn pre_v4_schema_exit_traces_and_preserves_message() {
     let workspace = tempfile::tempdir().expect("tempdir");
-    let graphtor_dir = workspace.path().join(".graphtor");
-    fs::create_dir_all(&graphtor_dir).expect("create .graphtor");
+    let graphtor_dir = workspace.path().join(".kbdb");
+    fs::create_dir_all(&graphtor_dir).expect("create .kbdb");
     // Auto-discovered dropped db (ReadOnly posture) with a pre-v4 schema —
     // exercises the ReadOnly branch's PreV4Schema call site.
     build_v3_fixture(&graphtor_dir.join("pre-v4-dropped.db"), workspace.path());
@@ -162,8 +162,7 @@ fn pre_v4_schema_exit_traces_and_preserves_message() {
     let stderr = strip_ansi(&String::from_utf8_lossy(&output.stderr));
     assert!(
         stderr.contains("has pre-v4 schema")
-            && stderr
-                .contains("run `graphtor-docs sync` to rebuild the index before starting serve"),
+            && stderr.contains("run `kbdb sync` to rebuild the index before starting serve"),
         "existing pre-v4-schema message must be preserved verbatim: {stderr}"
     );
     assert!(
@@ -186,14 +185,14 @@ fn pre_v4_schema_exit_traces_for_the_generation_branch_too() {
         b"---\ntitle: Guide\nsource: /test/s\ningested_at: 2026-01-01T00:00:00Z\ndoc_type: markdown\nsource_path: guide.md\n---\n# Guide\n\nHello world.\n",
     )
     .expect("write guide.md");
-    let config_dir = workspace.path().join(".graphtor").join("config");
+    let config_dir = workspace.path().join(".kbdb").join("config");
     fs::create_dir_all(&config_dir).expect("create config dir");
     write_yaml(
         &config_dir,
         "sources.yaml",
         "sources:\n  - type: local\n    id: guide\n    path: docs\n    include:\n      - \"**/*.md\"\n    database: guide.db\n",
     );
-    let db_path = workspace.path().join(".graphtor").join("guide.db");
+    let db_path = workspace.path().join(".kbdb").join("guide.db");
     build_v3_fixture(&db_path, workspace.path());
 
     let output = Command::new(graphtor_bin())
@@ -217,7 +216,7 @@ fn pre_v4_schema_exit_traces_for_the_generation_branch_too() {
 #[test]
 fn duplicate_intake_conflict_exit_traces_and_preserves_message() {
     let workspace = tempfile::tempdir().expect("tempdir");
-    let config_dir = workspace.path().join(".graphtor").join("config");
+    let config_dir = workspace.path().join(".kbdb").join("config");
     fs::create_dir_all(&config_dir).expect("create config dir");
 
     let shared = workspace.path().join("shared");
@@ -273,7 +272,7 @@ fn duplicate_intake_conflict_exit_traces_and_preserves_message() {
 
 fn malformed_registry_workspace() -> tempfile::TempDir {
     let workspace = tempfile::tempdir().expect("tempdir");
-    let config_dir = workspace.path().join(".graphtor").join("config");
+    let config_dir = workspace.path().join(".kbdb").join("config");
     fs::create_dir_all(&config_dir).expect("create config dir");
     write_yaml(
         &config_dir,
@@ -339,8 +338,8 @@ fn rust_log_off_silences_the_trace_event_but_never_the_fatal_message() {
 #[test]
 fn mcp_serve_ready_event_fires_immediately_before_transport_with_stdout_untouched() {
     let workspace = tempfile::tempdir().expect("tempdir");
-    let graphtor_dir = workspace.path().join(".graphtor");
-    fs::create_dir_all(&graphtor_dir).expect("create .graphtor");
+    let graphtor_dir = workspace.path().join(".kbdb");
+    fs::create_dir_all(&graphtor_dir).expect("create .kbdb");
     build_v4_fixture(&graphtor_dir.join("dropped.db"), workspace.path());
 
     let report = run_initialize_handshake(workspace.path(), &[], DRIVER_TIMEOUT);
