@@ -4,7 +4,7 @@ slug: 054-s-mcp-probe-ci-post-merge-closure
 shipment: 054-S
 feature: 056-F
 mode: post-merge
-status: READY_WITH_CONDITIONS
+status: READY
 owner: "@softwaresalt"
 compaction: done
 ---
@@ -309,3 +309,25 @@ targets of this skill; not yet stale).
 - `.backlogit/reconcile/054-S-halt-20260914T061736Z.md` (open)
 - `docs/compound/2026-05-07-backlogit-shipment-status-constraints.md`
 - PR #124 (staging publication), PR #125 (release)
+
+## Closure Completion Addendum (2026-10-29)
+
+The shipment-record condition above is resolved. Under real-time operator
+authorization (`004-DL` Option B), Ship ran the one-time P-015 cascade
+`backlogit shipment ship 054-S` on branch
+`post-merge/054-s-close-shipment-record`.
+
+* `054-S` is now `status: archived`, `archived_status: shipped`,
+  `commit: 2872de3379589c2b5a91a879861bbbb345e9171c`
+  (`.backlogit/archive/054-S.md`).
+* The cascade touched only `054-S`. The protected set (`056-F` and
+  out-of-manifest `056.*-T` siblings) and `056.028-T` showed zero diff, so
+  no recovery restore was needed.
+* `autoharness gate dag-readiness` reports `ready_set: [053-S]`; the
+  `054-S` dependency edge of `053-S` is satisfied.
+* Halt record `.backlogit/reconcile/054-S-halt-20260914T061736Z.md` is
+  `status: resolved`.
+* Releasability is now `READY`. Compaction: `done` (the five remaining
+  2026-09-14 memory files were consolidated into
+  `docs/memory/compacted/2026-09-14-054-s-tooling-gap-compacted.md`;
+  originals archived under `docs/archive/memory/2026-09-14/`).
