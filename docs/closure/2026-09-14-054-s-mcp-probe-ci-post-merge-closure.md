@@ -11,7 +11,7 @@ closure_status: READY_WITH_CONDITIONS
 compaction_status: done
 conditions:
   - id: C1-054-S-shipment-record-close
-    description: "One-time operator-authorized P-015 cascade closed 054-S to archived_status=shipped (commit 2872de3379589c2b5a91a879861bbbb345e9171c) with zero diff on protected-set 056-F siblings and operator-acknowledged single-agent lock deviation."
+    description: "One-time operator-authorized P-015 cascade closed 054-S to archived_status=shipped (commit 2872de3379589c2b5a91a879861bbbb345e9171c) with zero diff on protected-set 056-F siblings. The single-agent lock deviation disposition remains a separate Stage/operator decision and is not asserted here."
     satisfied: true
     evidence: ".backlogit/reconcile/054-S-halt-20260914T061736Z.md"
 ---
