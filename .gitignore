@@ -126,6 +126,7 @@ tmp/
 .backlogit/*.db-journal
 .backlogit/logs/
 .backlogit/runtime/
+.backlogit/.locks/
 
 # kbdb — managed by kbdb install
 .kbdb/

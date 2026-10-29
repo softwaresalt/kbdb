@@ -7,6 +7,13 @@ mode: post-merge
 status: READY_WITH_CONDITIONS
 owner: "@softwaresalt"
 compaction: done
+closure_status: READY_WITH_CONDITIONS
+compaction_status: done
+conditions:
+  - id: C1-049-S-cascade-parent-id-repair
+    description: "One-time operator-authorized P-015 cascade executed and all 25 out-of-manifest 056-F sibling parent_id fields restored byte-for-byte and re-indexed."
+    satisfied: true
+    evidence: ".backlogit/reconcile/049-S-halt-20260913T053721Z.md"
 ---
 
 # Post-Merge Closure — Shipment 049-S: Fix MCP serve initialize-handshake regression
