@@ -4,7 +4,7 @@ slug: 054-s-mcp-probe-ci-post-merge-closure
 shipment: 054-S
 feature: 056-F
 mode: post-merge
-status: READY
+status: READY_WITH_CONDITIONS
 owner: "@softwaresalt"
 compaction: done
 ---
@@ -327,7 +327,10 @@ authorization (`004-DL` Option B), Ship ran the one-time P-015 cascade
   `054-S` dependency edge of `053-S` is satisfied.
 * Halt record `.backlogit/reconcile/054-S-halt-20260914T061736Z.md` is
   `status: resolved`.
-* Releasability is now `READY`. Compaction: `done` (the five remaining
+* Releasability is `READY_WITH_CONDITIONS`: the delivered work and shipment
+  record are closed, but the logical shipment lock was not acquired before
+  the cascade (lock scripts are absent), a safety deviation awaiting
+  operator disposition (see the halt record). Compaction: `done` (the five remaining
   2026-09-14 memory files were consolidated into
   `docs/memory/compacted/2026-09-14-054-s-tooling-gap-compacted.md`;
   originals archived under `docs/archive/memory/2026-09-14/`).

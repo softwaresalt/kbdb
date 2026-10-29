@@ -53,5 +53,7 @@ wording findings on Stage-authored content).
   double-quoted string is consumed as an escape. Use single-quoted
   here-strings (`@'...'@`) for CLI text arguments.
 * Every push re-arms Copilot review; a fix commit can surface a new finding.
-* `mergeable: MERGEABLE` is the authoritative merge signal when a
-  non-required check fails and `mergeStateStatus` reads `UNSTABLE`.
+* `mergeStateStatus` can read `UNSTABLE` when a non-required check fails.
+  `mergeable: MERGEABLE` only reports the absence of conflicts; it does not
+  prove readiness. Merge readiness still requires the independent required
+  checks, the current-HEAD local review gate, and the P-018 gate.
