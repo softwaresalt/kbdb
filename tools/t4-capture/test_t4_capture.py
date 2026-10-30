@@ -197,6 +197,59 @@ class RenderReadiness(unittest.TestCase):
         partial = CONNECTED.replace("tools (8)", "tools")
         self.assertFalse(t4.mcp_show_rendered(partial))
 
+    def test_all_tools_but_unfinished_data_block_is_not_ready(self):
+        # Complete tool rows and footer, but a nested data object is still open.
+        head = CONNECTED.split('"instructions"')[0]
+        partial = head + '\n esc back \u00b7 q close\n'
+        self.assertFalse(t4.mcp_show_rendered(partial))
+
+    def test_real_screen_with_clipped_outer_brace_is_ready(self):
+        # The captured real screen never draws the outermost closing brace.
+        self.assertTrue(t4.mcp_show_rendered(CONNECTED))
+        data = CONNECTED.split("\n data")[1]
+        self.assertEqual(data.count("{") - data.count("}"), 1)
+
+    def test_stable_wait_returns_the_settled_frame(self):
+        frames = iter(["draw1", "draw2", "final", "final", "final", "final", "final"])
+        state = {"last": "draw1", "t": 0.0}
+
+        def get_text():
+            state["last"] = next(frames, state["last"])
+            return state["last"]
+
+        def sleep(seconds):
+            state["t"] += seconds
+
+        out = t4.wait_for_stable(get_text, lambda t: True, timeout=30, settle=1.0,
+                                 sleep=sleep, monotonic=lambda: state["t"])
+        self.assertEqual(out, "final")
+
+    def test_stable_wait_never_returns_a_changing_frame(self):
+        counter = {"n": 0, "t": 0.0}
+
+        def get_text():
+            counter["n"] += 1
+            return f"frame{counter['n']}"
+
+        def sleep(seconds):
+            counter["t"] += seconds
+
+        out = t4.wait_for_stable(get_text, lambda t: True, timeout=5, settle=1.0,
+                                 sleep=sleep, monotonic=lambda: counter["t"])
+        self.assertIsNone(out)
+
+    def test_stable_wait_times_out_when_predicate_never_holds(self):
+        clock = {"t": 0.0}
+        out = t4.wait_for_stable(lambda: "x", lambda t: False, timeout=3, settle=1.0,
+                                 sleep=lambda s: clock.__setitem__("t", clock["t"] + s),
+                                 monotonic=lambda: clock["t"])
+        self.assertIsNone(out)
+
+    def test_fully_rendered_failure_state_is_ready(self):
+        # A rendered failure must still be captured (and then fail evaluation).
+        failed = CONNECTED.replace('"status": "connected"', '"status": "failed"')
+        self.assertTrue(t4.mcp_show_rendered(failed))
+
     def test_header_present_but_tool_list_incomplete_is_not_ready(self):
         lines = [l for l in CONNECTED.splitlines()
                  if not l.lstrip().startswith(("get_status:", "list_sources:"))]

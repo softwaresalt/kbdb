@@ -133,8 +133,12 @@ owned-child-only cleanup contract; it is not a general PID-management feature.
   test owns: verified terminate, same-exe/different-creation refusal with no
   termination, different-exe refusal, unopenable PID, and a closed-handle terminate
   that surfaces an error, and a 10 ms creation-time mismatch refusal. Python suite: 21
-  existing plus 11 new, 32 pass. A final strict run, `20261030T213606Z`, passed on the final
-  harness.
+  existing plus 17 new, 38 pass (the stable-wait tests were written alongside the helper, not
+  observed red first). The capture now also waits for a complete, settled frame (tool rows equal
+  the count, nested data objects closed, text unchanged for 2 s). One intermediate real run
+  failed closed because an earlier predicate demanded the clipped outer brace the real screen
+  never draws; that is recorded, not hidden. A final strict run, `20261030T214529Z`, passed on
+  the final harness.
 * A review-fix and a flake: a status block rendering before the tools block made one
   session fail closed (tool list missing). The capture now waits until both blocks
   render (`mcp_show_rendered`, three tests). That failed run is a real recorded

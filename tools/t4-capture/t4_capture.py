@@ -83,7 +83,43 @@ def mcp_show_rendered(screen_text):
     if "esc back" not in text or '"status"' not in text:
         return False
     parsed = parse_mcp_show(screen_text, "")
-    return parsed["tool_count"] is not None and len(parsed["tools"]) == parsed["tool_count"]
+    if parsed["tool_count"] is None or len(parsed["tools"]) != parsed["tool_count"]:
+        return False
+    # The trailing `data` JSON block must be drawn with every NESTED object closed.
+    # The real screen clips the outermost closing brace at the viewport bottom, so
+    # depth <= 1 is complete; a nested object still open is a partial frame. A
+    # rendered failure state is captured too (and then fails evaluation).
+    lines = _clean(screen_text)
+    start = next((i for i, line in enumerate(lines) if line.strip() == "data"), None)
+    if start is None:
+        return False
+    block = "\n".join(lines[start + 1:]).split("esc back")[0]
+    depth = block.count("{") - block.count("}")
+    return block.count("{") > 0 and depth <= 1
+
+
+def wait_for_stable(get_text, predicate, timeout, settle,
+                    sleep=time.sleep, monotonic=time.monotonic):
+    """Return the screen text once `predicate` holds and the text stopped changing.
+
+    The text must be identical across `settle` seconds, so a frame that is still
+    being drawn is never captured. Returns None on timeout.
+    """
+    deadline = monotonic() + timeout
+    last = None
+    since = None
+    while monotonic() < deadline:
+        text = get_text()
+        if predicate(text):
+            if text == last:
+                if monotonic() - since >= settle:
+                    return text
+            else:
+                last, since = text, monotonic()
+        else:
+            last = since = None
+        sleep(0.25)
+    return None
 
 
 def evaluate_session(parsed):
@@ -427,10 +463,10 @@ def capture_session(copilot_exe, workspace, entry, expected_exe, rows=50, cols=1
         if not wait_for(lambda t: "/ commands" in t or "\u276f" in t, 60):
             raise IdentityError("Copilot interactive prompt never appeared")
         proc.write("/mcp show " + entry + "\r")
-        if not wait_for(mcp_show_rendered, 45):
-            raise IdentityError("/mcp show screen never rendered a status block")
+        screen_text = wait_for_stable(text, mcp_show_rendered, 45, 2.0)
+        if screen_text is None:
+            raise IdentityError("/mcp show screen never rendered completely and settled")
         record["captured_utc"] = datetime.now(timezone.utc).isoformat()
-        screen_text = text()
         table = process_table()
         server = select_server_process(table, proc.pid, expected_exe)
         # Retain a verified OS handle to the server NOW, so cleanup never acts
