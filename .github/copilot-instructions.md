@@ -8,7 +8,7 @@ graphtor-docs is a documentation cross-reference system that acquires, parses, c
 
 | Layer           | Technology                | Notes                                 |
 |-----------------|---------------------------|---------------------------------------|
-| Language        | Rust edition 2021, rust-version 1.75 | Rust 2021 edition with MSRV 1.75          |
+| Language        | Rust edition 2021, rust-version 1.88 | Rust 2021 edition with MSRV 1.88          |
 | Build           | cargo            | `cargo build`                   |
 | Test            | cargo test           | `cargo test`                    |
 | Lint            | clippy                | `cargo clippy --all-targets -- -D warnings -D clippy::pedantic`                    |
