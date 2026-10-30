@@ -79,9 +79,10 @@ fields:
   Re-running `install` refreshes a marked entry in place. An unmarked entry
   that is not the exact legacy shape is never overwritten; `install` fails
   closed instead.
-* `uninstall` removes only the marked entry and preserves every other server in
-  a shared `.mcp.json`. The file is deleted only when the managed entry was its
-  sole server.
+* `uninstall` removes only kbdb-managed entries and preserves every other server
+  in a shared `.mcp.json`. A managed entry is one carrying the marker, or an
+  unmarked `kbdb` entry that exactly matches the legacy pre-marker shape. The
+  file is deleted only when the managed entry was its sole server.
 * `upgrade` does not rewrite `.mcp.json`.
 
 The discriminator field differs between this guide's client example (`type`)

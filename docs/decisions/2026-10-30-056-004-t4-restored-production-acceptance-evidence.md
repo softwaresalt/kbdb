@@ -76,9 +76,9 @@ sessions gate off with no diagnostic sink.
 
 | Session | Copilot PID | Server PID | Server start (UTC) | `/mcp show` status | Tools |
 |---|---|---|---|---|---|
-| 1 | 47968 | 35816 | 2026-10-30T07:50:20Z | connected, serverMetadata present | 8 |
-| 2 | 23096 | 48052 | 2026-10-30T07:50:31Z | connected, serverMetadata present | 8 |
-| 3 | 26840 | 46932 | 2026-10-30T07:50:43Z | connected, serverMetadata present | 8 |
+| 1 | 5688 | 36396 | 2026-10-30T08:03:52Z | connected, serverMetadata present | 8 |
+| 2 | 20680 | 40432 | 2026-10-30T08:04:06Z | connected, serverMetadata present | 8 |
+| 3 | 18876 | 36204 | 2026-10-30T08:04:19Z | connected, serverMetadata present | 8 |
 
 Per session the runner also verified: the server's executable hash equals the
 entry's binary hash, the server is a direct child of the Copilot process
@@ -110,4 +110,4 @@ protocol failure.
   observation window is recorded, not extended.
 * The three `052-S` treatment runs did not count toward this result.
 * The committed `.mcp.json` now carries a machine-specific absolute command path (as the installer does for a managed binary), so the T4 gate only works from this checkout location.
-* After each session the runner stops only the recorded server PID, and only while it still runs the delivered executable; all six session PIDs were confirmed gone.
+* After each session the runner stops only the recorded server PID, and only while it still runs the delivered executable; the runner now confirms every client and server PID is gone before continuing.

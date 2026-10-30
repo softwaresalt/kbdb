@@ -400,10 +400,11 @@ Removes only the graphtor-created subdirectories (`bin/`, `data/`, `cache/`,
 `.graphtor/` itself is removed only if it ends up completely empty
 afterward. Also removes generated MCP client config entries, and cleans the
 managed `.gitignore` block ONLY for a full (`--with-ingestion`) install — a
-minimal install never wrote one. MCP config removal is surgical: only the entry
-carrying the `x-kbdb-managed` marker is removed, other servers in a shared
-`.mcp.json` are preserved, and the file is deleted only when the managed entry
-was its sole server. Before deleting anything, `uninstall`
+minimal install never wrote one. MCP config removal is surgical: only a managed
+entry is removed (one carrying the `x-kbdb-managed` marker, or an unmarked `kbdb`
+entry that exactly matches the legacy pre-marker shape), other servers in a
+shared `.mcp.json` are preserved, and the file is deleted only when the managed
+entry was its sole server. Before deleting anything, `uninstall`
 prints the exact set of directories it is about to remove.
 
 `--confirm` is **required** to prevent accidental data deletion.

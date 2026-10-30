@@ -109,6 +109,22 @@ class EntryIdentity(unittest.TestCase):
             t4.check_entry(self._write({"command": str(other), "args": ["serve"]}), "kbdb")
 
 
+class Teardown(unittest.TestCase):
+    def test_confirmed_only_when_both_pids_gone(self):
+        table = [{"pid": 1, "ppid": 0, "exe": "x"}]
+        self.assertTrue(t4.teardown_confirmed(table, client_pid=10, server_pid=11))
+
+    def test_live_client_or_server_is_not_confirmed(self):
+        for alive in (10, 11):
+            table = [{"pid": alive, "ppid": 0, "exe": "x"}]
+            self.assertFalse(t4.teardown_confirmed(table, client_pid=10, server_pid=11))
+
+    def test_unknown_server_pid_still_checks_client(self):
+        self.assertFalse(
+            t4.teardown_confirmed([{"pid": 10, "ppid": 0, "exe": "x"}], client_pid=10, server_pid=None)
+        )
+
+
 class ServerProcessCorrelation(unittest.TestCase):
     EXE = "C:\\w\\.kbdb\\bin\\kbdb.exe"
 

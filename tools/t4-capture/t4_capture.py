@@ -230,6 +230,14 @@ def process_cwd(pid):
         k32.CloseHandle(handle)
 
 
+def teardown_confirmed(table, client_pid, server_pid):
+    """True only when neither the Copilot client nor its server is still running."""
+    live = {p["pid"] for p in table}
+    if client_pid in live:
+        return False
+    return server_pid is None or server_pid not in live
+
+
 def copilot_identity(copilot_exe):
     out = subprocess.run([copilot_exe, "--version"], capture_output=True, text=True, timeout=30, check=False)
     if out.returncode != 0:
@@ -333,6 +341,10 @@ def capture_session(copilot_exe, workspace, entry, expected_exe, rows=50, cols=1
                      f"Stop-Process -Id {int(server['pid'])} -Force"],
                     capture_output=True, timeout=30, check=False,
                 )
+        time.sleep(1)
+        record["teardown_confirmed"] = teardown_confirmed(
+            process_table(), proc.pid, server["pid"] if server else None
+        )
     return record
 
 
@@ -343,6 +355,7 @@ def run(args):
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     sessions = []
+    teardown_failed = False
     for index in range(args.sessions):
         # The config must not drift between sessions.
         again = check_entry(Path(workspace) / ".mcp.json", args.entry)
@@ -359,6 +372,10 @@ def run(args):
                 f"server cwd {server['cwd']!r} is not the canonical workspace"
             )
         result["passed"] = not result["failures"]
+        teardown_ok = record.get("teardown_confirmed", False)
+        if not teardown_ok:
+            result["failures"].append("client/server teardown could not be confirmed")
+            result["passed"] = False
         screen_file = out_dir / f"session{index + 1}.screen.txt"
         screen_file.write_text(record["screen_text"], encoding="utf-8")
         sessions.append({
@@ -372,11 +389,15 @@ def run(args):
             "screen_fields": parsed,
             "result": result,
         })
+        if not teardown_ok:
+            teardown_failed = True
+            break  # withhold further sessions while processes may still overlap
     summary = {
         "copilot": client,
         "config": ident,
         "workspace": workspace,
         "sessions": sessions,
+        "teardown_failed": teardown_failed,
         "all_passed": len(sessions) == args.sessions and all(s["result"]["passed"] for s in sessions),
     }
     (out_dir / "sessions.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
@@ -398,6 +419,8 @@ def main(argv=None):
         return 3
     print(json.dumps({"all_passed": summary["all_passed"],
                       "sessions": [s["result"]["passed"] for s in summary["sessions"]]}))
+    if summary["teardown_failed"]:
+        return 4
     return 0 if summary["all_passed"] else 1
 
 

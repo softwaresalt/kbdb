@@ -13,8 +13,10 @@
 #     pid/exe/hash/cwd/start time (Win32_Process + PEB read) for each session;
 #   * runs the 056.002-T read-only production wire control SEQUENTIALLY before
 #     and after the Copilot sessions (never concurrently) against the SAME
-#     production binary and workspace;
-#   * emits a redacted structured result and checks every native exit code.
+#     production binary and workspace, and checks that the sessions used that
+#     same configuration and executable;
+#   * emits a redacted structured result and checks every native exit code;
+#   * restores every environment variable it sets and the caller's directory.
 #
 # Setup (once): python -m venv logs/t4/venv ; then install
 # tools/t4-capture/requirements.txt into it. Output stays under logs/t4/.
@@ -29,33 +31,21 @@ param(
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
 
-function Fail([string] $Message, [int] $Code = 1) {
-    Write-Error "T4_FAIL: $Message"
-    exit $Code
+class T4Failure : System.Exception {
+    [int] $Code
+    T4Failure([string] $Message, [int] $Code) : base($Message) { $this.Code = $Code }
 }
 
-$Python = Join-Path $Workspace 'logs/t4/venv/Scripts/python.exe'
-if (-not (Test-Path -LiteralPath $Python)) { Fail "capture venv missing: $Python" 2 }
-if ($Sessions -lt 3) { Fail 'at least three sessions are required' 2 }
+function Fail([string] $Message, [int] $Code = 1) {
+    throw [T4Failure]::new($Message, $Code)
+}
 
-$stamp = (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssZ')
-$RunDir = Join-Path $OutRoot $stamp
-New-Item -ItemType Directory -Force -Path $RunDir | Out-Null
-$env:TEMP = Join-Path $Workspace 'logs/t4/tmp'
-$env:TMP = $env:TEMP
-New-Item -ItemType Directory -Force -Path $env:TEMP | Out-Null
+$EnvNames = 'TEMP', 'TMP', 'KBDB_T4_PRODUCTION_EXE', 'KBDB_T4_WORKSPACE',
+    'KBDB_T4_EVIDENCE_OUT', 'KBDB_T4_CONTROL_TIMEOUT_SECS'
+$SavedEnv = @{}
+foreach ($name in $EnvNames) { $SavedEnv[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
 
-# Entry identity (refuses wrappers) -- reuse the tested Python check.
-$identJson = & $Python -c "import sys,json; sys.path.insert(0,r'$Workspace/tools/t4-capture'); import t4_capture as t; print(json.dumps(t.check_entry(r'$Workspace/.mcp.json', '$Entry')))"
-if ($LASTEXITCODE -ne 0) { Fail 'production entry is not the direct delivered kbdb serve entry' 3 }
-$ident = $identJson | ConvertFrom-Json
-
-$env:KBDB_T4_PRODUCTION_EXE = $ident.command
-$env:KBDB_T4_WORKSPACE = $Workspace
-# A cold read of a very large production database can exceed the 60 s default.
-if (-not $env:KBDB_T4_CONTROL_TIMEOUT_SECS) { $env:KBDB_T4_CONTROL_TIMEOUT_SECS = '300' }
-
-function Invoke-T1Control([string] $Label) {
+function Invoke-T1Control([string] $RunDir, [string] $Label) {
     $env:KBDB_T4_EVIDENCE_OUT = Join-Path $RunDir "t1-$Label.json"
     & cargo test --test t4_production_control_test -- --ignored production_control_proves_wire_initialize_tools_and_get_status 2>&1 |
         Tee-Object -FilePath (Join-Path $RunDir "t1-$Label.log") | Out-Null
@@ -63,34 +53,82 @@ function Invoke-T1Control([string] $Label) {
     if (-not (Test-Path -LiteralPath $env:KBDB_T4_EVIDENCE_OUT)) { Fail "T1 control ($Label) wrote no evidence" }
 }
 
-Invoke-T1Control 'before'
+function Invoke-T4 {
+    $python = Join-Path $Workspace 'logs/t4/venv/Scripts/python.exe'
+    if (-not (Test-Path -LiteralPath $python)) { Fail "capture venv missing: $python" 2 }
+    if ($Sessions -lt 3) { Fail 'at least three sessions are required' 2 }
 
-& $Python (Join-Path $Workspace 'tools/t4-capture/t4_capture.py') `
-    --workspace $Workspace --copilot-exe $CopilotExe --entry $Entry `
-    --sessions $Sessions --out-dir (Join-Path $RunDir 'sessions')
-$captureExit = $LASTEXITCODE
-if ($captureExit -ne 0) { [Console]::Error.WriteLine("T4_FAIL: Copilot /mcp show capture did not pass (exit $captureExit)") }
+    $runDir = Join-Path $OutRoot (Get-Date).ToUniversalTime().ToString('yyyyMMddTHHmmssZ')
+    New-Item -ItemType Directory -Force -Path $runDir | Out-Null
+    $env:TEMP = Join-Path $Workspace 'logs/t4/tmp'
+    $env:TMP = $env:TEMP
+    New-Item -ItemType Directory -Force -Path $env:TEMP | Out-Null
 
-Invoke-T1Control 'after'
+    # Entry identity (refuses wrappers): the tested Python check, with every
+    # value passed as an argument so no path can break the program text.
+    $program = 'import sys,json; sys.path.insert(0, sys.argv[1]); import t4_capture as t; print(json.dumps(t.check_entry(sys.argv[2], sys.argv[3])))'
+    $identJson = & $python -c $program (Join-Path $Workspace 'tools/t4-capture') (Join-Path $Workspace '.mcp.json') $Entry
+    if ($LASTEXITCODE -ne 0) { Fail 'production entry is not the direct delivered kbdb serve entry' 3 }
+    $ident = $identJson | ConvertFrom-Json
 
-if ($captureExit -ne 0) { exit $captureExit }
+    $env:KBDB_T4_PRODUCTION_EXE = $ident.command
+    $env:KBDB_T4_WORKSPACE = $Workspace
+    # A cold read of a very large production database can exceed the 60 s default.
+    if (-not $env:KBDB_T4_CONTROL_TIMEOUT_SECS) { $env:KBDB_T4_CONTROL_TIMEOUT_SECS = '300' }
 
-$sessionsDoc = Get-Content -LiteralPath (Join-Path $RunDir 'sessions/sessions.json') -Raw | ConvertFrom-Json
-$result = [ordered]@{
-    runner            = 'scripts/verify_copilot_mcp_show.ps1'
-    generated_utc     = (Get-Date).ToUniversalTime().ToString('o')
-    git_head          = (& git rev-parse HEAD)
-    workspace         = $Workspace
-    entry             = $Entry
-    config            = $ident
-    copilot           = $sessionsDoc.copilot
-    sessions          = $sessionsDoc.sessions
-    t1_control_before = Get-Content -LiteralPath (Join-Path $RunDir 't1-before.json') -Raw | ConvertFrom-Json
-    t1_control_after  = Get-Content -LiteralPath (Join-Path $RunDir 't1-after.json') -Raw | ConvertFrom-Json
-    sink_used         = $false
-    acceptance        = if ($sessionsDoc.all_passed) { 'sessions-passed' } else { 'failed' }
-    observation_window = 'Healthy requires three starts within 24 hours; this run supplies them only if all three passed.'
+    Invoke-T1Control $runDir 'before'
+
+    & $python (Join-Path $Workspace 'tools/t4-capture/t4_capture.py') `
+        --workspace $Workspace --copilot-exe $CopilotExe --entry $Entry `
+        --sessions $Sessions --out-dir (Join-Path $runDir 'sessions')
+    $captureExit = $LASTEXITCODE
+    if ($captureExit -eq 4) { Fail 'client/server teardown could not be confirmed; no further control was run' 4 }
+    if ($captureExit -ne 0) { [Console]::Error.WriteLine("T4_FAIL: Copilot /mcp show capture did not pass (exit $captureExit)") }
+
+    Invoke-T1Control $runDir 'after'
+    if ($captureExit -ne 0) { Fail "Copilot /mcp show capture did not pass (exit $captureExit)" $captureExit }
+
+    $sessionsDoc = Get-Content -LiteralPath (Join-Path $runDir 'sessions/sessions.json') -Raw | ConvertFrom-Json
+    # The sessions and both wire controls must have used the same production
+    # configuration and executable.
+    if ($sessionsDoc.config.config_sha256 -ne $ident.config_sha256 -or
+        $sessionsDoc.config.exe_sha256 -ne $ident.exe_sha256) {
+        Fail 'production config or executable changed between the wire controls and the Copilot sessions' 5
+    }
+    $result = [ordered]@{
+        runner             = 'scripts/verify_copilot_mcp_show.ps1'
+        generated_utc      = (Get-Date).ToUniversalTime().ToString('o')
+        git_head           = (& git -C $Workspace rev-parse HEAD)
+        workspace          = $Workspace
+        entry              = $Entry
+        config             = $ident
+        copilot            = $sessionsDoc.copilot
+        sessions           = $sessionsDoc.sessions
+        t1_control_before  = Get-Content -LiteralPath (Join-Path $runDir 't1-before.json') -Raw | ConvertFrom-Json
+        t1_control_after   = Get-Content -LiteralPath (Join-Path $runDir 't1-after.json') -Raw | ConvertFrom-Json
+        sink_used          = $false
+        acceptance         = if ($sessionsDoc.all_passed) { 'sessions-passed' } else { 'failed' }
+        observation_window = 'Healthy requires three starts within 24 hours; this run supplies them only if all three passed.'
+    }
+    $result | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath (Join-Path $runDir 'result.json') -Encoding utf8
+    Write-Output "T4_RESULT: $(Join-Path $runDir 'result.json')"
 }
-$result | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath (Join-Path $RunDir 'result.json') -Encoding utf8
-Write-Output "T4_RESULT: $(Join-Path $RunDir 'result.json')"
-exit 0
+
+$exitCode = 0
+Push-Location -LiteralPath $Workspace
+try {
+    Invoke-T4
+}
+catch [T4Failure] {
+    [Console]::Error.WriteLine("T4_FAIL: $($_.Exception.Message)")
+    $exitCode = $_.Exception.Code
+}
+catch {
+    [Console]::Error.WriteLine("T4_FAIL: unexpected error: $($_.Exception.Message)")
+    $exitCode = 1
+}
+finally {
+    foreach ($name in $EnvNames) { [Environment]::SetEnvironmentVariable($name, $SavedEnv[$name], 'Process') }
+    Pop-Location
+}
+exit $exitCode
