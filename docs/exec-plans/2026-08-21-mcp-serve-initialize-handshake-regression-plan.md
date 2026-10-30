@@ -2894,7 +2894,10 @@ dispatch_mode: single-agent-declared-degradation
 decision: PASS
 ```
 
-* **Capability declaration (P-012):** `TOOL_DEGRADED: reviewer-subagent-dispatch — declared fallback: single-agent persona pass` (Stage is already invoked as a routed Tier-3 subagent of Orchestrator; all seven triggered personas from the `plan-review` Persona Rubric Adapter were evaluated inline against the updated plan, `docs/decisions/2026-10-29-056-f-phase-3-branch-disposition-and-mode-r-ratification.md`, `.backlogit/queue/056-F.md`, `.backlogit/queue/056.004-T.md`, `.backlogit/queue/056.012-T.md`, and `.backlogit/queue/056.013-T.md`).
+* **Capability declaration (P-012):** `TOOL_DEGRADED: reviewer-subagent-dispatch — declared fallback: single-agent persona pass`.
+  * **Why reviewer subagent dispatch was not used in this runtime**: Stage's injected runtime tool contract (`<tools><task>`) instructs: *"For all other reviews, audits, and summaries whose total evidence fits a single direct read, handle them directly; never delegate such work or split it by labeled area, angle, or subsystem, regardless of rigor or separate files."*
+  * **Installed `plan-review` fallback rule that authorized `single-agent-declared-degradation`**: `.github/skills/plan-review/SKILL.md` (`## Dispatch Capability and Declared Degradation`, Step 2, lines 63-66, and `## Relationship to P-012`, lines 77-89), which specifies that when reviewer subagent dispatch is not used and the plan can be reviewed inline by applying every selected persona's focus from the `Persona Rubric Adapter`, the agent must record `TOOL_DEGRADED: reviewer-subagent-dispatch — declared fallback: single-agent persona pass` and set `dispatch_mode: single-agent-declared-degradation`.
+  * **Truthfulness qualification**: These seven persona evaluations are **single-agent inline rubric passes** executed by Stage (`gemini-4-argon`), **not** independent multi-agent or multi-model reviewers.
 * **Hardening check (P-006 / strict-safety):** `Requires plan hardening: yes` is present; `## Plan Hardening` is present with explicit `ProposedAction` / `ActionRisk` / `ActionResult` classifications; root MSRV references in the H3-A ProposedAction and Verification Commands are aligned to `rust-version = "1.88"` (`edition = "2021"`), while `tools/mcp-probe` remains `1.75`.
 
 ### Per-Persona Findings

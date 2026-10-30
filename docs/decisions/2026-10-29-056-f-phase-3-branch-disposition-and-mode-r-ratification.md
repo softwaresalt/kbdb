@@ -287,9 +287,36 @@ Stage-ratified `done` + `selection:not-needed` transitions:
 
 ### 5. Shipment Sequencing Edges
 
-Upon atomic creation of the Phase 3 shipment (`055-S`, allocated fresh by
+Upon atomic creation of the Phase 3 shipment (`055-S`, allocated by
 backlogit), Stage records `blocks` dependency edges from `055-S` to the four
 completed predecessor shipments of `056-F` (`049-S`, `054-S`, `053-S`, `052-S`),
 all four of which are already `status: archived` / `archived_status: shipped`.
-This makes `055-S` immediately eligible for Ship to claim once the staging
-commits are published to `origin/main`.
+
+### 6. Handoff-Integrity Verification: Prior Tool Allocation of `055-S` and Operator Decision Gate
+
+Before staging publication, Stage verified bounded authoritative history for
+shipment ID `055-S` across `.backlogit/checkpoints/`,
+`archive/stage-054-055-local-2026-09-13`, `.backlogit/logs/055-S.jsonl`, and
+SQLite `item_log_entries`:
+
+1. **Concrete Evidence of Prior Tool Allocation (`055-S` Was Previously Issued)**:
+   * On `2026-09-13T12:07:00.7952609-07:00` (`2026-09-13T19:07:00Z`), `055-S` **was actually allocated and created through `backlogit`** (not merely an unissued tentative label) for `[056.026-T]` with title `"MCP managed-config discriminator reconciliation - 056.026-T (056-F)"`.
+   * **Git commit evidence**: `archive/stage-054-055-local-2026-09-13` commit `9a35d490ddf7114be2d99e93e514e6e248625c3c` created `.backlogit/queue/055-S.md` and appended `hooks_queue.jsonl` `seq: 1187` (`create_artifact`, `item_id: "055-S"`) and `seq: 1188` (`update_artifact`, `item_id: "055-S"`).
+   * **Checkpoint evidence**: `.backlogit/checkpoints/checkpoint-20260913-195428.json` and `.backlogit/checkpoints/checkpoint-20260913-231222.json` both record `withdrawn_shipment: "055-S"` (bound to `056.026-T`, withdrawn when PR #122 re-based onto `origin/main` at `7e538e5`).
+   * **Append-only item log evidence**: `.backlogit/logs/055-S.jsonl` (and SQLite `item_log_entries` for `item_id = '055-S'`) contains the historical `2026-09-13T12:07:00.7952609-07:00` `shipment_created` event (`items: ["056.026-T"]`) followed by the `2026-10-29T22:40:31.8651423-07:00` `shipment_created` event (`items: ["056.012-T", "056.013-T", "056.004-T"]`).
+   * **Why `backlogit shipment create` re-issued `055-S`**: `backlogit`'s `NextTypedHierarchicalID` allocator computes the next shipment ID as `max(existing shipment IDs in .backlogit/queue/ and .backlogit/archive/) + 1`. Because PR #122 (`857165cf`) withdrew the 2026-09-13 `055-S` by branching from `origin/main` where `055-S.md` never existed, and subsequent PR #124/#125 minted `054-S`, the highest shipment file on `origin/main` was `054-S`. Calling `backlogit shipment create` therefore re-minted `055-S`.
+   * **Never-issued candidate verification**: `056-S` has **zero** prior occurrences in `.backlogit/logs/`, `item_log_entries`, `.backlogit/queue/`, `.backlogit/archive/`, `.backlogit/checkpoints/`, or any git branch (`git log --all --grep="056-S"` is empty).
+
+2. **Supported Non-Destructive Correction vs. Role-Boundary / Approval Stop Gate**:
+   * Because `backlogit shipment create` accepts no `--id` flag, allocating `056-S` requires creating a new shipment while `055-S.md` is present (so the counter advances to `056-S`) and retiring `055-S` so two `queued` shipments do not simultaneously hold `["056.012-T", "056.013-T", "056.004-T"]` in `.backlogit/queue/` (which Step 5.5 items 2 and 3a(c) forbid).
+   * Installed `backlogit 1.12.0` provides a dedicated Stage-only non-destructive retirement command:
+     `backlogit shipment dispose 055-S --reason "<reason>" --by stage --authorization-ref <DL-ID> --superseded-by 056-S --confirm`
+     (MCP `backlogit_dispose_shipment`), which transitions a `queued` shipment to `abandoned` under a decided deliberation without deleting files, rewriting git/hook history, or fabricating a Ship claim/ship transition.
+   * **Why Stage halts for explicit operator decision rather than executing `backlogit shipment dispose` unilaterally**:
+     1. **Mandatory in-session operator approval**: `backlogit shipment dispose --help` states verbatim: *"It needs a decided deliberation that names this shipment in its authorizes_disposition field, and in-session operator approval before the call."* All current dark-factory approval flags are `false`.
+     2. **P-010 fail-closed Mutation Classification gate**: `backlogit_dispose_shipment` (`backlogit shipment dispose`) is not yet listed in `.github/agents/_stage.agent.md`'s `### Mutation Classification (P-010 fail-closed)` table (nor in `.autoharness/backlog-registry.yaml`). Under `.github/instructions/role-enforcement.instructions.md` (`"If the operation is a state mutation but does NOT appear in either the Allowed or Forbidden column -> treat as forbidden"`), Stage must halt and request operator authorization/classification before invoking it.
+
+3. **Required Operator Decision Before Publication**:
+   * **Option 1 (Strict Fresh Never-Issued ID `056-S` via Governed Stage Dispose)**: Operator grants in-session approval and P-010 authorization for Stage to (a) create decided deliberation `005-DL` with `authorizes_disposition: ["055-S"]`, (b) create shipment `056-S` (`--items "056.012-T,056.013-T,056.004-T"` + `blocks` edges to `049-S`, `054-S`, `053-S`, `052-S`), and (c) run `backlogit shipment dispose 055-S --reason "055-S had a prior local tool allocation on 2026-09-13 (commit 9a35d49); superseded by fresh never-issued 056-S" --by stage --authorization-ref 005-DL --superseded-by 056-S --confirm`.
+   * **Option 2 (Accept `055-S` as Canonical on `origin/main`)**: Operator waives the "never-issued" constraint for `055-S` on the ground that the 2026-09-13 `055-S` (`9a35d49`) was never published to `origin/main` and was formally withdrawn in PR #122 (`857165cf`), allowing `055-S` (`c5992c25a92d72e01a6578f92b1d8fd50b576636` + this handoff-integrity commit) to proceed directly to staging publication.
+
