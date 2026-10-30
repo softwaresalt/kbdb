@@ -139,3 +139,16 @@ No T4 runner script was written: its capture contract depends on blocker 2.
 * Gates: fmt, clippy pedantic all targets, full `cargo test -j 2` (a first
   parallel link hit an out-of-memory error, resolved by reduced parallelism),
   `cargo build`, and `cargo audit` with the CI allowlist all pass.
+
+## Merge and closure (2026-10-30)
+
+* PR 141 merged by normal merge commit `4a6a912575f33f19f63129a600061db97dd2c4d5`
+  (confirmed in `origin/main`). CI, local review, and the P-018 gate passed; seven
+  Copilot findings were fixed and resolved.
+* Safe-close ran under the canonical lock: members archived with the merge SHA;
+  `056-F` and all other `056.*-T` records unchanged. Step 8 halted: backlogit
+  1.12.0 refuses `move --status shipped` (cascade-only). Halt record
+  `.backlogit/reconcile/055-S-halt-20261030-083000.md`, lock released.
+* Shipment `055-S` stays `active`; checkpoint `064908` stays active. Closure
+  artifact: `docs/closure/2026-10-30-055-s-phase-3-final-docs-t4-post-merge-closure.md`
+  (`closure_status: INCOMPLETE`, `compaction: degraded`).
