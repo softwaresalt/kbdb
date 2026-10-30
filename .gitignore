@@ -93,6 +93,9 @@ logs/
 temp/
 tmp/
 *.txt
+!tools/t4-capture/requirements.txt
+!tools/t4-capture/fixtures/*.txt
+__pycache__/
 
 # Cursor
 #  Cursor is an AI-powered code editor. `.cursorignore` specifies files/directories to

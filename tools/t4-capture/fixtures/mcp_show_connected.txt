@@ -1,0 +1,50 @@
+ MCP                                                                                                                                                7/7 enabled
+ [Installed (7)]  Online   Connectors
+                                                                                                                                                               ┃
+ MCP · kbdb                                                                                                                                                    ┃
+                                                                                                                                                               ┃
+ id: kbdb                                                                                                                                                      ┃
+ kind: mcp                                                                                                                                                     ┃
+ name: kbdb                                                                                                                                                    ┃
+ scope: Repository                                                                                                                                             ┃
+ enabled: ✓ yes                                                                                                                                                ┃
+ trust: {                                                                                                                                                      ┃
+   "origin": {                                                                                                                                                 ┃
+     "kind": "workspace"                                                                                                                                       ┃
+   },                                                                                                                                                          ┃
+   "capabilities": {},                                                                                                                                         ┃
+   "permissions": {}                                                                                                                                           ┃
+ }                                                                                                                                                             ┃
+                                                                                                                                                               ┃
+ tools (8)                                                                                                                                                     ┃
+ get_chunk_by_id: Retrieve a single documentation chunk by its stable SHA-256 chunk ID. Returns full content, source path, heading hierarchy, and position.    ┃
+ Use this after `search_local_docs` when you need the complete text of a specific chunk. The chunk ID must be an exact match (hex string from search results). ┃
+ get_document: Retrieve all chunks for a specific document path, assembled in reading order. Provide source_id to scope to one source, or leave it empty to    ┃
+ retrieve across all sources. Use this to read a complete document after identifying its path via `search_local_docs`. Returns chunks sorted by position.      ┃
+ get_status: Return current database status: registered source count, total chunk count, schema version, and background sync state. Use this tool to verify    ┃
+ the ingestion pipeline has run and to check the health of the local documentation database.                                                                   ┃
+ list_sources: List all registered documentation sources. Returns source IDs, kinds (git/local), display names, and last-sync timestamps. Use this tool to     ┃
+ discover which documentation sources are available before searching or retrieving documents.                                                                  ┃
+ research_topic: Perform in-depth research on a topic: searches documentation by keyword or semantic similarity, then traverses the document graph from the    ┃
+ top results to surface related context. Returns initial search hits plus BFS-discovered related chunks, all deduplicated. Use this tool for comprehensive     ┃
+ topic research when you want both direct matches and linked documentation. top_k controls initial search breadth (default 5, max 20); max_depth controls      ┃
+ graph traversal depth (default 1, max 3).                                                                                                                     ┃
+ search_local_docs: Search local documentation chunks by keyword or phrase. Returns matching chunks with source path, heading context, content, and a Chunk ID ┃
+  that can be passed to `traverse_doc_links` to explore related documentation. Use source_id to restrict results to a specific documentation source. Use this  ┃
+ tool to find documentation related to a topic.                                                                                                                ┃
+ search_semantic: Search local documentation by semantic / conceptual similarity. Embeds the query using all-MiniLM-L6-v2 and returns the most similar         ┃
+ documentation chunks by cosine similarity. Use this when keyword search (`search_local_docs`) misses conceptually related content. Requires the embedding     ┃
+ model to be loaded. Returns top_k results (default 10, max 50).                                                                                               ┃
+ traverse_doc_links: Traverse the document link graph starting from a chunk ID. Use this after `search_local_docs` to explore related documentation via        ┃
+ semantic links. Requires a valid chunk ID from `search_local_docs` output. Returns all reachable chunks within max_depth hops (default 2, max 5) with their   ┃
+ paths and traversal depths.                                                                                                                                   ┃
+                                                                                                                                                               ┃
+ data                                                                                                                                                          ┃
+ {                                                                                                                                                             ┃
+   "name": "kbdb",                                                                                                                                             ┃
+   "status": "connected",                                                                                                                                      ┃
+   "source": "workspace",                                                                                                                                      ┃
+   "serverMetadata": {                                                                                                                                         ┃
+     "instructions": "LocalDocRAG MCP server — search and traverse local documentation graphs indexed from MicrosoftDocs repositories."                        ┃
+   }                                                                                                                                                           ┃
+ esc back · ⌫ back · q close

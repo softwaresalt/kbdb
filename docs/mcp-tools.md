@@ -32,24 +32,81 @@ own database from local docline Markdown.
 
 ### 2. Configure your MCP client
 
-Add graphtor-docs to your MCP client configuration file (e.g., `.mcp.json`):
+Add kbdb to your MCP client configuration file (e.g., `.mcp.json`):
 
 ```json
 {
   "mcpServers": {
-    "graphtor-docs": {
+    "kbdb": {
       "type": "stdio",
-      "command": "graphtor-docs",
+      "command": "kbdb",
       "args": ["serve"]
     }
   }
 }
 ```
 
-The `graphtor-docs` binary must be on your `PATH`, or the `command` value must
+The `kbdb` binary must be on your `PATH`, or the `command` value must
 point at the binary. A full ingestion install may manage a binary under
 `.graphtor/bin/`; the minimal consumption-first install resolves the command
 through `PATH`.
+
+#### Managed launch entry
+
+`install` writes (or refreshes) one managed server entry in the workspace-root
+`.mcp.json`. The current binary is named `kbdb` and the generator uses the fixed
+server key `kbdb`; older text in this guide that says `graphtor-docs` describes
+the same server under its former name. A generated entry has exactly these
+fields:
+
+```json
+{
+  "mcpServers": {
+    "kbdb": {
+      "command": "<absolute path to the kbdb binary, or bare kbdb on PATH>",
+      "args": ["serve"],
+      "transport": "stdio",
+      "x-kbdb-managed": true
+    }
+  }
+}
+```
+
+* The generator emits no `cwd` and no `env`. The server treats the directory
+  it is launched in as its authorized project root, so configure your MCP
+  client to start the server from the workspace root.
+* The provenance marker `x-kbdb-managed` identifies the entry as kbdb-owned.
+  Re-running `install` refreshes a marked entry in place. An unmarked entry
+  that is not the exact legacy shape is never overwritten; `install` fails
+  closed instead.
+* `uninstall` removes only kbdb-managed entries and preserves every other server
+  in a shared `.mcp.json`. A managed entry is one carrying the marker, or an
+  unmarked `kbdb` entry that exactly matches the legacy pre-marker shape. The
+  file is deleted only when the managed entry was its sole server.
+* `upgrade` does not rewrite `.mcp.json`.
+
+The discriminator field differs between this guide's client example (`type`)
+and the generator (`transport`). Exact-client evidence has not shown that
+either field is the one a given client honors, so no generator change was
+selected and the generated shape stays as listed above. If your client does not
+start the server from a generated entry, report the client build and the
+exact entry. Wrapper scripts and temporary entries are diagnostic
+tools only: restored-production acceptance counts only sessions that launch the
+delivered entry unmodified.
+
+#### Client compatibility: pre-initialize `server/discover`
+
+GitHub Copilot CLI 1.0.105 sends a `server/discover` request before
+`initialize`. The server answers that one pre-`initialize` method with a
+correlated JSON-RPC `-32601` (method not found) error and then continues the
+normal `initialize` handshake. The exact client reports the server as
+`connected` after this change and `failed` before it. The server does not
+return a `DiscoverResult` and intercepts no other pre-`initialize` method. See
+the [exact-client evidence](decisions/2026-10-29-mcp-serve-discover-compat-exact-client-evidence.md).
+
+A client that does not accept a `-32601` reply to `server/discover` is not
+covered by this evidence. Report the client build rather than adding a wrapper
+to a production entry.
 
 ### 3. Ensure a database is available
 
@@ -131,7 +188,11 @@ failures" would also match "error recovery strategies").
 
 Requires the embedding model (`all-MiniLM-L6-v2`) to be loaded at server
 startup. If the server continued in degraded mode after model resolution failed,
-this tool returns a descriptive error. Use `search_local_docs` as a fallback.
+this tool returns a descriptive error and never falls back to keyword search.
+Availability is binary: the server exposes no loading, failed, or disabled
+state fields. The model is resolved at startup, so restart the server after the
+model becomes available. Use `search_local_docs` as a
+fallback.
 
 **Parameters:**
 
@@ -176,7 +237,8 @@ single call.
 
 **Behavior:**
 1. Runs keyword search, or semantic search when the model is loaded, for
-   `query`
+   `query`. Without a loaded model the tool runs keyword search and the
+   rest of the behavior is unchanged; it reports no separate fallback metadata
 2. Uses the top `min(top_k, 3)` results as BFS traversal seeds at `max_depth`
 3. Returns initial search hits with full chunk content plus globally
    deduplicated related chunks. Related chunks include depth, path, and chunk
@@ -313,12 +375,38 @@ and chunks are indexed; perform a quick health check.
 **Parameters:** none
 
 **Response:** Markdown status block with aggregate registered source count,
-aggregate chunk count, active schema version, and `Auto-sync` state.
+aggregate chunk count, active schema version, and `Auto-sync` state. It does
+not report embedding-model availability and does not identify the workspace; it
+is side-effect free and is safe to call as a liveness check.
 
 **Example:**
 ```text
 get_status()
 ```
+
+---
+
+### Runtime diagnostics and recovery
+
+When the server cannot start, it writes the failure to stderr unconditionally
+and exits with code `2`. This output does not depend on `RUST_LOG`. Standard
+output carries only MCP protocol traffic, so capture stderr separately.
+
+Failures before the transport starts also emit structured `tracing` events,
+which `RUST_LOG=off` silences without hiding the stderr message:
+
+| Event | Meaning |
+|---|---|
+| `mcp_serve_preflight_exit` | A normal exit with code `2`. The `exit` field is one of `config_override_not_found`, `no_databases_to_serve`, `duplicate_intake_conflict`, `pre_v4_schema`, or `no_primary_store`. |
+| `mcp_serve_preflight_error` | An error is about to propagate. The `stage` field is one of `source_config`, `discovery`, `database_lock`, `database_open`, `schema`, `embedding_model`, or `duplicate_intake`. |
+| `mcp_serve_ready` | Preflight finished and the server is about to call `serve_server`. It records the launch cwd used as the project root. |
+
+`mcp_serve_ready` is preflight evidence only. It does not show that the
+transport is running or that `initialize` completed. Confirm a live connection
+from the MCP client's own status (for example `/mcp show` in Copilot CLI).
+
+For symptoms and fixes, see
+[Troubleshooting](troubleshooting.md#serve-preflight-diagnostics-and-client-startup).
 
 ---
 

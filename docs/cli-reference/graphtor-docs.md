@@ -117,6 +117,12 @@ On startup:
      error; all other tools continue to work normally
 4. Starts the JSON-RPC STDIO server
 
+Preflight failures (steps 1 and 2, plus duplicate-intake and schema checks) are
+written to stderr unconditionally and `serve` exits with code `2` before any MCP
+traffic. Before `initialize`, the server answers a `server/discover` request
+with a correlated JSON-RPC `-32601` error and then continues the normal
+handshake. See [Runtime diagnostics and recovery](../mcp-tools.md#runtime-diagnostics-and-recovery)
+and [Configure your MCP client](../mcp-tools.md#2-configure-your-mcp-client).
 **Flags:**
 
 | Flag | Description |
@@ -242,9 +248,17 @@ That is the ENTIRE default footprint: no `bin/`, `data/`, `cache/`,
 `config/`, or `logs/` subdirectories, no copied binary, and no
 `sources.yaml`. `install` also:
 
-- Generates a workspace-root `.mcp.json` MCP client config registering a
-  bare `graphtor-docs` PATH command (non-destructive)
+- Generates a workspace-root `.mcp.json` MCP client config registering the
+  server binary (an absolute path when a managed binary exists, otherwise the
+  bare PATH command; non-destructive)
 - Does **not** touch `.gitignore` (there is nothing generated to ignore)
+
+The generated entry is a single managed server under the key `kbdb` with
+`command`, `args: ["serve"]`, `transport: "stdio"`, and the provenance marker
+`x-kbdb-managed: true`. It carries no `cwd` or `env`. Re-running `install`
+refreshes a marked entry in place and fails closed on an unmarked entry that is
+not the exact legacy shape. See
+[Managed launch entry](../mcp-tools.md#managed-launch-entry).
 
 Pass `--with-ingestion` to instead create the full, ingestion-capable
 scaffold — see [Ingestion setup](#ingestion-setup) below.
@@ -361,7 +375,8 @@ graphtor-docs upgrade [FLAGS]
 Replaces `.graphtor/bin/graphtor-docs` with the currently running binary.
 Preserves all configuration and data. On a consumption-first minimal install
 (no `bin/` scaffold), `upgrade` is a safe no-op — there is no managed binary
-to replace, and `upgrade` never creates one as a side effect.
+to replace, and `upgrade` never creates one as a side effect. `upgrade` does
+not rewrite `.mcp.json`; run `install` to refresh the managed server entry.
 
 | Flag | Default | Description |
 |---|---|---|
@@ -385,7 +400,11 @@ Removes only the graphtor-created subdirectories (`bin/`, `data/`, `cache/`,
 `.graphtor/` itself is removed only if it ends up completely empty
 afterward. Also removes generated MCP client config entries, and cleans the
 managed `.gitignore` block ONLY for a full (`--with-ingestion`) install — a
-minimal install never wrote one. Before deleting anything, `uninstall`
+minimal install never wrote one. MCP config removal is surgical: only a managed
+entry is removed (one carrying the `x-kbdb-managed` marker, or an unmarked `kbdb`
+entry that exactly matches the legacy pre-marker shape), other servers in a
+shared `.mcp.json` are preserved, and the file is deleted only when the managed
+entry was its sole server. Before deleting anything, `uninstall`
 prints the exact set of directories it is about to remove.
 
 `--confirm` is **required** to prevent accidental data deletion.

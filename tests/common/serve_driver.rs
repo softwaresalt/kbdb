@@ -100,6 +100,56 @@ pub fn graphtor_bin() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_kbdb"))
 }
 
+/// Environment variable that points the driver at a delivered production
+/// `kbdb` executable (T4, `056.004-T`) instead of the Cargo test binary.
+pub const PRODUCTION_EXE_ENV: &str = "KBDB_T4_PRODUCTION_EXE";
+
+/// Validates an explicit production-executable override: it must be a
+/// non-empty, absolute path to an existing file. Never falls back to the
+/// Cargo test binary.
+///
+/// # Errors
+///
+/// Returns a message when the value is empty, relative, or not a file.
+pub fn validate_production_exe(raw: &str) -> Result<PathBuf, String> {
+    if raw.trim().is_empty() {
+        return Err(format!("{PRODUCTION_EXE_ENV} is empty"));
+    }
+    let path = PathBuf::from(raw);
+    if !path.is_absolute() {
+        return Err(format!("{PRODUCTION_EXE_ENV} must be absolute, got {raw}"));
+    }
+    if !path.is_file() {
+        return Err(format!(
+            "{PRODUCTION_EXE_ENV} is not an existing file: {raw}"
+        ));
+    }
+    Ok(path)
+}
+
+/// Resolves the delivered production executable named by
+/// [`PRODUCTION_EXE_ENV`].
+///
+/// # Errors
+///
+/// Returns a message when the variable is unset or fails
+/// [`validate_production_exe`].
+pub fn production_server_exe() -> Result<PathBuf, String> {
+    let raw = std::env::var(PRODUCTION_EXE_ENV)
+        .map_err(|_| format!("{PRODUCTION_EXE_ENV} is not set"))?;
+    validate_production_exe(&raw)
+}
+
+/// The executable a [`ServeSession`] launches: the validated production
+/// override when [`PRODUCTION_EXE_ENV`] is set, otherwise the Cargo binary.
+/// An invalid override is an error rather than a silent fallback.
+fn server_exe() -> Result<PathBuf, String> {
+    match std::env::var(PRODUCTION_EXE_ENV) {
+        Ok(raw) => validate_production_exe(&raw),
+        Err(_) => Ok(graphtor_bin()),
+    }
+}
+
 // ── Wire-level observation types ────────────────────────────────────────
 
 /// One line observed on the child's stdout during a session, plus its
@@ -230,7 +280,7 @@ impl ServeSession {
     /// Returns a human-readable message when the binary could not be
     /// spawned, or a spawned child unexpectedly lacks a piped handle.
     pub fn spawn(extra_args: &[String], cwd: &Path, timeout: Duration) -> Result<Self, String> {
-        let mut command = Command::new(graphtor_bin());
+        let mut command = Command::new(server_exe()?);
         command.arg("serve");
         command.args(extra_args);
         command.current_dir(cwd);

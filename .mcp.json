@@ -16,8 +16,8 @@
     },
     "kbdb": {
       "type": "stdio",
-      "command": "bun",
-      "args": [".copilot/graphtor-mcp-shim.cjs", "kbdb", "serve"],
+      "command": "C:\\Source\\GitHub\\kbdb\\.kbdb\\bin\\kbdb.exe",
+      "args": ["serve"],
       "x-kbdb-managed": true,
       "tools": ["*"]
     },
