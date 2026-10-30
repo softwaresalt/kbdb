@@ -69,8 +69,11 @@ See `docs/decisions/2026-10-30-056-004-t4-restored-production-acceptance-evidenc
 
 Recorded for a future Stage session; Ship created no stash or backlog entries.
 
-* Shipment `055-S` closure path: operator decision on the halt record (cascade
-  authorization, upstream backlogit fix, or leaving it active).
+* Shipment `055-S` closure path: backlogit 1.12.0 supports no non-cascading
+  shipped transition and the cascade is not permitted for this manifest (P-015).
+  Needs a supported transition, a recorded decision to leave it active, or a
+  separate governing-contract change, plus a disposition for the safe-close
+  baseline deviation recorded in the halt record.
 * Retire covering feature `056-F` after genuine closure of `055-S`.
 * Machine-specific `.mcp.json` command path, and the runner's `#requires
   -Version 7` guard and PID-reuse (creation time) check before stopping the
