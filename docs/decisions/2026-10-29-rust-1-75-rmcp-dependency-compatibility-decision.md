@@ -143,6 +143,17 @@ evaluated:
    source and API migration.
 3. **Rejected:** Maintain a forked `rmcp` and `candle` stack at Rust 1.75.
 
+## Verification Evidence (056.029-T)
+
+After setting `rust-version = "1.88"` in the root `Cargo.toml` (edition kept at
+`2021`, `Cargo.lock` unchanged), the locked dependency graph was verified with
+`rustc 1.88.0 (6b00bc388 2025-06-23)` on 2026-10-29:
+
+| Command | Result |
+|---|---|
+| `cargo +1.88.0 check --all-targets --locked` | Pass (`Finished dev profile`, 2m 33s) |
+| `cargo +1.88.0 test --no-run --locked` | Pass (`Finished test profile`, 4m 50s, all test executables built) |
+
 ## Rollback
 
 To roll back `056.029-T` through `056.033-T`, revert the `rust-version = "1.88"`
