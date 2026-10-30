@@ -282,6 +282,38 @@ an invalid `--db-path`, a permission error, a pre-v4 database, or an invalid
 
 ---
 
+### `serve` preflight diagnostics and client startup
+
+**Symptom:** the MCP client shows the server as failed or disconnected, or
+`kbdb serve` prints an error and exits with code `2` before any MCP traffic.
+
+**Cause:** the server refused to start during preflight (source registry,
+database discovery, lock, open, schema, model resolution, or duplicate-intake
+checks). Each failure is printed to stderr unconditionally. It also emits a
+`mcp_serve_preflight_exit` or `mcp_serve_preflight_error` tracing event; see
+[Runtime diagnostics and recovery](mcp-tools.md#runtime-diagnostics-and-recovery)
+for the event and tag names.
+
+**Resolution:**
+1. Run the exact configured command from the workspace root in a terminal and
+   read stderr. Standard output carries MCP protocol traffic only.
+2. Match the stderr message to the exit tag or stage and apply the fix from the
+   matching section above (for example `no_databases_to_serve` or a
+   `pre_v4_schema` rebuild with `sync`).
+3. If you see `mcp_serve_ready`, preflight passed. That event does not show the
+   handshake completed; check the client's own connection status.
+
+**Client handshake note:** GitHub Copilot CLI 1.0.105 probes `server/discover`
+before `initialize`. Earlier server builds ended that probe with the client
+status `failed`; the server now replies `-32601` and continues the handshake,
+after which the client reports `connected`. If a regression appears, compare the
+client build against the
+[exact-client evidence](decisions/2026-10-29-mcp-serve-discover-compat-exact-client-evidence.md).
+`doctor` checks configuration and the database. It does not exercise the MCP
+transport, so a clean `doctor` does not rule out this failure.
+
+---
+
 ### `doctor` reports schema mismatch
 
 **Symptom:**
