@@ -109,6 +109,157 @@ class EntryIdentity(unittest.TestCase):
             t4.check_entry(self._write({"command": str(other), "args": ["serve"]}), "kbdb")
 
 
+class OwnedProcessTests(unittest.TestCase):
+    """OS-boundary tests using only processes this test owns (a real `ping.exe`).
+
+    No unrelated process is ever touched: PID-reuse is simulated by presenting
+    a live owned process with a DIFFERENT expected creation identity.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        import shutil
+        cls.ping = shutil.which("ping.exe")
+        if cls.ping is None:
+            raise unittest.SkipTest("ping.exe not available")
+
+    def setUp(self):
+        import subprocess
+        self.child = subprocess.Popen(
+            [self.ping, "-n", "60", "127.0.0.1"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+        self.addCleanup(self._reap)
+        row = [p for p in t4.process_table() if p["pid"] == self.child.pid]
+        self.assertEqual(len(row), 1)
+        self.row = row[0]
+
+    def _reap(self):
+        if self.child.poll() is None:
+            self.child.kill()
+        self.child.wait(timeout=10)
+
+    def test_verified_owned_handle_terminates_exactly_that_process(self):
+        owned = t4.OwnedProcess.open(self.child.pid, self.row["exe"], self.row["created"])
+        try:
+            self.assertTrue(owned.is_running())
+            owned.terminate()
+            self.child.wait(timeout=10)
+            self.assertFalse(owned.is_running())
+        finally:
+            owned.close()
+
+    def test_same_exe_different_creation_identity_is_refused_and_not_terminated(self):
+        # Simulates PID reuse by another client's process with the same exe.
+        from datetime import timedelta
+        created = t4.parse_utc(self.row["created"])
+        wrong = (created + timedelta(hours=1)).isoformat()
+        with self.assertRaises(t4.IdentityError):
+            t4.OwnedProcess.open(self.child.pid, self.row["exe"], wrong)
+        self.assertIsNone(self.child.poll(), "refused open must never terminate the process")
+
+    def test_creation_time_mismatch_inside_the_old_50ms_window_is_refused(self):
+        # Exact 100 ns identity: even a 10 ms difference is a different process.
+        from datetime import timedelta
+        wrong = (t4.parse_utc(self.row["created"]) + timedelta(milliseconds=10)).isoformat()
+        with self.assertRaises(t4.IdentityError):
+            t4.OwnedProcess.open(self.child.pid, self.row["exe"], wrong)
+        self.assertIsNone(self.child.poll())
+
+    def test_ticks_parse_keeps_seven_digit_cim_precision(self):
+        base = t4.utc_ticks("2026-10-30T21:35:13.0147680Z")
+        self.assertEqual(t4.utc_ticks("2026-10-30T21:35:13.0147681Z") - base, 1)
+        self.assertEqual(t4.utc_ticks("2026-10-30T21:35:13.014768Z"), base)
+
+    def test_different_exe_is_refused_and_not_terminated(self):
+        with self.assertRaises(t4.IdentityError):
+            t4.OwnedProcess.open(self.child.pid, "C:\\other\\kbdb.exe", self.row["created"])
+        self.assertIsNone(self.child.poll())
+
+    def test_unopenable_pid_fails_closed(self):
+        with self.assertRaises(t4.IdentityError):
+            t4.OwnedProcess.open(0x7FFFFFF0, self.row["exe"], self.row["created"])
+
+    def test_terminate_on_a_closed_handle_surfaces_instead_of_succeeding(self):
+        owned = t4.OwnedProcess.open(self.child.pid, self.row["exe"], self.row["created"])
+        owned.close()
+        with self.assertRaises(t4.IdentityError):
+            owned.terminate()
+        self.assertIsNone(self.child.poll())
+
+
+class RenderReadiness(unittest.TestCase):
+    def test_fully_rendered_screen_is_ready(self):
+        self.assertTrue(t4.mcp_show_rendered(CONNECTED))
+
+    def test_status_block_without_tools_header_is_not_ready_yet(self):
+        # A partially rendered screen must keep waiting rather than be captured.
+        partial = CONNECTED.replace("tools (8)", "tools")
+        self.assertFalse(t4.mcp_show_rendered(partial))
+
+    def test_all_tools_but_unfinished_data_block_is_not_ready(self):
+        # Complete tool rows and footer, but a nested data object is still open.
+        head = CONNECTED.split('"instructions"')[0]
+        partial = head + '\n esc back \u00b7 q close\n'
+        self.assertFalse(t4.mcp_show_rendered(partial))
+
+    def test_real_screen_with_clipped_outer_brace_is_ready(self):
+        # The captured real screen never draws the outermost closing brace.
+        self.assertTrue(t4.mcp_show_rendered(CONNECTED))
+        data = CONNECTED.split("\n data")[1]
+        self.assertEqual(data.count("{") - data.count("}"), 1)
+
+    def test_stable_wait_returns_the_settled_frame(self):
+        frames = iter(["draw1", "draw2", "final", "final", "final", "final", "final"])
+        state = {"last": "draw1", "t": 0.0}
+
+        def get_text():
+            state["last"] = next(frames, state["last"])
+            return state["last"]
+
+        def sleep(seconds):
+            state["t"] += seconds
+
+        out = t4.wait_for_stable(get_text, lambda t: True, timeout=30, settle=1.0,
+                                 sleep=sleep, monotonic=lambda: state["t"])
+        self.assertEqual(out, "final")
+
+    def test_stable_wait_never_returns_a_changing_frame(self):
+        counter = {"n": 0, "t": 0.0}
+
+        def get_text():
+            counter["n"] += 1
+            return f"frame{counter['n']}"
+
+        def sleep(seconds):
+            counter["t"] += seconds
+
+        out = t4.wait_for_stable(get_text, lambda t: True, timeout=5, settle=1.0,
+                                 sleep=sleep, monotonic=lambda: counter["t"])
+        self.assertIsNone(out)
+
+    def test_stable_wait_times_out_when_predicate_never_holds(self):
+        clock = {"t": 0.0}
+        out = t4.wait_for_stable(lambda: "x", lambda t: False, timeout=3, settle=1.0,
+                                 sleep=lambda s: clock.__setitem__("t", clock["t"] + s),
+                                 monotonic=lambda: clock["t"])
+        self.assertIsNone(out)
+
+    def test_fully_rendered_failure_state_is_ready(self):
+        # A rendered failure must still be captured (and then fail evaluation).
+        failed = CONNECTED.replace('"status": "connected"', '"status": "failed"')
+        self.assertTrue(t4.mcp_show_rendered(failed))
+
+    def test_header_present_but_tool_list_incomplete_is_not_ready(self):
+        lines = [l for l in CONNECTED.splitlines()
+                 if not l.lstrip().startswith(("get_status:", "list_sources:"))]
+        self.assertFalse(t4.mcp_show_rendered("\n".join(lines)))
+
+    def test_tools_header_without_status_block_is_not_ready(self):
+        partial = CONNECTED.replace('"status"', '"stat"')
+        self.assertFalse(t4.mcp_show_rendered(partial))
+
+
 class Teardown(unittest.TestCase):
     def test_confirmed_only_when_both_pids_gone(self):
         table = [{"pid": 1, "ppid": 0, "exe": "x"}]

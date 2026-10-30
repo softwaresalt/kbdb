@@ -152,3 +152,17 @@ No T4 runner script was written: its capture contract depends on blocker 2.
 * Shipment `055-S` stays `active`; checkpoint `064908` stays active. Closure
   artifact: `docs/closure/2026-10-30-055-s-phase-3-final-docs-t4-post-merge-closure.md`
   (`closure_status: INCOMPLETE`, `compaction: degraded`).
+
+## Corrective pass (2026-10-30, operator "Perform the corrective pass")
+
+* Resumed this branch, fast-forwarded to local `main` `3a60d31` (Stage baseline
+  disposition and its own memory carried unchanged). No claim, no new worktree.
+* Fixed the owned-child cleanup (verified process handle, no PID kill). Tests RED
+  (missing `OwnedProcess`, `mcp_show_rendered`) then GREEN, 29 Python tests.
+* Real strict reruns passed (`20261030T212124Z`, `...212815Z`, `...212908Z`); one
+  intermediate run failed closed on a partial render and led to the render wait.
+* Review: one code-review agent pass found a P2 (unowned server left running when
+  the handle open fails: now reported by PID) and a P3 (ctypes argtypes): both
+  fixed. The final two small edits were reviewed inline by me only.
+* Shipment closure unchanged and still blocked (tool gap plus unamended Step 2/3);
+  no shipped move, cascade, or status change attempted.
