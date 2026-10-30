@@ -75,9 +75,11 @@ Recorded for a future Stage session; Ship created no stash or backlog entries.
   separate governing-contract change, plus a disposition for the safe-close
   baseline deviation recorded in the halt record.
 * Retire covering feature `056-F` after genuine closure of `055-S`.
-* Machine-specific `.mcp.json` command path, and the runner's `#requires
-  -Version 7` guard and PID-reuse (creation time) check before stopping the
-  recorded server PID.
+* Machine-specific `.mcp.json` command path and the runner's `#requires
+  -Version 7` guard remain open Stage handoffs.
+* PID-reuse-safe cleanup of the captured server: **resolved in scope** by PR 143
+  (verified process handle, no PID kill; see the evidence note's corrective
+  section). This supersedes the earlier Stage-handoff listing of that item.
 
 ## Source-artifact retirement handoff
 

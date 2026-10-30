@@ -166,3 +166,23 @@ No T4 runner script was written: its capture contract depends on blocker 2.
   fixed. The final two small edits were reviewed inline by me only.
 * Shipment closure unchanged and still blocked (tool gap plus unamended Step 2/3);
   no shipped move, cascade, or status change attempted.
+
+## Corrective pass delivered (2026-10-30)
+
+* PR 143 merged by normal merge commit `27ab73cb61b3e6d45eca4d9e2149300c925cea98`
+  (confirmed in `origin/main`), carrying Stage's `3a60d31` unchanged. CI, P-018,
+  and local review passed. Copilot review rounds on PR 143: 2, 1, and 1 threads,
+  all fixed and resolved; earlier PR 141 (6 and 1 threads, 7 total) and PR 142
+  (2 threads) counts are unchanged.
+* Real strict reruns with the corrected harness passed; the final run is
+  `20261030T214529Z`. Two intermediate real runs failed closed (partial render;
+  then an over-strict readiness predicate of mine), both recorded and fixed.
+* Read-only capability recheck after the merge: backlogit still 1.12.0 and
+  `shipment ship` has only `--author/--message/--sha`; shipment `055-S` still
+  `active`. No shipped move, cascade, dispose, or status edit was attempted.
+* Continuity: new Ship checkpoint `checkpoint-20261030-215208` (`closure-blocked`,
+  active); the old T4 cursor `checkpoint-20261030-064908` was resolved only after
+  the new cursor was persisted and validated. No Stage checkpoint was touched.
+* P-020 `compact-context` (target `all`): bounded scan only; the shipment is not
+  closed and its evidence is live, so nothing was compacted or archived
+  (`compaction: degraded`).
