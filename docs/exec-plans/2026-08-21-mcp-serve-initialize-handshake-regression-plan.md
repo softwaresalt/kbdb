@@ -8,12 +8,20 @@ stash_ids:
 linked_artifacts:
   - "docs/decisions/2026-08-21-mcp-serve-initialize-os-error-232-deliberation.md"
   - "docs/decisions/2026-08-29-mcp-serve-discover-preinitialize-evidence.md"
+  - "docs/decisions/2026-09-13-stage-056.026-T-disposition-not-needed.md"
   - "docs/decisions/2026-10-29-rust-1-75-rmcp-dependency-compatibility-decision.md"
+  - "docs/decisions/2026-10-29-mcp-serve-discover-compat-exact-client-evidence.md"
+  - "docs/decisions/2026-10-29-056-f-phase-3-branch-disposition-and-mode-r-ratification.md"
 backlog_refs:
   - "049-S"
   - "052-S"
   - "053-S"
+  - "054-S"
+  - "055-S"
   - "056-F"
+  - "056.004-T"
+  - "056.012-T"
+  - "056.013-T"
   - "056.028-T"
   - "056.029-T"
   - "056.030-T"
@@ -91,6 +99,31 @@ closes, but `056.028-T -> 056.029-T` already enforces its order. Before
 every `056.029-T` successor is dependency-ready; `052-S` starts only after all
 five `053-S` members close.
 
+### Post-052-S Phase 2 Branch Disposition and Phase 3 Mode R Shipment Assembly (`055-S` — 2026-10-29)
+
+Following delivery and post-merge closure of `049-S` (`98f8fc63`), `054-S`
+(`2872de33`), `053-S` (`99464f77`), and `052-S` (`9d5621a1`,
+`docs/decisions/2026-10-29-mcp-serve-discover-compat-exact-client-evidence.md`),
+Stage executed the Final Assembly Protocol in
+`docs/decisions/2026-10-29-056-f-phase-3-branch-disposition-and-mode-r-ratification.md`:
+
+* All 14 remaining `selection:pending` Phase 2 conditional tasks (`056.005-T`,
+  `056.006-T`, `056.007-T`, `056.008-T`, `056.009-T`, `056.010-T`, `056.014-T`,
+  `056.015-T`, `056.016-T`, `056.017-T`, `056.018-T`, `056.024-T`, `056.025-T`,
+  `056.027-T`) were evaluated strictly against their documented activation
+  predicates using the completed one-shot T0 (`056.001-T`), H3-B (`056.019-T`),
+  discriminator (`056.026-T`), and E1 (`2026-08-29`) evidence records (without
+  inferring "no other cause" from `052-S` treatment success alone). Because none
+  of their activation predicates was evidenced, all 14 are dispositioned `done`
+  with `selection:not-needed` and explicit `not-needed: <rationale>` audit
+  comments (joining `056.026-T`, already `done`/`selection:not-needed`).
+* Under Step 5.5 Mode R, Stage ratifies and assembles the Phase 3 task-only
+  shipment `055-S` with ordered `member_ids` (`assembly_ids`):
+  `056.012-T, 056.013-T, 056.004-T`, disjoint from the 30 satisfied
+  `prerequisite_ids` (`056.001-T`..`056.003-T`, `056.005-T`..`056.011-T`,
+  `056.014-T`..`056.033-T`), with covering feature `056-F` held in the P-015
+  protected set.
+
 ## Goal / Definition of Done
 
 * The newest Copilot CLI connects to `graphtor-docs` via `/mcp show
@@ -133,8 +166,8 @@ five `053-S` members close.
 * All quality gates pass: `cargo fmt --all -- --check`,
   `cargo clippy --all-targets -- -D warnings -D clippy::pedantic`,
   `cargo test --all-targets`, `cargo audit`, and `cargo build --release`.
-  Any rmcp/dependency change also passes
-  `cargo +1.75.0 check --all-targets`. The standalone probe crate is verified
+  Any root-workspace rmcp/dependency change also passes
+  `cargo +1.88.0 check --all-targets --locked` at the amended `rust-version = "1.88"` floor (`edition = "2021"`). The standalone probe crate is verified
   separately via `cargo +1.75.0 check|test|build|clippy --manifest-path
   tools/mcp-probe/Cargo.toml` (clippy `-D warnings -D clippy::pedantic`).
 * Rollback and three exact-Copilot `/mcp show graphtor-docs` sessions on the
@@ -173,7 +206,7 @@ five `053-S` members close.
 | Shared lazy lifecycle (conditional H1) | `src/embed/lifecycle.rs` | Supervised clone-shared lifecycle state machine only; expose a stable typed lifecycle-state accessor; the versioned Loading/Failed/Disabled availability projection and `src/mcp/server.rs` consumers move to `056.025-T` → `056.005-T` |
 | Serve/background-sync orchestration (conditional H1) | `src/main.rs::cmd_serve`, `spawn_background_sync` | Inject one shared lazy owner into `DocServer` and Generation sync; neither eager load nor background sync may block initialize; consume the 056.025-T availability projection → `056.015-T` |
 | MCP availability projection (conditional H1) | `src/mcp/server.rs` | Own the versioned Loading/Failed/Disabled MCP availability projection and `search_semantic`/`research_topic` fallback metadata (moved from `056.005-T`/`056.015-T`); red-first projection/tool-contract tests; no `cmd_serve`/background sync → `056.025-T` |
-| Server transport compatibility (SELECTED H3-A) | pre-`initialize` `server/discover` transport adapter after the Rust 1.75-compatible dependency strategy; standing deps `056.003-T`, `056.028-T`, and `056.029-T`, after `056.015-T` ONLY when H1+H3-A co-selected | Own transport types/wiring only; complete `053-S` resolves the dependency graph and declaration alignment before `052-S`, and this task consumes that fixed Rust/Cargo 1.75 evidence with no separate MSRV entry gate; reacquire the exact-client transaction SEPARATELY before and after the fix through the `056.022-T` wrapper (semantic initialize correlation plus redacted transcript digest, not raw replay or persistence); T4 owns production acceptance -> `056.011-T` |
+| Server transport compatibility (SELECTED H3-A) | pre-`initialize` `server/discover` transport adapter after the Rust 1.88 MSRV amendment (`056.029-T`); standing deps `056.003-T`, `056.028-T`, and `056.029-T`, after `056.015-T` ONLY when H1+H3-A co-selected | Own transport types/wiring only; complete `053-S` resolves the dependency graph and declaration alignment at `rust-version = "1.88"` (`edition = "2021"`) before `052-S`, and this task consumes that completed Rust/Cargo 1.88 evidence with no separate MSRV entry gate; reacquire the exact-client transaction SEPARATELY before and after the fix through the `056.022-T` wrapper (semantic initialize correlation plus redacted transcript digest, not raw replay or persistence); T4 owns production acceptance -> `056.011-T` |
 | Client isolated-config + cwd compatibility (conditional H3-B) | actual Copilot CLI capability evidence | Sole H3-B terminal: consume T0's `H3-B-candidate` and adjudicate BOTH a documented explicit isolated-config discovery mechanism (owning the one bounded attempt, plus one deferred control/treatment contrast through the `056.001-T` runner when isolation becomes possible) and a distinct working-directory mechanism; H3-B1 is forward evidence, H3-B2 blocks, inconclusive blocks with evidence (not Unsupported); never reads/mutates the user root config; temporary proof only activates the managed-cwd/recovery tasks (the discriminator tasks `056.026-T`/`056.027-T` are gated separately on an evidenced `type`/`transport` mismatch) and never satisfies T4 → `056.019-T` |
 | Operator documentation (documentation-only) | `056.012-T`: `docs/troubleshooting.md` + the `### search_semantic`/`### research_topic`/`### get_status` headings and a `Runtime diagnostics and recovery` subsection in `docs/mcp-tools.md`. `056.013-T`: the `### 2. Configure your MCP client` managed-launch content in `docs/mcp-tools.md` + `### serve`/`### install`/`### upgrade`/`### uninstall` in `docs/cli-reference/graphtor-docs.md` | Diagnostics plus selected H0b/H0c/H1 contracts (no CLI-reference) → `056.012-T`; managed launch/recovery and H3, reconciling the `type`/`transport` discriminator → `056.013-T` |
 | Tests | `tests/common/mcp_driver.rs`, `tests/mcp_serve_handshake_test.rs`, and colocated focused tests | T1 owns the shared driver module; each production task owns at most three grouped scenarios. Actual-client acceptance remains the final H3/T4 gate |
@@ -1039,7 +1072,7 @@ separate MSRV entry gate.
   unproven MSRV parity, wider transitive API surface, and rollback isolation.
   Prefer a minimal framing adaptation around the compatible dependency strategy
   selected by `056.029-T` in `053-S`. The declared-MSRV mismatch is resolved at
-  the fixed Rust 1.75 floor before `052-S` starts; `056.011-T` consumes that
+  the amended Rust 1.88 (`edition = "2021"`) floor before `052-S` starts; `056.011-T` consumes that
   completed evidence rather than validating a dynamically resolved floor. If a
   fork, patch override, source/API migration, or wider change is required, apply
   the bounded `056.029-T` decision or halt for a separate deliberation. T4 alone
@@ -1557,7 +1590,7 @@ entry depends on the evidence foundation):**
   `053-S -> 052-S` ensures every PHASE 1.6 member closes first. `052-S` has no
   direct PHASE 1.5 shipment edge; `056.028 -> 056.029` is the authority while
   the PHASE 1.5 manifest remains uncreated. The task consumes completed
-  Rust/Cargo 1.75 compatibility evidence, not a separate MSRV entry gate.
+  Rust/Cargo 1.88 (`edition = "2021"`) compatibility evidence from `053-S`, not a separate MSRV entry gate.
   The `after 056.015` order remains a co-selection-only assembly edge. The
   evidence substitutes only for T0 cause ordering; it does not substitute for
   exact-client before/after acceptance, other family selection, or T4.
@@ -1585,8 +1618,9 @@ selected remedies; not prematurely Ship-ready):**
   `056.031`, `056.032`, and `056.033`. It remains the sole
   restored-production actual-client acceptance node and the single
   registry-backed acceptance gate. `056.029` and its PHASE 1.6 successors ship
-  in `053-S` before `052-S`, so T4 cannot imply Rust 1.75 compatibility until
-  the compatible dependency graph and all declarations are complete.
+  in `053-S` before `052-S`, so T4 validates against the ratified root Rust 1.88
+  (`edition = "2021"`) MSRV floor only after the compatible dependency graph and
+  all declarations in `053-S` are complete.
 * **Final Assembly Protocol (Stage-owned):** after the selected remedy shipments
   complete, Stage (1) confirms every PHASE 2 task is terminal — `done` (selected +
   shipped) or `done` + `not-needed:<evidence id>` (unselected) — the owned
@@ -1732,7 +1766,7 @@ if ($LASTEXITCODE -ne 0) { throw "exact-cli classification failed (exit $LASTEXI
 # 4. 052-S prerequisite verification. The declared-MSRV / edition-2024 mismatch
 #    is resolved UPSTREAM by all five 053-S members, which run before 052-S.
 #    Do not run a separate MSRV entry command here. Before claim, verify the
-#    recorded 053-S Rust/Cargo 1.75-compatible dependency decision and its
+#    recorded 053-S Rust/Cargo 1.88 constitutional MSRV amendment decision and its
 #    completed fixed-floor validation. A missing or failed record blocks 052-S
 #    and returns it to Stage; it must not be waived or followed by adapter work.
 
@@ -2162,7 +2196,7 @@ and posture-classification context.
   accepts production.
   **H3-A** is the evidenced exit-2 `ExpectedInitializeRequest` after a
   pre-`initialize` custom request. It uses a narrow adapter around the
-  Rust-1.75-compatible rmcp dependency strategy selected and pinned by
+  Rust-1.88-compatible rmcp dependency strategy selected and pinned by
   `056.029-T`; `056.011-T` consumes that strategy without changing it.
   Selecting or bumping rmcp is out of scope for `056.011-T`. The current
   rmcp 1.5.x baseline establishes the failure evidence, while rmcp 1.8.x
@@ -2171,7 +2205,7 @@ and posture-classification context.
   edition, because vendored `rmcp-1.5.0` is also `edition = "2024"` with no
   `rust-version`. The declared-MSRV mismatch is resolved upstream by
   `056.029-T` in `053-S`, which runs before `052-S`; this task then validates
-  through its ordinary task gates at the unchanged Rust/Cargo 1.75 floor. It
+  through its ordinary task gates at the amended Rust/Cargo 1.88 (`edition = "2021"`) floor. It
   consumes the completed `053-S` compatibility evidence and does not run a
   separate MSRV entry gate or resolve a dynamic floor.
   **H3-B** (client ignores/rejects
@@ -2852,3 +2886,29 @@ declared-MSRV mismatch as unmeasured. Cargo 1.75 cannot parse the resolved
 edition-2024 `rmcp 1.5.0` manifest, so `056.029-T` resolves a compatible
 dependency strategy before `052-S`; it does not re-measure whether that known
 manifest incompatibility exists.
+
+## Plan Review — 2026-10-29 Post-052-S Phase 2 Branch Disposition and Phase 3 Mode R Shipment Assembly (`055-S`)
+
+```text
+dispatch_mode: single-agent-declared-degradation
+decision: PASS
+```
+
+* **Capability declaration (P-012):** `TOOL_DEGRADED: reviewer-subagent-dispatch — declared fallback: single-agent persona pass` (Stage is already invoked as a routed Tier-3 subagent of Orchestrator; all seven triggered personas from the `plan-review` Persona Rubric Adapter were evaluated inline against the updated plan, `docs/decisions/2026-10-29-056-f-phase-3-branch-disposition-and-mode-r-ratification.md`, `.backlogit/queue/056-F.md`, `.backlogit/queue/056.004-T.md`, `.backlogit/queue/056.012-T.md`, and `.backlogit/queue/056.013-T.md`).
+* **Hardening check (P-006 / strict-safety):** `Requires plan hardening: yes` is present; `## Plan Hardening` is present with explicit `ProposedAction` / `ActionRisk` / `ActionResult` classifications; root MSRV references in the H3-A ProposedAction and Verification Commands are aligned to `rust-version = "1.88"` (`edition = "2021"`), while `tools/mcp-probe` remains `1.75`.
+
+### Per-Persona Findings
+
+* **Constitution Reviewer (Principles I–XI, P-001, P-006, P-009, P-010, P-015, P-016, P-017, P-021):** `0` findings (`P0: 0, P1: 0, P2: 0, P3: 0`). Stage Role Boundary (P-010) is respected: unselected Phase 2 tasks are dispositioned `done`/`selection:not-needed` with explicit audit comments per Stage's Final Assembly Protocol, while Ship-owned Phase 3 tasks (`056.012-T`, `056.013-T`, `056.004-T`) remain `queued` and are packaged into task-only shipment `055-S`. Covering feature `056-F` remains in the P-015 protected set.
+* **Rust Reviewer:** `0` blocking findings (`P0: 0, P1: 0, P2: 0, P3: 1 advisory`). P3 advisory: when Ship implements `056.004-T` (`scripts/verify_copilot_mcp_show.ps1`), ensure the `056.002-T` read-only production server-control check (`tests/serve_handshake_driver_test.rs`) runs sequentially after or before the three `/mcp show` sessions so no Generation/Workspace lock contention occurs.
+* **Scope Boundary Auditor:** `0` findings (`P0: 0, P1: 0, P2: 0, P3: 0`). Only directly necessary `056-F` MSRV `1.88` planning alignment was applied (`056-F.md`, `056.004-T.md`, and this plan); adjacent stashes `906BA4E3` and `358A5E68` and later dark-factory capabilities (`0BD7D83C`, `6187B1EE`, `578B8678`) were not harvested or expanded.
+* **Learnings Researcher:** `0` findings (`P0: 0, P1: 0, P2: 0, P3: 0`). Consistent with `docs/compound/runtime-errors/mcp-serve-os-error-232-handshake-signature-2026-09-13.md` (T0 `unresolved` classification not overstated), `docs/compound/workflow-issues/backlogit-task-done-immediate-archive-relocation-2026-09-13.md` (task `done` transition relocates to `.backlogit/archive/`, satisfying Mode R 3b(a) prerequisite lookup), and `docs/compound/2026-05-07-backlogit-shipment-status-constraints.md` (shipment `blocks` edges used for sequencing).
+* **Architecture Strategist:** `0` findings (`P0: 0, P1: 0, P2: 0, P3: 0`). The Mode R partition is exact and disjoint: `member_ids = [056.012-T, 056.013-T, 056.004-T]` (3 live queued tasks in parent-first topological order) and `prerequisite_ids` = the remaining 30 `056.*-T` tasks (all `done`/`archived`).
+* **Agent-Native Parity Reviewer:** `0` findings (`P0: 0, P1: 0, P2: 0, P3: 1 advisory`). P3 advisory: during `056.013-T` and `056.004-T`, Ship should note the repository's `graphtor-docs` -> `kbdb` binary/entry rename (PR #133, commit `061634a`, where `.mcp.json` and `exact_cli.rs` use entry `"kbdb"` while legacy docs still reference `graphtor-docs`) and record exact CLI/entry identity in the T4 verification output.
+* **Security Lens Reviewer:** `0` findings (`P0: 0, P1: 0, P2: 0, P3: 0`). Because all managed-config (`056.017-T`, `056.024-T`, `056.018-T`, `056.008-T`, `056.009-T`), discriminator (`056.026-T`, `056.027-T`), H0b lock (`056.016-T`, `056.007-T`), H0c state-repair (`056.010-T`), and diagnostic-sink (`056.006-T`) tasks close `done`/`selection:not-needed`, no destructive config/lock/state mutation is activated before T4, and `056.004-T` runs against the unmodified production entry with at least one diagnostic-gate-off session.
+
+### Merged Verdict
+
+* **Total findings:** `0 P0, 0 P1, 0 P2, 2 P3 advisories`
+* **Gate decision:** `PASS`
+
