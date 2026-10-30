@@ -88,7 +88,9 @@ def evaluate_session(parsed):
         failures.append("OS error 232 signature present")
     if parsed["failed_signature"]:
         failures.append("failed-connection signature present")
-    if parsed["tool_count"] is not None and parsed["tool_count"] != len(parsed["tools"]):
+    if parsed["tool_count"] is None or not parsed["tools"]:
+        failures.append("advertised tool list missing from the /mcp show screen")
+    elif parsed["tool_count"] != len(parsed["tools"]):
         failures.append(
             f"tool list incomplete: header says {parsed['tool_count']}, parsed {len(parsed['tools'])}"
         )
@@ -313,8 +315,24 @@ def capture_session(copilot_exe, workspace, entry, expected_exe, rows=50, cols=1
         except Exception:
             pass
         if proc.isalive():
-            proc.terminate(force=True)
+            try:
+                proc.terminate(force=True)
+            except (PermissionError, OSError):
+                time.sleep(2)  # the child is already exiting; confirm below
         record["client_exit_code"] = proc.exitstatus
+        record["client_still_alive"] = proc.isalive()
+        # Own-child cleanup: the recorded server pid, only if it still runs the
+        # delivered executable (never a name-based or unrelated kill).
+        server = record.get("server")
+        if server:
+            time.sleep(1)
+            still = [p for p in process_table() if p["pid"] == server["pid"]]
+            if still and (still[0].get("exe") or "").lower() == expected_exe.lower():
+                subprocess.run(
+                    ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
+                     f"Stop-Process -Id {int(server['pid'])} -Force"],
+                    capture_output=True, timeout=30, check=False,
+                )
     return record
 
 

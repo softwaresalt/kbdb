@@ -47,6 +47,14 @@ class ParseAndEvaluate(unittest.TestCase):
         parsed = t4.parse_mcp_show(CONNECTED.replace("kbdb", "other"), "kbdb")
         self.assertTrue(any("entry" in f for f in t4.evaluate_session(parsed)))
 
+    def test_missing_tools_block_fails_not_passes(self):
+        # Connected + initialized text but no `tools (N)` block must not pass:
+        # the advertised tool list is recorded evidence, not optional.
+        screen = CONNECTED.replace("tools (8)", "tools").split("\n data")[0]
+        screen += '\n data\n {\n "name": "kbdb",\n "status": "connected",\n "serverMetadata": {}\n }\n'
+        failures = t4.evaluate_session(t4.parse_mcp_show(screen, "kbdb"))
+        self.assertTrue(any("tool" in f for f in failures), failures)
+
     def test_empty_screen_fails_not_passes(self):
         failures = t4.evaluate_session(t4.parse_mcp_show("", "kbdb"))
         self.assertTrue(failures)

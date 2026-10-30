@@ -69,10 +69,11 @@ Invoke-T1Control 'before'
     --workspace $Workspace --copilot-exe $CopilotExe --entry $Entry `
     --sessions $Sessions --out-dir (Join-Path $RunDir 'sessions')
 $captureExit = $LASTEXITCODE
+if ($captureExit -ne 0) { [Console]::Error.WriteLine("T4_FAIL: Copilot /mcp show capture did not pass (exit $captureExit)") }
 
 Invoke-T1Control 'after'
 
-if ($captureExit -ne 0) { Fail "Copilot /mcp show capture did not pass (exit $captureExit)" $captureExit }
+if ($captureExit -ne 0) { exit $captureExit }
 
 $sessionsDoc = Get-Content -LiteralPath (Join-Path $RunDir 'sessions/sessions.json') -Raw | ConvertFrom-Json
 $result = [ordered]@{
