@@ -5,13 +5,17 @@ applyTo: '**/*.rs'
 
 # Rust Instructions
 
-Follow idiomatic Rust practices with the latest stable edition. These
+Follow idiomatic Rust practices targeting Rust edition 2021 with a minimum
+supported Rust version (MSRV) of 1.88, as declared in `Cargo.toml` and the
+constitution. These
 conventions enforce memory safety, consistent error handling, and
 maintainability.
 
 ## General Rules
 
-* Use the latest stable Rust edition.
+* Use Rust edition 2021 and keep code compatible with the declared MSRV
+  (`rust-version = "1.88"`); do not use features that require a newer
+  compiler without a constitutional amendment.
 * `#![forbid(unsafe_code)]` at crate root unless the crate has a
   documented safety-critical need. Justify every `unsafe` block
   with a `// SAFETY:` comment.

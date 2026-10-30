@@ -9,7 +9,7 @@ These instructions define the coding conventions for Rust in this workspace.
 
 ## Language Version
 
-Rust 2021 edition, rust-version 1.75
+Rust 2021 edition, rust-version 1.88
 
 ## Error Handling
 
