@@ -122,7 +122,8 @@ owned-child-only cleanup contract; it is not a general PID-management feature.
 
 * Fix: `OwnedProcess` in `tools/t4-capture/t4_capture.py` opens a verified OS
   process handle right after the server is identified (image name and creation
-  time checked against the recorded values, 50 ms tolerance). While held, the OS
+  time checked against the recorded values at their shared microsecond precision,
+  compared as exact integers). While held, the OS
   cannot reuse that PID. Cwd reads, exit checks, and termination all act on that
   handle; no PID-based kill remains. If ownership cannot be proven the open fails
   closed, nothing is terminated, and the error names the unowned server PID.

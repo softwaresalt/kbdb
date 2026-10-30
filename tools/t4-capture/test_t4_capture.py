@@ -158,6 +158,19 @@ class OwnedProcessTests(unittest.TestCase):
             t4.OwnedProcess.open(self.child.pid, self.row["exe"], wrong)
         self.assertIsNone(self.child.poll(), "refused open must never terminate the process")
 
+    def test_creation_time_mismatch_inside_the_old_50ms_window_is_refused(self):
+        # Exact 100 ns identity: even a 10 ms difference is a different process.
+        from datetime import timedelta
+        wrong = (t4.parse_utc(self.row["created"]) + timedelta(milliseconds=10)).isoformat()
+        with self.assertRaises(t4.IdentityError):
+            t4.OwnedProcess.open(self.child.pid, self.row["exe"], wrong)
+        self.assertIsNone(self.child.poll())
+
+    def test_ticks_parse_keeps_seven_digit_cim_precision(self):
+        base = t4.utc_ticks("2026-10-30T21:35:13.0147680Z")
+        self.assertEqual(t4.utc_ticks("2026-10-30T21:35:13.0147681Z") - base, 1)
+        self.assertEqual(t4.utc_ticks("2026-10-30T21:35:13.014768Z"), base)
+
     def test_different_exe_is_refused_and_not_terminated(self):
         with self.assertRaises(t4.IdentityError):
             t4.OwnedProcess.open(self.child.pid, "C:\\other\\kbdb.exe", self.row["created"])
@@ -183,6 +196,11 @@ class RenderReadiness(unittest.TestCase):
         # A partially rendered screen must keep waiting rather than be captured.
         partial = CONNECTED.replace("tools (8)", "tools")
         self.assertFalse(t4.mcp_show_rendered(partial))
+
+    def test_header_present_but_tool_list_incomplete_is_not_ready(self):
+        lines = [l for l in CONNECTED.splitlines()
+                 if not l.lstrip().startswith(("get_status:", "list_sources:"))]
+        self.assertFalse(t4.mcp_show_rendered("\n".join(lines)))
 
     def test_tools_header_without_status_block_is_not_ready(self):
         partial = CONNECTED.replace('"status"', '"stat"')

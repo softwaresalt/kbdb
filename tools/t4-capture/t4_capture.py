@@ -18,7 +18,7 @@ import sys
 import threading
 import time
 from ctypes import wintypes
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 SCROLLBAR = "\u2503"
@@ -74,13 +74,16 @@ def parse_mcp_show(screen_text, expected_entry):
 
 
 def mcp_show_rendered(screen_text):
-    """True once the `/mcp show` screen has rendered both its data and tools blocks."""
+    """True once the `/mcp show` screen has fully rendered its data and tools blocks.
+
+    The advertised tool count must equal the number of tool rows already drawn, so a
+    partially drawn list keeps the capture waiting instead of being saved.
+    """
     text = "\n".join(_clean(screen_text))
-    return (
-        "esc back" in text
-        and '"status"' in text
-        and re.search(r"tools \(\d+\)", text) is not None
-    )
+    if "esc back" not in text or '"status"' not in text:
+        return False
+    parsed = parse_mcp_show(screen_text, "")
+    return parsed["tool_count"] is not None and len(parsed["tools"]) == parsed["tool_count"]
 
 
 def evaluate_session(parsed):
@@ -217,6 +220,22 @@ def parse_utc(text):
     return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
 
 
+_EPOCH_1601 = datetime(1601, 1, 1, tzinfo=timezone.utc)
+
+
+def utc_ticks(text):
+    """Exact 100 ns ticks since 1601-01-01 UTC (FILETIME units) for an ISO UTC string.
+
+    Both the CIM creation string (7 fractional digits) and a FILETIME are expressed
+    in these ticks, so process creation identities compare with integer equality.
+    """
+    match = re.search(r"\.(\d+)", text)
+    fraction = (match.group(1) + "0000000")[:7] if match else "0000000"
+    whole = parse_utc(re.sub(r"\.\d+", "", text))
+    seconds = int((whole - _EPOCH_1601).total_seconds())
+    return seconds * 10_000_000 + int(fraction)
+
+
 _K32 = ctypes.WinDLL("kernel32", use_last_error=True)
 _NT = ctypes.WinDLL("ntdll")
 _K32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
@@ -238,7 +257,6 @@ _PROCESS_VM_READ = 0x0010
 _PROCESS_QUERY_INFORMATION = 0x0400
 _SYNCHRONIZE = 0x00100000
 _WAIT_OBJECT_0 = 0
-_CREATION_TOLERANCE = 0.05  # seconds between the CIM table and the handle's creation time
 
 
 class OwnedProcess:
@@ -277,20 +295,21 @@ class OwnedProcess:
             raise IdentityError(f"cannot read the image name of pid {self.pid}")
         if os.path.normcase(os.path.normpath(buf.value)) != os.path.normcase(os.path.normpath(expected_exe)):
             raise IdentityError(f"pid {self.pid} runs {buf.value!r}, not the delivered executable")
-        created = self._creation_time()
-        expected = parse_utc(expected_created_utc)
-        if abs((created - expected).total_seconds()) > _CREATION_TOLERANCE:
+        created = self._creation_ticks()
+        expected = utc_ticks(expected_created_utc)
+        # The CIM string and the FILETIME share microsecond precision only (the
+        # CIM sub-microsecond digit is always 0); compare as exact integers there.
+        if created // 10 != expected // 10:
             raise IdentityError(
-                f"pid {self.pid} creation time {created.isoformat()} does not match the "
-                f"recorded {expected.isoformat()} (the PID may have been reused)"
+                f"pid {self.pid} creation ticks {created} do not match the recorded "
+                f"{expected} at microsecond precision (the PID may have been reused)"
             )
 
-    def _creation_time(self):
+    def _creation_ticks(self):
         creation, exited, kernel, user = (wintypes.FILETIME() for _ in range(4))
         if not _K32.GetProcessTimes(self._handle, creation, exited, kernel, user):
             raise IdentityError(f"cannot read the creation time of pid {self.pid}")
-        ticks = (creation.dwHighDateTime << 32) | creation.dwLowDateTime  # 100 ns since 1601
-        return datetime(1601, 1, 1, tzinfo=timezone.utc) + timedelta(microseconds=ticks / 10)
+        return (creation.dwHighDateTime << 32) | creation.dwLowDateTime  # 100 ns since 1601
 
     def _require_open(self):
         if self._handle is None:
