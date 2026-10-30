@@ -82,12 +82,13 @@ function Invoke-T4 {
         --workspace $Workspace --copilot-exe $CopilotExe --entry $Entry `
         --sessions $Sessions --out-dir (Join-Path $runDir 'sessions')
     $captureExit = $LASTEXITCODE
+    # Any nonzero capture exit withholds the after-control: a failed or refused
+    # capture may have left a client or server running, and a control must never
+    # overlap a Copilot session.
     if ($captureExit -eq 4) { Fail 'client/server teardown could not be confirmed; no further control was run' 4 }
-    if ($captureExit -ne 0) { [Console]::Error.WriteLine("T4_FAIL: Copilot /mcp show capture did not pass (exit $captureExit)") }
+    if ($captureExit -ne 0) { Fail "Copilot /mcp show capture did not pass (exit $captureExit); the after-control was not run" $captureExit }
 
     Invoke-T1Control $runDir 'after'
-    if ($captureExit -ne 0) { Fail "Copilot /mcp show capture did not pass (exit $captureExit)" $captureExit }
-
     $sessionsDoc = Get-Content -LiteralPath (Join-Path $runDir 'sessions/sessions.json') -Raw | ConvertFrom-Json
     # The sessions and both wire controls must have used the same production
     # configuration and executable.
