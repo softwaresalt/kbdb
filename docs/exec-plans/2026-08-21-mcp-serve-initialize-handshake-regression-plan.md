@@ -8,6 +8,7 @@ stash_ids:
 linked_artifacts:
   - "docs/decisions/2026-08-21-mcp-serve-initialize-os-error-232-deliberation.md"
   - "docs/decisions/2026-08-29-mcp-serve-discover-preinitialize-evidence.md"
+  - "docs/decisions/2026-10-29-rust-1-75-rmcp-dependency-compatibility-decision.md"
 backlog_refs:
   - "049-S"
   - "052-S"
@@ -45,28 +46,36 @@ as residual cause families; `049-S` still classifies them without bypassing
 protocol-echo change is a no-op on rmcp 1.5 — is in the linked deliberation.
 This plan restores connectivity **evidence-first** and **test-first**.
 
-## Current H3-A and MSRV Amendment -- PR #108 Review-Fix Cycle 2
+## Current H3-A and MSRV Amendment -- 2026-10-29 Operator Constitutional Amendment (`rust-version = "1.88"`)
 
-This is the normative current H3-A/MSRV routing contract. It supersedes earlier
-current-looking wording that made PHASE 1.5 ordering depend on a future shipment
-mutation, made `053-S` a single-member unit, treated a dynamically raised Rust
-floor as an implementation option, or put a Rust 1.75 entry gate in `052-S`.
-Historical review records remain historical evidence only.
+This is the normative current H3-A/MSRV routing contract. It updates the
+2026-08-29 PR #108 Review-Fix Cycle 2 contract after empirical `cargo +1.75.0`
+measurements in `056.029-T` (`docs/decisions/2026-10-29-rust-1-75-rmcp-dependency-compatibility-decision.md`)
+proved that no published `rmcp` release (`0.1.1` through `3.8.0`), lockfile pin,
+or manifest-only patch yields a buildable Rust 1.75 dependency graph alongside
+`candle 0.8`. On 2026-10-29, the operator authorized Option 1: a constitutional
+MSRV amendment raising `rust-version` from `"1.75"` to **`"1.88"`** (preserving
+`edition = "2021"`), which is the exact minimum Rust version required by the
+locked dependency tree (`darling 0.23.0` at `1.88.0`, `wit-bindgen 0.51.0` at
+`1.87.0`, `clap 4.6.1`/`tokio 1.54.1`/`rmcp 1.5.0`/`globset 0.4.18` at `1.85` /
+edition 2024) and aligns with `cargo-audit >= 0.22` (`rustc 1.88+`).
 
-Cargo 1.75 cannot parse the current edition-2024 `rmcp 1.5.0` manifest. That is
-an established incompatibility, not an unmeasured risk. The repository remains
-Rust 2021 with `rust-version = "1.75"`; raising the floor requires a separate
-approved constitutional amendment outside Feature 056. The bounded unmeasured
-question is which compatible rmcp release, pin, or decision-approved narrow
-backport, fork, or patch makes the existing floor parse and build.
-
-`056.029-T` owns only `Cargo.toml`, `Cargo.lock`, and one dated dependency
-decision. If a compatible strategy requires a source or API migration, Stage
-creates a named bounded follow-up and blocks this prerequisite. `056.030-T`
-owns `.github/workflows/ci.yml`; `056.031-T` owns `README.md` and
-`docs/architecture.md`; `056.032-T` owns the three canonical agent-declaration
-files; and `056.033-T` owns the three generic Rust authoring-instruction files.
-Each follows `056.029-T` and preserves the fixed floor.
+`056.029-T` owns `Cargo.toml`, `Cargo.lock` (verified unchanged or refreshed if
+needed), and `docs/decisions/2026-10-29-rust-1-75-rmcp-dependency-compatibility-decision.md`,
+sets `rust-version = "1.88"` (preserving `edition = "2021"`) in root
+`Cargo.toml` (`[workspace.package]`), and validates the dependency graph with
+`cargo +1.88.0 check --all-targets --locked` and `cargo test --no-run`.
+`056.030-T` owns `.github/workflows/ci.yml` and enforces a pinned Rust `1.88.0`
+MSRV check on the root workspace; `056.031-T` owns `README.md` and
+`docs/ARCHITECTURE.md`; `056.032-T` owns `AGENTS.md`,
+`.github/copilot-instructions.md`, and
+`.github/instructions/constitution.instructions.md` (including Constitution
+Governance amendment metadata); and `056.033-T` owns
+`.github/instructions/rust.instructions.md`,
+`.github/instructions/technology.instructions.md`, and
+`.github/instructions/technology-rust.instructions.md`. Each follows
+`056.029-T` and aligns declarations to the amended `rust-version = "1.88"`
+floor (preserving `edition = "2021"`).
 
 The feature contains 33 tasks, `056.001-T` through `056.033-T`. The authoritative
 H3-A edges are `056.020-T -> 056.028-T -> 056.029-T`,
@@ -979,25 +988,25 @@ All of the above run in-crate against an injected inner transport and need no
 `049-S` probe assets.
 
 **Declared-MSRV blocker (resolved upstream by PHASE 1.6 `053-S`, BEFORE this
-task):** the prior statement that "rmcp 1.8.x uses edition 2024 and is excluded
-by Rust 1.75" is **corrected** -- vendored `rmcp-1.5.0/Cargo.toml` also declares
-`edition = "2024"` and no `rust-version`, so edition does not discriminate 1.5.0
-from 1.8.0. The 1.8.x exclusion stands on corrected grounds: unproven MSRV
-parity, wider transitive API surface, and rollback isolation. The established
-blocker is that Cargo 1.75 cannot parse the current rmcp 1.5.0 manifest. The
-repository's Rust 2021 / rust-version 1.75 floor is non-negotiable; raising it
-requires a separate approved constitutional amendment outside this feature.
+task):** empirical `cargo +1.75.0` evidence in `056.029-T`
+(`docs/decisions/2026-10-29-rust-1-75-rmcp-dependency-compatibility-decision.md`)
+proved that no published `rmcp` release (`0.1.1` through `3.8.0`), lockfile pin,
+or manifest-only patch builds at Rust 1.75 alongside `candle 0.8`. On
+2026-10-29, the operator authorized Option 1: a constitutional MSRV amendment
+raising `rust-version` from `"1.75"` to `"1.88"` while preserving
+`edition = "2021"`.
 
-`056.029-T` selects a compatible rmcp release or pin, or a narrow
-decision-approved backport, fork, or patch, while owning only `Cargo.toml`,
-`Cargo.lock`, and one dated dependency decision. `056.030-T` through
-`056.033-T` separately own CI and declaration alignment. The authoritative
-standing edge is `056.028-T -> 056.029-T`; `056.029-T -> 056.011-T` remains a
-direct H3-A edge, and `052-S` starts only after all five `053-S` members close.
-`056.011-T` consumes the completed Rust/Cargo 1.75 evidence and has no separate
-MSRV entry gate. If the compatible strategy requires source or API migration,
-Stage creates a named bounded follow-up and blocks `053-S`; it never widens this
-task or silently relaxes the floor.
+`056.029-T` updates root `Cargo.toml` (`[workspace.package]`) to
+`rust-version = "1.88"` (preserving `edition = "2021"`), owns `Cargo.toml`,
+`Cargo.lock`, and `docs/decisions/2026-10-29-rust-1-75-rmcp-dependency-compatibility-decision.md`,
+and validates the dependency graph with
+`cargo +1.88.0 check --all-targets --locked` and `cargo test --no-run`.
+`056.030-T` through `056.033-T` separately own CI and declaration alignment to
+`rust-version = "1.88"`. The authoritative standing edge is
+`056.028-T -> 056.029-T`; `056.029-T -> 056.011-T` remains a direct H3-A edge,
+and `052-S` starts only after all five `053-S` members close. `056.011-T`
+consumes the completed Rust `1.88` MSRV alignment from `053-S` and has no
+separate MSRV entry gate.
 
 * Own **only** transport types and rmcp/stdio
   wiring. The transport wiring layers atop the `056.015-T` serve-orchestration
@@ -1389,21 +1398,27 @@ shipment-interface re-probe rule; see the Authoritative task ordering above.
   tools/mcp-probe/Cargo.lock`). Depends on `056.020-T`; evidence-infrastructure
   follow-up outside `049-S`, in T4 fan-in. Created by Stage now; implemented by
   Ship per its test-first contract (seeded-violation red proof).
-* `056.029-T` (re-scoped 2026-08-29) — resolves the established edition-2024
-  rmcp dependency incompatibility at the unchanged Rust 2021 / rust-version 1.75
-  floor. It owns only `Cargo.toml`, `Cargo.lock`, and one dated dependency
-  decision; a source or API migration becomes a named blocked follow-up.
-  `056.028-T -> 056.029-T` is a standing edge. It is not cause-selected and is
-  in T4 fan-in.
-* `056.030-T` (new) — primary CI-only Rust 1.75 enforcement in
-  `.github/workflows/ci.yml`. Depends on `056.029-T`.
-* `056.031-T` (new) — ordinary documentation-only Rust 1.75 declaration
-  alignment in `README.md` and `docs/architecture.md`. Depends on `056.029-T`.
-* `056.032-T` (new) — canonical agent-declaration alignment in `AGENTS.md`,
+* `056.029-T` (re-scoped 2026-10-29 per operator-approved constitutional MSRV
+  amendment) — resolves the established edition-2024 `rmcp` dependency
+  incompatibility by raising `rust-version` from `"1.75"` to `"1.88"` (preserving
+  `edition = "2021"`) in root `Cargo.toml` (`[workspace.package]`), owning only
+  `Cargo.toml`, `Cargo.lock`, and
+  `docs/decisions/2026-10-29-rust-1-75-rmcp-dependency-compatibility-decision.md`,
+  and validating with `cargo +1.88.0 check --all-targets --locked` and
+  `cargo test --no-run`. `056.028-T -> 056.029-T` is a standing edge. It is not
+  cause-selected and is in T4 fan-in.
+* `056.030-T` (new, updated 2026-10-29) — primary CI-only Rust `1.88.0` MSRV
+  enforcement in `.github/workflows/ci.yml`. Depends on `056.029-T`.
+* `056.031-T` (new, updated 2026-10-29) — ordinary documentation-only Rust `1.88`
+  MSRV declaration alignment in `README.md` and `docs/ARCHITECTURE.md`. Depends
+  on `056.029-T`.
+* `056.032-T` (new, updated 2026-10-29) — canonical agent and constitutional
+  Rust `1.88` MSRV declaration alignment in `AGENTS.md`,
   `.github/copilot-instructions.md`, and
-  `.github/instructions/constitution.instructions.md`. Depends on `056.029-T`.
-* `056.033-T` (new) — generic Rust authoring-instruction alignment in
-  `.github/instructions/rust.instructions.md`,
+  `.github/instructions/constitution.instructions.md` (with Constitution
+  Governance amendment record). Depends on `056.029-T`.
+* `056.033-T` (new, updated 2026-10-29) — generic Rust authoring-instruction
+  MSRV `1.88` alignment in `.github/instructions/rust.instructions.md`,
   `.github/instructions/technology.instructions.md`, and
   `.github/instructions/technology-rust.instructions.md`. Depends on
   `056.029-T`.
@@ -1482,35 +1497,36 @@ Stage after `049-S` closes and BEFORE any selected remedy shipment):**
   (`056.004`) fan-in, so restored-production acceptance cannot pass until the
   probe CI job is green.
 
-**PHASE 1.6 — Rust 1.75 compatibility and declaration alignment (shipment
-`053-S`, queued; ordered after PHASE 1.5 and BEFORE `052-S`):**
+**PHASE 1.6 — Rust 1.88 MSRV compatibility and declaration alignment (shipment
+`053-S`, active; ordered after PHASE 1.5 and BEFORE `052-S`):**
 
-* `053-S` contains five dependency-closed members: `056.029` resolves the
-  dependency graph; `056.030` enforces the fixed floor in primary CI;
-  `056.031` aligns ordinary documentation; `056.032` aligns canonical agent
-  declarations; and `056.033` aligns generic Rust authoring instructions. The
-  protected covering feature `056-F` is excluded per P-015
-* **Established blocker:** stable Cargo 1.75 cannot parse the current
-  edition-2024 `rmcp 1.5.0` manifest. The failed `052-S` entry gate is removed;
-  it was a deterministic failure, not a measurement
-* **Bounded unresolved feasibility:** `056.029` selects an MSRV-compatible
-  rmcp release or pin, or a narrow decision-approved backport, fork, or patch.
-  It preserves Rust 2021 / rust-version 1.75. Raising the floor is outside this
-  feature and requires a separate approved constitutional amendment
-* **Width isolation:** `056.029` owns exactly `Cargo.toml`, `Cargo.lock`, and a
-  dated dependency decision. `056.030` through `056.033` own the isolated CI
-  and declaration surfaces. A source or API migration becomes a named blocked
-  follow-up; none of these tasks owns the H3-A adapter
+* `053-S` contains five dependency-closed members: `056.029` applies the
+  operator-approved constitutional MSRV `1.88` amendment in `Cargo.toml` and
+  validates the locked dependency graph; `056.030` enforces the `1.88.0` MSRV
+  floor in primary CI; `056.031` aligns ordinary documentation (`README.md`,
+  `docs/ARCHITECTURE.md`); `056.032` aligns canonical agent and constitutional
+  declarations (`AGENTS.md`, `.github/copilot-instructions.md`,
+  `.github/instructions/constitution.instructions.md`); and `056.033` aligns
+  generic Rust authoring instructions. The protected covering feature `056-F`
+  is excluded per P-015
+* **Established blocker and approved resolution:** stable Cargo 1.75 cannot
+  parse or build the `rmcp 1.5.0` / `candle 0.8` dependency graph
+  (`docs/decisions/2026-10-29-rust-1-75-rmcp-dependency-compatibility-decision.md`).
+  On 2026-10-29, the operator authorized Option 1: raising `rust-version` from
+  `"1.75"` to `"1.88"` while preserving `edition = "2021"`
+* **Width isolation:** `056.029` owns `Cargo.toml`, `Cargo.lock`, and
+  `docs/decisions/2026-10-29-rust-1-75-rmcp-dependency-compatibility-decision.md`.
+  `056.030` through `056.033` own the isolated CI and declaration surfaces;
+  none of these tasks owns the H3-A adapter
 * **Enforceable order:** `056.028 -> 056.029` is a standing task dependency now.
-  The PHASE 1.5 manifest remains uncreated until `049-S` closes. Before claim,
-  `053-S` member readiness verifies `056.028` terminal, then `056.029` terminal
-  before its four successors; it does not rely on a future manifest mutation
-* `053-S` retains its `049-S` shipment prerequisite, and `052-S` retains its
-  `053-S` shipment prerequisite. `056.011` has the direct standing edge
-  `056.029 -> 056.011`; it begins only after all five `053-S` members close
-* Each PHASE 1.6 task is not cause-selected. All Cargo and CI gates stay at
-  Rust/Cargo 1.75 after the compatible graph is resolved, and all five tasks
-  remain in T4 (`056.004`) fan-in
+  Before claim, `053-S` member readiness verifies `056.028` terminal, then
+  `056.029` terminal before its four successors
+* `053-S` retains its `049-S` and `054-S` shipment prerequisites, and `052-S`
+  retains its `053-S` shipment prerequisite. `056.011` has the direct standing
+  edge `056.029 -> 056.011`; it begins only after all five `053-S` members close
+* Each PHASE 1.6 task is not cause-selected. Root-workspace Cargo and CI MSRV
+  gates run at the amended `rust-version = "1.88"` floor after `056.029`
+  completes, and all five tasks remain in T4 (`056.004`) fan-in
 
 **PHASE 2 — Selected remediation units (unshipped follow-ups; NOT queued for
 Ship until the selection gate flips them to `selection:selected`; each family

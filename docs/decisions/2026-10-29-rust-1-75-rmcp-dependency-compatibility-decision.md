@@ -1,10 +1,10 @@
 ---
-title: "No Cargo-only dependency strategy satisfies Rust 1.75 with rmcp (056.029-T / 053-S)"
-description: "Empirical Cargo 1.75.0 evidence that no published rmcp release, pin, or manifest-only patch yields a buildable Rust 1.75 graph, and the blocked disposition required by 056.029-T"
+title: "Resolve rmcp dependency compatibility via constitutional MSRV 1.88 amendment (056.029-T / 053-S)"
+description: "Empirical Cargo 1.75.0 evidence and operator-approved constitutional MSRV amendment raising rust-version from 1.75 to 1.88 while preserving edition 2021"
 doc_type: "decision"
-topic: "Rust 1.75 MSRV compatibility of the rmcp dependency graph"
+topic: "Rust MSRV 1.88 amendment for the rmcp and candle dependency graph"
 depth: "lightweight"
-decision_status: "blocked-pending-operator-decision"
+decision_status: "approved"
 backlog_refs:
   - "053-S"
   - "056.029-T"
@@ -22,18 +22,61 @@ tags:
   - rmcp
   - cargo
   - rust-1-75
+  - rust-1-88
 ---
 
 ## Decision
 
-`056.029-T` cannot select an MSRV-compatible dependency strategy inside its
-file ownership (`Cargo.toml`, `Cargo.lock`, one decision record). Every
-candidate was measured with Cargo and rustc 1.75.0. None produces a graph that
-parses and builds without source or API migration, a deep fork of third-party
-crates, or a change to the `rust-version = "1.75"` floor. This record applies
-the governed disposition from the task: `Cargo.toml`, `Cargo.lock`, `src/**`
-and `rust-version` are left unchanged, and `056.029-T` and `053-S` remain
-blocked pending a named bounded follow-up and an operator decision.
+Empirical measurements under `cargo +1.75.0` and `rustc 1.75.0` proved that no
+published `rmcp` release (`0.1.1` through `3.8.0`), lockfile pin, or
+manifest-only patch yields a buildable Rust 1.75 dependency graph alongside
+`candle 0.8`. On 2026-10-29, after reviewing this empirical evidence, the
+operator explicitly selected and authorized **Option 1**: a constitutional MSRV
+amendment raising `rust-version` from `"1.75"` to **`"1.88"`** while preserving
+`edition = "2021"`.
+
+Under this approved amendment:
+
+* `056.029-T` updates root `Cargo.toml` (`[workspace.package]`) to
+  `rust-version = "1.88"` (preserving `edition = "2021"`), keeps the locked
+  dependency graph (`Cargo.lock`), and validates buildability with
+  `cargo +1.88.0 check --all-targets --locked` and `cargo test --no-run`.
+* `056.030-T` enforces the Rust `1.88.0` MSRV floor in primary CI
+  (`.github/workflows/ci.yml`).
+* `056.031-T`, `056.032-T`, and `056.033-T` align public documentation
+  (`README.md`, `docs/ARCHITECTURE.md`), canonical agent and constitutional
+  declarations (`AGENTS.md`, `.github/copilot-instructions.md`,
+  `.github/instructions/constitution.instructions.md`), and Rust authoring
+  instructions (`.github/instructions/rust.instructions.md`,
+  `.github/instructions/technology.instructions.md`,
+  `.github/instructions/technology-rust.instructions.md`) to `rust-version =
+  "1.88"`.
+* Stash `6C174AA9` (`globset 0.4.18` under Rust 1.75) is resolved and archived
+  by this MSRV `1.88` amendment.
+
+## Operator Decision (2026-10-29)
+
+On `2026-10-29T17:46:17.044-07:00`, the operator reviewed the empirical Cargo
+`1.75.0` findings recorded below and authorized **Option 1**:
+
+> "Option 1: Authorize a constitutional MSRV amendment raising `rust-version`
+> from `1.75` to `1.85`–`1.88` so `053-S` and `052-S` can ship."
+
+Across `Cargo.lock` (`cargo metadata`), the exact minimum Rust version required
+by the locked workspace dependency graph is **`1.88.0`** (preserving
+`edition = "2021"`):
+
+* `darling 0.23.0`, `darling_core 0.23.0`, and `darling_macro 0.23.0` (pulled
+  by `rmcp-macros 1.5.0`) declare `rust-version = "1.88.0"`.
+* `wit-bindgen 0.51.0` declares `rust-version = "1.87.0"`.
+* `clap 4.6.1`, `tokio 1.54.1`, `rmcp 1.5.0`, and `globset 0.4.18` require
+  `rust-version = "1.85"` / Cargo `edition2024` support.
+* `cargo-audit >= 0.22` also requires `rustc 1.88+`.
+
+Raising the constitutional floor to `rust-version = "1.88"` (with `edition =
+"2021"` unchanged) resolves the dependency blocker without a third-party crate
+fork or disruptive `rmcp`/`candle` replacement, unblocking `053-S`
+(`056.029-T` through `056.033-T`) and `052-S` (`056.011-T`).
 
 ## Evidence
 
@@ -87,23 +130,27 @@ replacement of the `candle` 0.8 stack, which changes source APIs.
 ## Conclusion
 
 With the current dependency set (`rmcp 1.x`, `candle 0.8`), the `1.75` floor
-is not attainable through Cargo.toml, Cargo.lock, or a decision record alone.
-Both `rmcp` and `candle` independently break it. The options are all outside
-`056.029-T` ownership:
+is not attainable through `Cargo.toml`, `Cargo.lock`, or a decision record
+alone. Both `rmcp` and `candle` independently break it. Three options were
+evaluated:
 
-1. Raise `rust-version` after a separately approved constitutional amendment.
-   The measured minimum is rustc 1.88 for `rmcp 3.x` and its `darling` chain;
-   a lower floor needs its own measurement.
-2. Replace the rmcp dependency and downgrade candle with source and API
-   migration, as a named bounded follow-up.
-3. Maintain a forked rmcp and candle stack at Rust 1.75 (not recommended).
+1. **Selected and approved (2026-10-29):** Raise `rust-version` to `"1.88"`
+   (preserving `edition = "2021"`) via a constitutional MSRV amendment. The
+   measured minimum across `Cargo.lock` is `rustc 1.88.0` for `darling 0.23.0`
+   (via `rmcp-macros 1.5.0`), with `wit-bindgen 0.51.0` at `1.87.0` and
+   `rmcp 1.5.0`/`globset 0.4.18`/`tokio 1.54.1`/`clap 4.6.1` at `1.85`.
+2. **Rejected:** Replace the `rmcp` dependency and downgrade `candle` with
+   source and API migration.
+3. **Rejected:** Maintain a forked `rmcp` and `candle` stack at Rust 1.75.
 
 ## Rollback
 
-No repository change was made by this task other than this record, so there is
-nothing to roll back. Scratch experiments lived in the OS temp directory.
+To roll back `056.029-T` through `056.033-T`, revert the `rust-version = "1.88"`
+manifest, workflow, documentation, and instruction commits in `053-S` as a unit.
 
-## Follow-up handoff for Stage
+## Stage Ratification Summary
 
-Stage owns creating the bounded follow-up and the operator decision between
-options 1 to 3. `056.030-T` to `056.033-T` stay blocked on `056.029-T`.
+Stage updated the `053-S` (`056.029-T` through `056.033-T`) and `052-S`
+(`056.011-T`) task and shipment contracts to execute the operator-approved
+`rust-version = "1.88"` constitutional amendment and archived superseded stash
+entry `6C174AA9`.
