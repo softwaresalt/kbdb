@@ -20,8 +20,11 @@ branch: post-merge/053-s-msrv-188-closure
 
 ## Decisions
 
-* Cascade close allowed because all manifest tasks were already archived,
-  matching the 054-S precedent
+* The cascade close proceeded solely because of the operator's explicit,
+  one-time, real-time authorization for this shipment. Archived task state
+  does not satisfy P-015 (task-only manifest, `056-F` excluded, so the
+  fully-covered-root exception does not apply), and this decision is not
+  precedent: each later partial-feature shipment needs fresh approval.
 
 ## Follow-ups for Stage
 

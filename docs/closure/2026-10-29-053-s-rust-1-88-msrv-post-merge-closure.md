@@ -73,9 +73,12 @@ clippy-driven refactor.
 ## Risky Action Record
 
 One destructive-class action: the P-015 cascade close
-`backlogit shipment ship 053-S`, executed under the operator's explicit
-real-time approval with the logical shipment lock
-`.backlogit/queue/.053-S.md.lock` held during the operation and released
+`backlogit shipment ship 053-S`, executed solely under the operator's explicit,
+one-time, real-time authorization for this shipment. Archived task state does
+not satisfy P-015 (task-only manifest excluding `056-F`; the fully-covered-root
+exception does not apply), and this is not precedent for other partial-feature
+shipments, which each require fresh approval. The logical shipment lock
+`.backlogit/queue/.053-S.md.lock` was held during the operation and released
 afterwards. Pre-approved recovery (`git restore` of exact paths) was not
 required.
 
