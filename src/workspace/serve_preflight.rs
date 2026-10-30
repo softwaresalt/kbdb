@@ -216,9 +216,8 @@ pub fn trace_stage<T>(
     stage: ServePreflightErrorStage,
     result: anyhow::Result<T>,
 ) -> anyhow::Result<T> {
-    result.map_err(|e| {
-        trace_preflight_error(stage, &e);
-        e
+    result.inspect_err(|e| {
+        trace_preflight_error(stage, e);
     })
 }
 

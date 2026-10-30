@@ -105,7 +105,7 @@ sources.yaml
 
 | Concern | Technology | Notes |
 |---|---|---|
-| Language | Rust (stable, 1.75+, edition 2021) | `#![forbid(unsafe_code)]` enforced |
+| Language | Rust (stable, 1.88+, edition 2021) | `#![forbid(unsafe_code)]` enforced |
 | Unified store | CozoDB (`cozo` crate, SQLite backend) | Embedded; Datalog queries; property-graph traversal |
 | Embeddings | `all-MiniLM-L6-v2` via Candle | ~80 MB model; 384-dim; pure Rust inference; exact brute-force search |
 | Graph extraction | `pulldown-cmark` | AST-based; deterministic; 100% precision |

@@ -80,7 +80,7 @@ Windows (x86_64) are available on the [Releases page][releases].
 cargo install --git https://github.com/softwaresalt/graphtor-docs --bin kbdb --locked
 ```
 
-**Build from source (Rust 1.75+ required):**
+**Build from source (Rust 1.88+ required):**
 
 ```sh
 git clone https://github.com/softwaresalt/graphtor-docs.git
