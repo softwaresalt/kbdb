@@ -120,3 +120,22 @@ No T4 runner script was written: its capture contract depends on blocker 2.
   artifacts are live, nothing was compacted or archived. This is a scan-only
   no-op, recorded as degraded for P-020 purposes (no closure is in progress).
 * Full Rust build is N/A for this docs-only continuity commit.
+
+## Resumption under renewed dark mode (2026-10-30T07:21Z onward)
+
+* Operator reasserted dark-factory; Orchestrator directed a reversible
+  one-entry restoration and workspace-local PTY capture. Shipment `055-S`
+  stays active on the same branch; checkpoint `064908` stays active until this
+  work is reviewed and merged.
+* Entry restored (backup verified byte-exact, hashes in
+  `docs/decisions/2026-10-30-056-004-t4-restored-production-acceptance-evidence.md`).
+* Test-first: `tests/t4_production_control_test.rs` and
+  `tools/t4-capture/test_t4_capture.py` were written and observed RED
+  (unresolved imports and a missing module) before implementation, then GREEN
+  (17 Python tests, 1 Rust refusal test plus the ignored production control).
+* One RED cycle on a real defect: an unrelated `kbdb` server from another
+  client tripped the wrapper refusal; fixed with a descendant-only check.
+* Three real interactive sessions passed; T1 control passed before and after.
+* Gates: fmt, clippy pedantic all targets, full `cargo test -j 2` (a first
+  parallel link hit an out-of-memory error, resolved by reduced parallelism),
+  `cargo build`, and `cargo audit` with the CI allowlist all pass.
