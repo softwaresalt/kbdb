@@ -98,3 +98,25 @@ No T4 runner script was written: its capture contract depends on blocker 2.
   needs authority; (B) capture: no PTY primitive, so the three `/mcp show`
   sessions need either an operator-run interactive session with the runner
   recording evidence, or authority to add a PTY dependency/native interop.
+
+## Continuity finalization (2026-10-30)
+
+* Orchestrator recorded `DARK_MODE_HALTED` at 2026-10-30T06:59:20Z and cleared
+  `DARK_MODE_ACTIVE` because of the live-entry and interactive-capture
+  boundary. The cause is not missing merge approval.
+* Scoped merge preauthorization remains true for a later resumed run.
+  Admin fallback, destructive, and cascade exceptions remain false.
+* Ship checkpoint `checkpoint-20261030-064908` stays active and unresolved; it
+  is not to be resolved or cleaned until the shipment resumes.
+* State: `056.012-T` and `056.013-T` docs are drafted and linted, not reviewed,
+  not done. `056.004-T` is unchanged. No acceptance was claimed and no process
+  log or other evidence was substituted for `/mcp show`.
+* Proposed operator recovery, not executed: a backed-up change of only the
+  `kbdb` production entry to the direct delivered `kbdb serve` (shim and
+  unrelated entries preserved), plus permission for minimal workspace-local PTY
+  capture tooling. Neither runs before the operator decides scope.
+* `compact-context` (target `all`) ran as a bounded scan only: 69 memory files,
+  about 518 KB, 57 older than 14 days. Because `055-S` is active and its
+  artifacts are live, nothing was compacted or archived. This is a scan-only
+  no-op, recorded as degraded for P-020 purposes (no closure is in progress).
+* Full Rust build is N/A for this docs-only continuity commit.
