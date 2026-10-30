@@ -70,3 +70,31 @@ No T4 runner script was written: its capture contract depends on blocker 2.
   alongside a Copilot session.
 * Closure must use `shipment-reconcile` safe-close holding
   `.backlogit/queue/.055-S.md.lock`; no cascade authority is granted.
+
+## Follow-up: capture-feasibility investigation (read-only, no model prompts)
+
+* `copilot --help` and `copilot help commands`: `/mcp` is an interactive slash
+  command. Non-interactive surfaces are `-p`/piped stdin (both model prompts)
+  and `copilot mcp list|get` (static config, no live connection). `--acp` is a
+  different protocol surface, not the `/mcp show` screen. No advertised flag
+  prints `/mcp show` output.
+* Bounded check with empty piped stdin and `--screen-reader --no-color`: exit 1,
+  "No prompt provided. Run in an interactive terminal or provide a prompt with
+  -p or via standard in." Without a TTY the CLI refuses interactive mode.
+* A valid capture therefore needs a real terminal (PTY or ConPTY) hosting the
+  exact `C:\Tools\copilot.exe`, plus VT screen parsing. The repository has no
+  such primitive (`tools/mcp-probe` has none, `exact_cli.rs` only records
+  `/mcp show kbdb` as a manual invocation string) and no PTY library is
+  installed (pywinpty, pexpect, node-pty absent). Adding one is a new
+  dependency or native interop, which was not authorized. Result: capture
+  method is NOT FEASIBLE with existing primitives; no harness written.
+* The shim `.copilot/graphtor-mcp-shim.cjs` spawns `kbdb serve` as a child and
+  proxies stdio, tracking `initialize` ids and injecting an `initialized`
+  message. That is a server-side stdio wrapper, so it is the forbidden kind.
+* Identity retained (SHA-256 prefixes): `.mcp.json` 533B43AA35E3119A, shim
+  4F47AA2548D9F9C7, `kbdb.exe` 7C243C9318E303CF, `copilot.exe`
+  AB6D710D551C137C, kbdb entry JSON 5C707B1C72B35AC2.
+* Two separate blockers remain: (A) config: live entry is the wrapper, restore
+  needs authority; (B) capture: no PTY primitive, so the three `/mcp show`
+  sessions need either an operator-run interactive session with the runner
+  recording evidence, or authority to add a PTY dependency/native interop.
