@@ -18,7 +18,7 @@ import sys
 import threading
 import time
 from ctypes import wintypes
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 SCROLLBAR = "\u2503"
@@ -71,6 +71,16 @@ def parse_mcp_show(screen_text, expected_entry):
         "os_error_232": bool(re.search(r"(?i)os error 232|error 232", text)),
         "failed_signature": bool(re.search(r"(?i)failed to (start|connect)|connection failed", text)),
     }
+
+
+def mcp_show_rendered(screen_text):
+    """True once the `/mcp show` screen has rendered both its data and tools blocks."""
+    text = "\n".join(_clean(screen_text))
+    return (
+        "esc back" in text
+        and '"status"' in text
+        and re.search(r"tools \(\d+\)", text) is not None
+    )
 
 
 def evaluate_session(parsed):
@@ -200,34 +210,133 @@ def process_table():
     ]
 
 
-def process_cwd(pid):
-    """Read a child's current directory from its PEB (own descendant, same user)."""
-    k32 = ctypes.WinDLL("kernel32", use_last_error=True)
-    nt = ctypes.WinDLL("ntdll")
-    k32.OpenProcess.restype = wintypes.HANDLE
-    handle = k32.OpenProcess(0x0400 | 0x0010, False, pid)  # QUERY_INFORMATION | VM_READ
-    if not handle:
-        raise IdentityError(f"cannot open pid {pid} to read its cwd")
-    try:
+def parse_utc(text):
+    """Parse an ISO-8601 UTC timestamp, tolerating 7-digit fractional seconds."""
+    cleaned = re.sub(r"(\.\d{6})\d+", r"\1", text.strip().replace("Z", "+00:00"))
+    value = datetime.fromisoformat(cleaned)
+    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+
+
+_K32 = ctypes.WinDLL("kernel32", use_last_error=True)
+_NT = ctypes.WinDLL("ntdll")
+_K32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+_K32.OpenProcess.restype = wintypes.HANDLE
+_K32.CloseHandle.argtypes = [wintypes.HANDLE]
+_NT.NtQueryInformationProcess.argtypes = [
+    wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.ULONG, ctypes.POINTER(wintypes.ULONG)]
+_K32.TerminateProcess.argtypes = [wintypes.HANDLE, wintypes.UINT]
+_K32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+_K32.WaitForSingleObject.restype = wintypes.DWORD
+_K32.QueryFullProcessImageNameW.argtypes = [
+    wintypes.HANDLE, wintypes.DWORD, wintypes.LPWSTR, ctypes.POINTER(wintypes.DWORD)]
+_K32.GetProcessTimes.argtypes = [wintypes.HANDLE] + [ctypes.POINTER(wintypes.FILETIME)] * 4
+_K32.ReadProcessMemory.argtypes = [
+    wintypes.HANDLE, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t,
+    ctypes.POINTER(ctypes.c_size_t)]
+_PROCESS_TERMINATE = 0x0001
+_PROCESS_VM_READ = 0x0010
+_PROCESS_QUERY_INFORMATION = 0x0400
+_SYNCHRONIZE = 0x00100000
+_WAIT_OBJECT_0 = 0
+_CREATION_TOLERANCE = 0.05  # seconds between the CIM table and the handle's creation time
+
+
+class OwnedProcess:
+    """A verified OS process HANDLE for the Copilot-spawned server.
+
+    The handle is opened once, immediately after the process is identified from
+    the process table, and is then verified against the recorded executable path
+    and creation time. While it is held the OS cannot reuse that process's PID,
+    so every later query and the termination act on THAT process object, never
+    on whatever a PID number happens to name later. Opening fails closed when
+    the identity cannot be proven, and nothing is terminated in that case.
+    """
+
+    def __init__(self, handle, pid):
+        self._handle = handle
+        self.pid = pid
+
+    @classmethod
+    def open(cls, pid, expected_exe, expected_created_utc):
+        access = _PROCESS_TERMINATE | _SYNCHRONIZE | _PROCESS_QUERY_INFORMATION | _PROCESS_VM_READ
+        handle = _K32.OpenProcess(access, False, pid)
+        if not handle:
+            raise IdentityError(f"cannot open pid {pid} (error {ctypes.get_last_error()})")
+        owned = cls(handle, pid)
+        try:
+            owned._verify(expected_exe, expected_created_utc)
+        except BaseException:
+            owned.close()
+            raise
+        return owned
+
+    def _verify(self, expected_exe, expected_created_utc):
+        size = wintypes.DWORD(32768)
+        buf = ctypes.create_unicode_buffer(size.value)
+        if not _K32.QueryFullProcessImageNameW(self._handle, 0, buf, ctypes.byref(size)):
+            raise IdentityError(f"cannot read the image name of pid {self.pid}")
+        if os.path.normcase(os.path.normpath(buf.value)) != os.path.normcase(os.path.normpath(expected_exe)):
+            raise IdentityError(f"pid {self.pid} runs {buf.value!r}, not the delivered executable")
+        created = self._creation_time()
+        expected = parse_utc(expected_created_utc)
+        if abs((created - expected).total_seconds()) > _CREATION_TOLERANCE:
+            raise IdentityError(
+                f"pid {self.pid} creation time {created.isoformat()} does not match the "
+                f"recorded {expected.isoformat()} (the PID may have been reused)"
+            )
+
+    def _creation_time(self):
+        creation, exited, kernel, user = (wintypes.FILETIME() for _ in range(4))
+        if not _K32.GetProcessTimes(self._handle, creation, exited, kernel, user):
+            raise IdentityError(f"cannot read the creation time of pid {self.pid}")
+        ticks = (creation.dwHighDateTime << 32) | creation.dwLowDateTime  # 100 ns since 1601
+        return datetime(1601, 1, 1, tzinfo=timezone.utc) + timedelta(microseconds=ticks / 10)
+
+    def _require_open(self):
+        if self._handle is None:
+            raise IdentityError(f"process handle for pid {self.pid} is closed")
+
+    def is_running(self):
+        self._require_open()
+        return _K32.WaitForSingleObject(self._handle, 0) != _WAIT_OBJECT_0
+
+    def wait_exit(self, seconds):
+        """True when the owned process has exited within `seconds`."""
+        self._require_open()
+        return _K32.WaitForSingleObject(self._handle, int(seconds * 1000)) == _WAIT_OBJECT_0
+
+    def terminate(self):
+        """Terminate exactly this process object; failures surface."""
+        self._require_open()
+        if not self.is_running():
+            return
+        if not _K32.TerminateProcess(self._handle, 1):
+            raise IdentityError(f"TerminateProcess failed for pid {self.pid} (error {ctypes.get_last_error()})")
+
+    def cwd(self):
+        """Current directory of the owned process, read from its PEB."""
+        self._require_open()
         pbi = (ctypes.c_size_t * 6)()
         ret = wintypes.ULONG()
-        if nt.NtQueryInformationProcess(handle, 0, ctypes.byref(pbi), ctypes.sizeof(pbi), ctypes.byref(ret)):
+        if _NT.NtQueryInformationProcess(self._handle, 0, ctypes.byref(pbi), ctypes.sizeof(pbi), ctypes.byref(ret)):
             raise IdentityError("NtQueryInformationProcess failed")
-        peb = pbi[1]
 
         def read(addr, size):
             buf = (ctypes.c_char * size)()
             got = ctypes.c_size_t()
-            if not k32.ReadProcessMemory(handle, ctypes.c_void_p(addr), buf, size, ctypes.byref(got)):
+            if not _K32.ReadProcessMemory(self._handle, ctypes.c_void_p(addr), buf, size, ctypes.byref(got)):
                 raise IdentityError("ReadProcessMemory failed")
             return buf.raw
 
-        params = int.from_bytes(read(peb + 0x20, 8), "little")
+        params = int.from_bytes(read(pbi[1] + 0x20, 8), "little")
         length = int.from_bytes(read(params + 0x38, 2), "little")
         buffer = int.from_bytes(read(params + 0x40, 8), "little")
         return read(buffer, length).decode("utf-16-le").rstrip("\\")
-    finally:
-        k32.CloseHandle(handle)
+
+    def close(self):
+        if self._handle is not None:
+            _K32.CloseHandle(self._handle)
+            self._handle = None
 
 
 def teardown_confirmed(table, client_pid, server_pid):
@@ -294,21 +403,32 @@ def capture_session(copilot_exe, workspace, entry, expected_exe, rows=50, cols=1
         return False
 
     record = {"started_utc": datetime.now(timezone.utc).isoformat(), "copilot_pid": proc.pid}
+    owned_server = None
     try:
         if not wait_for(lambda t: "/ commands" in t or "\u276f" in t, 60):
             raise IdentityError("Copilot interactive prompt never appeared")
         proc.write("/mcp show " + entry + "\r")
-        if not wait_for(lambda t: "esc back" in t and '"status"' in t, 45):
+        if not wait_for(mcp_show_rendered, 45):
             raise IdentityError("/mcp show screen never rendered a status block")
         record["captured_utc"] = datetime.now(timezone.utc).isoformat()
         screen_text = text()
         table = process_table()
         server = select_server_process(table, proc.pid, expected_exe)
+        # Retain a verified OS handle to the server NOW, so cleanup never acts
+        # on a bare PID that could be reused by another client's process.
+        try:
+            owned_server = OwnedProcess.open(server["pid"], expected_exe, server["created"])
+        except IdentityError as err:
+            # Fail closed and make the unclean state visible: the identified server
+            # is NOT terminated (ownership is unproven) and may still be running.
+            raise IdentityError(
+                f"{err}; server pid {server['pid']} was left running unowned and was not terminated"
+            ) from err
         record["server"] = {
             "pid": server["pid"], "ppid": server["ppid"], "exe": server["exe"],
             "exe_sha256": sha256_file(server["exe"]), "created_utc": server["created"],
-            "cwd": process_cwd(server["pid"]),
-            "evidence_source": "Win32_Process table + PEB read of the Copilot-spawned child",
+            "cwd": owned_server.cwd(),
+            "evidence_source": "Win32_Process table + verified process handle (PEB read) of the Copilot-spawned child",
         }
         record["screen_text"] = screen_text
     finally:
@@ -329,21 +449,22 @@ def capture_session(copilot_exe, workspace, entry, expected_exe, rows=50, cols=1
                 time.sleep(2)  # the child is already exiting; confirm below
         record["client_exit_code"] = proc.exitstatus
         record["client_still_alive"] = proc.isalive()
-        # Own-child cleanup: the recorded server pid, only if it still runs the
-        # delivered executable (never a name-based or unrelated kill).
-        server = record.get("server")
-        if server:
-            time.sleep(1)
-            still = [p for p in process_table() if p["pid"] == server["pid"]]
-            if still and (still[0].get("exe") or "").lower() == expected_exe.lower():
-                subprocess.run(
-                    ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command",
-                     f"Stop-Process -Id {int(server['pid'])} -Force"],
-                    capture_output=True, timeout=30, check=False,
-                )
+        # Owned-child cleanup: only through the verified handle. A server that
+        # does not exit with its client is terminated by that handle (never by
+        # PID); any failure leaves teardown unconfirmed.
+        server_gone = owned_server is None
+        if owned_server is not None:
+            try:
+                if not owned_server.wait_exit(5):
+                    owned_server.terminate()
+                server_gone = owned_server.wait_exit(10)
+            except IdentityError as err:
+                record["server_cleanup_error"] = str(err)
+            finally:
+                owned_server.close()
         time.sleep(1)
-        record["teardown_confirmed"] = teardown_confirmed(
-            process_table(), proc.pid, server["pid"] if server else None
+        record["teardown_confirmed"] = bool(
+            server_gone and teardown_confirmed(process_table(), proc.pid, None)
         )
     return record
 

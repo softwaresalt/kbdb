@@ -111,3 +111,35 @@ protocol failure.
 * The three `052-S` treatment runs did not count toward this result.
 * The committed `.mcp.json` now carries a machine-specific absolute command path (as the installer does for a managed binary), so the T4 gate only works from this checkout location.
 * After each session the runner stops only the recorded server PID, and only while it still runs the delivered executable; the runner now confirms every client and server PID is gone before continuing.
+
+## Corrective pass: owned-process cleanup (2026-10-30)
+
+Review found that the capture tool's cleanup identified the recorded server PID
+by executable path only and then ran `Stop-Process -Id <pid> -Force`. If that PID
+were reused by another client's `kbdb` with the same executable, the tool could
+have terminated an unrelated server. This pass completes the existing
+owned-child-only cleanup contract; it is not a general PID-management feature.
+
+* Fix: `OwnedProcess` in `tools/t4-capture/t4_capture.py` opens a verified OS
+  process handle right after the server is identified (image name and creation
+  time checked against the recorded values, 50 ms tolerance). While held, the OS
+  cannot reuse that PID. Cwd reads, exit checks, and termination all act on that
+  handle; no PID-based kill remains. If ownership cannot be proven the open fails
+  closed, nothing is terminated, and the error names the unowned server PID.
+  A creation-time check alone would still race, so the handle is what binds
+  the identity.
+* Tests (red then green): five OS-boundary tests using only a `ping.exe` child the
+  test owns: verified terminate, same-exe/different-creation refusal with no
+  termination, different-exe refusal, unopenable PID, and a closed-handle terminate
+  that surfaces an error. Python suite: 21 existing plus 8 new, 29 pass.
+* A review-fix and a flake: a status block rendering before the tools block made one
+  session fail closed (tool list missing). The capture now waits until both blocks
+  render (`mcp_show_rendered`, three tests). That failed run is a real recorded
+  failure, not hidden.
+* Real strict reruns with the corrected harness, sequential wire controls before and
+  after each: `20261030T212815Z` and `20261030T212908Z` all passed (three
+  `/mcp show kbdb` sessions each, connected, 8 tools, no 232, owned cleanup
+  confirmed, no leftover PIDs). Latest run sessions: Copilot PIDs 3076, 34648, 44096;
+  server PIDs 7604, 33716, 7776. Copilot CLI 1.0.105; server executable SHA-256 and
+  config SHA-256 unchanged from above. The three earlier runs remain valid
+  historical evidence.
