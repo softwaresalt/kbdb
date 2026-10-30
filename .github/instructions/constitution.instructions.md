@@ -353,11 +353,12 @@ than proceeding.
 * **Sync impact report** (surfaces updated to `1.88`):
   * `Cargo.toml` (`rust-version`)
   * `.github/workflows/ci.yml` (pinned 1.88.0 MSRV check job)
-  * `README.md` and `docs/ARCHITECTURE.md`
+  * `README.md` and `docs/architecture.md`
   * `AGENTS.md`, `.github/copilot-instructions.md`, and this constitution
-  * `.github/instructions/rust.instructions.md`,
-    `.github/instructions/technology.instructions.md`, and
+  * `.github/instructions/technology.instructions.md` and
     `.github/instructions/technology-rust.instructions.md`
+    (`.github/instructions/rust.instructions.md` carries no MSRV declaration
+    and is unchanged)
 * **Out of scope**: `.github/workflows/mcp-probe-ci.yml` and
   `tools/mcp-probe` keep their own pinned toolchain, owned by `056.028-T`.
 
