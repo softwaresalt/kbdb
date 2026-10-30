@@ -6,7 +6,9 @@
 //!
 //! Start the server from a binary entry point by calling
 //! [`DocServer::new`] and passing the result to [`rmcp::serve_server`]
-//! with [`rmcp::transport::stdio`] as the transport.
+//! with an STDIO transport. The binary owns the STDIO transport
+//! composition and may apply a private compatibility boundary before
+//! [`rmcp::serve_server`]; this library exposes no such boundary.
 
 pub mod format;
 pub mod server;

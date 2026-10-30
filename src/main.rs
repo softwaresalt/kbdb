@@ -30,6 +30,7 @@
 #![cfg_attr(test, allow(clippy::assert_is_empty))]
 
 mod cli;
+mod discover_compat;
 mod workspace;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -2702,12 +2703,22 @@ async fn cmd_serve(
 
     info!("starting MCP STDIO server");
     trace_serve_ready(cwd);
-    rmcp::serve_server(server, rmcp::transport::stdio())
-        .await
-        .context("MCP server failed to start")?
-        .waiting()
-        .await
-        .context("MCP server terminated with error")?;
+    // The binary owns STDIO transport composition: the private
+    // `DiscoverCompat` boundary answers a pre-initialize `server/discover`
+    // so rmcp's handshake can continue (056.011-T).
+    rmcp::serve_server(
+        server,
+        discover_compat::DiscoverCompat::new(rmcp::transport::IntoTransport::<
+            rmcp::RoleServer,
+            _,
+            _,
+        >::into_transport(rmcp::transport::stdio())),
+    )
+    .await
+    .context("MCP server failed to start")?
+    .waiting()
+    .await
+    .context("MCP server terminated with error")?;
 
     Ok(0)
 }

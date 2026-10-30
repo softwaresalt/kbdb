@@ -44,8 +44,11 @@ rmcp = { version = "1.5", features = ["server", "transport-io"] }
 # Minimal tokio feature set required by this crate:
 # - rt-multi-thread: multi-threaded async runtime for #[tokio::main]
 # - macros: #[tokio::main] and tokio::select! proc-macro support
+# - sync, time: declared directly (not via rmcp's feature graph) for the
+#   private discover-compat transport adapter's injected-transport harness
+#   (mpsc channels, timeouts) in src/discover_compat.rs
 # Transport I/O features (io-std, io-util) are activated transitively by rmcp.
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"] }
 schemars = "1"
 clap = { version = "4", features = ["derive", "env"] }
 anstream = "1"
