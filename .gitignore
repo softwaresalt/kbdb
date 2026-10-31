@@ -78,7 +78,7 @@ venv.bak/
 .ruff_cache/
 
 # Engram runtime data (keep templates/, registry.yaml, .version)
-.engram/
+.engram/*
 !.engram/.version
 !.engram/.workspace-id
 !.engram/config.toml
@@ -107,7 +107,6 @@ __pycache__/
 # UE
 *.prj
 *.pui
-.engram/
 
 # autoharness
 .autoharness/backups/

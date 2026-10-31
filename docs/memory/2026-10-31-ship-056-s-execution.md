@@ -223,3 +223,14 @@ Prior same-session checkpoint `checkpoint-20261031-090552.json` is resolved.
 * `autoharness gate check --base HEAD --task 061.005-T --json`:
   exit 0 against pre-task HEAD; no validation gates configured
 * Full Rust quality suite remains parent-owned; no backlog mutations
+
+## Task 061.006-T
+
+* Base: task 005 commit `0f5e316`
+* Exact published harness: red exit 1, green exit 0
+* `.gitignore` now uses `.engram/*` with existing four metadata negations;
+  removed the duplicate blanket ignore under UE
+* Harness confirms all four negations and six ignored runtime paths
+* `autoharness gate check --base HEAD --task 061.006-T --json`:
+  exit 0 against pre-task HEAD; no validation gates configured
+* Full Rust quality suite remains parent-owned; no backlog mutations
