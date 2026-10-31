@@ -43,3 +43,22 @@ Invoked by `_Orchestrator` under P-017 Dark Factory Mode (`DARK_MODE_ACTIVE = tr
 7. **Step 5.6 — Stash Archival**:
    * Archived `0BD7D83C`, `6187B1EE`, and `578B8678` via `backlogit stash archive`.
    * Verified `.backlogit/stash.jsonl` retains only the 7 untouched entries (5 Stream C + 2 `056-S` P-021 captures).
+
+## Step 1.5 PR #153 Planning/Contract Follow-Up Reconciliation
+
+Before `_Ship` claims and executes `057-S`, `_Stage` reconciled and incorporated all 6 Stage-owned planning/contract captures surfaced during Step 1.5 PR #153 review (`23b0776`):
+
+1. **P-021 C5/C6 Duplicate Detection & Late-Identifier Reconciliation**:
+   * Executed unconditional duplicate scan across all 13 active stash entries in `.backlogit/stash.jsonl` and all 90 archived stash entries in `.backlogit/archive/stash.jsonl`: **CLEAN DUPLICATE SCAN** (`0` duplicates).
+   * Reconciled `pr_number=153` in place via `backlogit stash edit` on `C8CCC000` and `435498A0` from `docs/memory/2026-10-31-ship-stage-057-s-publication.md` (`review_thread_id=N/A` stands as truthful terminal record for both pre-PR local persona findings); verified concrete source refs on `1E585DFF`, `4ABF7389`, `BAA98E91`, and `ACDAB8DA`.
+2. **Planning & Task Contract Refinements Applied**:
+   * `1E585DFF` (`062.001-T.md` & Plan Unit 1): Replaced `-notmatch "\$LegacyBinary"` and `-notmatch "\$legacyArchive"` with `(-not $ps.Contains(''$LegacyBinary''))` and `(-not $ps.Contains(''$legacyArchive''))` in the single-quoted PowerShell `Harness command:`, verified in both red phase (`exit code: 1`) and simulated green phase (`exit code: 0`) with zero regex parse errors.
+   * `4ABF7389` (`062.003-T.md`, Plan Unit 3, & Deliberation): Updated `add_gitignore_entry` and `remove_gitignore_entry` contracts in `src/workspace/gitignore.rs` to retain the legacy `# graphtor-docs` / `.graphtor/` block in `.gitignore` whenever `<project_root>/.graphtor` still exists on disk and strip it only when `<project_root>/.graphtor` does not exist on disk.
+   * `BAA98E91` (`062.003-T.md`, Plan Unit 3, & Deliberation): Updated `src/workspace/uninstall.rs` contract so actual `uninstall` (`uninstall_planned` / `remove_empty_workspace_root`) removes any stale non-symlink `graphtor.lock` file inside `.kbdb/` alongside `kbdb.lock` (matching `predict_root_removal`) and tests agreement between `dry_run: true` preview (`predict_root_removal`) and `dry_run: false` actual removal when `graphtor.lock` is present.
+   * `ACDAB8DA` (`062.004-T.md`, Plan Unit 4, & Deliberation): Updated `init_sources_yaml` contract in `src/workspace/init.rs` to normalize only `# graphtor-docs` header comments (to `# kbdb`) while preserving all YAML source `path` / `url` / `glob` content byte-for-byte when copying `.graphtor/config/sources.yaml` to `.kbdb/config/sources.yaml`.
+   * `435498A0` (`docs/exec-plans/2026-10-31-kbdb-rename-continuity-upgrade-plan.md`): Added a dedicated `## Constitution Check` section mapping Principles I–XI (`constitution.instructions.md:331-334`) and active capability overlays with zero violations.
+   * `C8CCC000` (`docs/decisions/2026-10-31-stream-a-kbdb-rename-continuity-deliberation.md`): Clarified `.mcp.json` bun-shim launch retirement provenance (`055-S` PR #141 merge `4a6a912575f33f19f63129a600061db97dd2c4d5` vs. mechanical rename PR #133 `061634a`).
+3. **Traceability & Stash Archival**:
+   * Added `C8CCC000`, `435498A0`, `1E585DFF`, `4ABF7389`, `BAA98E91`, and `ACDAB8DA` to `custom_fields.source_stash_ids` on `062-F.md`, `062.001-T.md`, `062.002-T.md`, `062.003-T.md`, and `062.004-T.md`.
+   * Archived all 6 entries via `backlogit stash archive`, synced index (`536` artifacts, `0` parse failures), and verified only the 5 Stream C entries + `150A478A` + `E4B2B0B3` remain in `.backlogit/stash.jsonl`.
+
