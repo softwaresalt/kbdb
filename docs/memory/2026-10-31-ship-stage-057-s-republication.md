@@ -4,7 +4,7 @@ agent: ship
 shipment_id: 057-S
 feature_id: 062-F
 scope: orchestrator-step-1.5-publication-only
-status: publication-local-review-complete
+status: publication-resumed
 ---
 
 ## Scope and authority
@@ -66,11 +66,47 @@ No plan, acceptance criteria, manifest, or execution status was changed by Ship.
 
 ## Next steps
 
-Review the capture-only and Ship-memory increment at the committed HEAD.
-Remove the temporary patch, publish the branch, and create the PR with matching
-local readiness evidence and the six residual-risk IDs.
-Verify all five readiness checks, CI, and current-HEAD Copilot review.
-Attempt normal merge first; use the authorized fallback only for a confirmed
-review-required-only rejection. Confirm the merge on origin/main, return to main,
-pull, remove the merged local branch, and verify the queued manifest.
-Do not enter shipment execution or shipment safe-close in this invocation.
+The capture-only and Ship-memory increment was directly reviewed at HEAD
+`5b04d5c85b4da743c742f5e93a348a0386e30058`, with no additional findings.
+The temporary patch was removed. The worktree was clean at that HEAD.
+Local readiness is READY_WITH_FOLLOWUPS: P0=0, P1=0, six captured P2 findings.
+
+Before publication, the installed lifecycle topology gate returned exit 1:
+`LIFECYCLE_NO_ACTIVE_SHIPMENT: expected exactly one active shipment`.
+It observed zero active shipments, consistent with publication-only scope.
+Ship halted before any push, remote-ref deletion, PR creation, or merge.
+The required queued status was not changed and no gate override was attempted.
+Merge-commit strategy is available; squash and rebase are disabled.
+CI and Copilot gates were not reached. No new PR exists.
+
+## Confirmed recovery and Step 1.5 topology disposition
+
+On 2026-10-31 the operator explicitly selected and confirmed recovery of
+`checkpoint-20261031-191825.json`. Its valid, conforming Ship ownership and
+057-S / 062-F publication scope were verified against this branch and HEAD.
+The unfiltered checkpoint enumeration contained no validation anomalies.
+Engram reported 100% embedding coverage and a loaded model; no prune was needed.
+After restoring the recorded publication state, the official checkpoint resolve
+operation returned `ok: true`, `status: resolved` at
+`2026-10-31T19:27:08.7737364Z`. Other scopes' checkpoints were not mutated.
+
+The operator/Orchestrator clarified that this is Step 1.5 staging publication,
+not Step 5 delivery of a claimed shipment. The applicable topology invocation
+is `autoharness gate pipeline-topology --phase ambient --json`, which returned
+exit 0, `blocked: false`, `message: topology gate pass`, with no active shipment
+and one implementation worktree. Branch ownership and shipment readiness were
+explicitly skipped by this ambient invocation; it is not a pre-claim clearance.
+Do not run `--phase lifecycle` here, claim 057-S, or force a gate.
+
+Fresh configuration verification returned `strict_schema_blockers: []`.
+Backlogit MCP is unavailable in this tool surface; configured CLI fallbacks
+were used, including successful index sync. Hook polling returned no concrete
+events, so none were acknowledged.
+
+Commit this recovery note and the resolved checkpoint, then review the final
+HEAD, pass ambient topology again, publish the staging PR, and verify CI and
+Copilot before the explicitly authorized merge-commit path. Admin fallback
+remains authorized only for a confirmed review-required block after a normal
+merge attempt. Six previously captured P2 residual risks remain Stage handoffs.
+After confirmed publication merge, return to main and verify queued 057-S on
+origin/main; implementation and shipment closure are outside this session.
