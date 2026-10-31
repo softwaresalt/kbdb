@@ -3,7 +3,7 @@ title: Ship execution for 057-S
 agent: ship
 shipment_id: 057-S
 feature_id: 062-F
-status: delivery-preparation
+status: delivery-review-remediation
 ---
 
 ## Startup and scope
@@ -118,3 +118,27 @@ Delivery and closure merges are preauthorized only within the supplied dark
 scope after all readiness, topology, CI, and Copilot checks pass.
 Admin fallback is authorized only after a normal merge fails with a confirmed
 review-required block. No PR exists yet.
+
+## Delivery PR and lock-race remediation
+
+Delivery PR is #155. CI build, MSRV, code detection, and topology passed.
+Repository merge commits are enabled; squash and rebase are disabled.
+P-018 returned UNRESOLVED_THREADS for
+`PRRT_kwDORiB5E86yUe2H` at the original reviewed HEAD.
+No merge or admin fallback was attempted while blocked.
+
+Copilot identified current lock reacquisition between release and cleanup.
+P-021 C1 classification: in scope, completing 062.003-T's exact safe
+empty-root lock cleanup contract. Fix-ci wrote two regression tests first
+and observed both fail before production edits. Commit
+`3c790d877c7ce5fc408419b85c66ed8ff3d0d8cd` changes uninstall.rs only.
+Fresh current locks block cleanup. Legacy lock cleanup requires a dead owner
+and revalidated ownership token; preview uses the same staleness check.
+Task-authored unsafe lock expectations were corrected to the secured contract.
+All eleven Unit 3 tests and full fmt, clippy, tests, allowlisted audit,
+cargo check, and cargo build passed. No completion evidence was rewritten.
+
+Next: review the current remediation HEAD, update the PR readiness block,
+push, reply with the fixing commit, resolve the Copilot thread, and re-run
+CI plus all five readiness checks. The active checkpoint remains same-scope
+continuity only and is not a claim or merge authorization.
