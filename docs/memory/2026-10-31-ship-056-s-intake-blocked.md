@@ -173,6 +173,56 @@ on `origin/main` for the separate Orchestrator Step 2 invocation. Preserve
 Only the current worktree exists. After publication, sync `main` and return
 the PR, merge SHA, and gate outcomes to Orchestrator.
 
+## Publication v3 review held for remaining acceptance gaps
+
+The standard report-only review ran against
+`7fef7a37db6a7359c3c27478864bc224543ba2fb` and the complete 607-line
+`origin/main..HEAD` patch. Constitution, Rust, Correctness, and Template
+Integrity reported full patch coverage. Maintainability returned no findings.
+Learnings Researcher returned historical references but explicitly did not
+review the patch; its report is not complete-diff readiness evidence.
+
+The remaining findings require Stage-owned harness metadata corrections:
+
+* `061.003-T.md:26`: model-routing section regexes accept incorrect suffixes
+  because complete values are not anchored. A read-only probe confirmed
+  `model_family: "gpt-6.1-sol-other"` matches the expected family assertion.
+  Template Integrity also identified a missing positive `model` assertion
+  for the orchestrator configuration example.
+* `061.004-T.md:28`: accepted kinds are arbitrary substring matches across
+  the whole section rather than distinct values in the `kind` row.
+  A read-only probe confirmed `subtask` satisfies the `task` assertion.
+  The required workspace configuration reference is not asserted.
+* `061.007-T.md:26`: empty stdout from `git ls-files` is accepted without
+  verifying its exit status; scan errors are not consistently terminating.
+* `061.002-T.md:28`: expected frontmatter values are searched across the
+  whole document, allowing body examples to satisfy exact-value assertions.
+
+These are P2 same-contract acceptance gaps, not deferred scope expansions.
+P-021 C1/C3 requires completing the authorized contract; Ship cannot repair
+planning or harness metadata under P-010 and does not create deferred
+entries for these findings. Handoff to Stage: correct the existing task
+commands and validate both intended failing and acceptance-satisfied paths.
+
+Constitution and Correctness additionally raised a possible P1 concerning
+legacy nested-shell quote transport. A harmless exact nested invocation,
+`powershell -NoProfile -Command 'Write-Output ("space value").Length'`,
+returned `11` in this environment. This concern is not reproduced and is
+not recorded as a confirmed P1 blocker.
+
+Publication disposition is `BLOCKED` pending Stage's contract completion,
+not `LOCAL_REVIEW_READY`; no current-HEAD merge readiness is asserted.
+No remote-ref deletion, push, PR creation, CI request, hosted review,
+merge, checkout, task claim, implementation, or closure was attempted.
+The branch remains `chore/stage-056-S`; `056-S` remains queued.
+The preserved stash remains untouched. Full local build is not applicable.
+
+The single resumable checkpoint is `checkpoint-20261031-084027.json`,
+written through the official backlogit create operation. Recovery must
+explicitly select and confirm that checkpoint after Stage remediation,
+then review the resulting current HEAD before publication. The temporary
+review patch is removed.
+
 ## Original blocked-intake evidence
 
 * Fresh configuration precheck passed; installed-home workspace verification
