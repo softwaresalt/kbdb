@@ -66,8 +66,12 @@ Consolidated resolved same-scope history comes from:
 * `docs/memory/2026-10-31/ship-056-s-post-merge-halt-memory.md`
 * `docs/memory/2026-10-31/ship-056-s-061-f-operational-closure-memory.md`
 
-The superseded intake/publication history is archived unchanged. Execution
-memory remains at its exact path as the latest evidence for all seven completed
+The superseded intake/publication history is archived unchanged. Its original
+path contains an archive pointer for checkpoint readers.
+The historical reconcile halt report referenced by checkpoint 100333 is
+unavailable after the operator reset; retained memory verdicts are not a
+replacement for that missing report.
+Execution memory remains at its exact path as the latest evidence for all seven completed
 tasks. Interrupted-close memory remains at its exact path because the resolved
 structured checkpoint references it; historical failed verdicts are unchanged.
 The fresh operational closure memory remains current. No other agent's memory
@@ -75,9 +79,10 @@ or plan is compacted.
 
 ## Workflow report
 
-Assessment and cheap completed-work summary production succeeded. Explicitly
-authorized archive-only remediation completed the missing archival phase using
-`apply_patch`; compaction is now `done`. The intake original's SHA-256 is
+Assessment and cheap completed-work summary production succeeded. The initial
+run ended `degraded`. A separately authorized completion run performed the
+missing archival phase using `apply_patch` and ended `done`; the prior run's
+result is not rewritten. The intake original's SHA-256 is
 `e81a343704d3c646c244afb4090e885341cc456ff18745b76cb6c40ececf7c1a`
 after the move, matching its original bytes.
 

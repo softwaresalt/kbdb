@@ -187,8 +187,11 @@ or source retirement; this session performs no stash or backlog operation.
   or live workspace data was changed to suppress artificial failures.
 * No new deferred entry, backlog task, stash operation, or prioritization
 * Selected Ship checkpoint was recovered and resolved before retry; no unresolved
-  Ship checkpoint remains for this scope. Retained checkpoint/handoff evidence
-  is preserved; no checkpoint pruning is performed.
+  Ship checkpoint remains for this scope. Retained checkpoint JSON and memory
+  verdicts are preserved; no checkpoint pruning is performed. The historical
+  `.backlogit/reconcile/056-S-halt-20261031T100122Z.md` referenced by resolved
+  checkpoint `checkpoint-20261031-100333.json` is unavailable after the operator
+  reset. We do not claim that report is preserved or fabricate a replacement.
 * No commit, push, PR creation, or next-shipment claim in this bounded session
 
 ## Compaction status and releasability evidence
@@ -200,11 +203,13 @@ The completed release-unit memory qualifies for cheap consolidation.
 Original latest task evidence and resolved halt/checkpoint evidence are
 preserved. Assessment and cheap consolidation produced
 `docs/memory/compacted/2026-10-31-ship-056-s-061-f-compacted.md`.
-Explicitly authorized archive-only remediation completed the missing phase;
-compaction transitioned from `degraded` to `done` only after moving and
+The initial bounded run ended `degraded` because its archival phase lacked
+write-path authorization; that historical result remains unchanged.
+A separately authorized completion run ended `done` after moving and
 verifying the superseded intake history unchanged at
 `docs/archive/memory/2026-10-31-ship-056-s-intake-blocked.md`.
 The compacted summary traces that original source path to its archive path.
+A pointer at the original memory path preserves direct checkpoint-reader access.
 Execution memory remains as latest task completion evidence; interrupted-close
 memory remains at the resolved checkpoint's referenced path with its historical
 failed verdicts unchanged. The fresh operational closure memory stays current.

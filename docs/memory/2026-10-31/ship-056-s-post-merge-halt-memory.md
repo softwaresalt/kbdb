@@ -7,6 +7,16 @@ feature_id: 061-F
 status: blocked
 ---
 
+## Historical state superseded
+
+The blocked state and failed verdicts below describe the earlier sleep-interrupted
+attempt, not the current cursor. After an operator reset outside Ship, checkpoint
+`checkpoint-20261031-163940.json` was recovered and resolved. The later official
+retry succeeded. See the [current closure](../../closure/056-S-061-F-post-merge-closure.md).
+The canonical evidence JSON now contains that later successful invocation; it is
+not a retained JSON payload for the historical exit-6 attempt. Historical verdicts
+below remain unchanged.
+
 ## Cursor and gates
 
 ### Resumed official close and current halt
