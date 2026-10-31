@@ -43,6 +43,9 @@ const LEGACY_CONFIG_PATHS: &[&str] = &[
 /// The fixed, LOCKED key kbdb manages in `mcpServers`.
 const MCP_SERVER_KEY: &str = "kbdb";
 
+/// Historical server key migrated on install and pruned on uninstall.
+const LEGACY_MCP_SERVER_KEY: &str = "graphtor-docs";
+
 /// Provenance marker key written into every kbdb-managed server
 /// entry. Its presence (set to `true`), not the command string, is the
 /// forward-looking identity used to recognize a managed entry — the command
@@ -50,6 +53,9 @@ const MCP_SERVER_KEY: &str = "kbdb";
 /// depending on whether a managed binary exists, so the marker is the only
 /// stable signal across that variation.
 const MANAGED_MARKER_KEY: &str = "x-kbdb-managed";
+
+/// Historical provenance marker accepted during migration and removal.
+const LEGACY_MANAGED_MARKER_KEY: &str = "x-graphtor-managed";
 
 /// Historical RELATIVE command shapes written by the pre-marker writer
 /// (before this module introduced the resolution ladder + provenance
@@ -59,6 +65,8 @@ const MANAGED_MARKER_KEY: &str = "x-kbdb-managed";
 /// prefix or suffix (e.g. `/opt/tools/.kbdb/bin/kbdb`) is a
 /// genuine collision (case 4), not a legacy entry to migrate.
 const LEGACY_COMMAND_SHAPES: &[&str] = &[
+    "graphtor-docs",
+    "graphtor-docs.exe",
     ".kbdb/bin/kbdb",
     ".kbdb/bin/kbdb.exe",
     ".graphtor/bin/graphtor-docs",
@@ -196,36 +204,49 @@ pub fn generate_mcp_config(project_root: &Path) -> Result<Option<McpConfigOutcom
         return Ok(None);
     };
 
-    match classify_existing_entry(servers.get(MCP_SERVER_KEY)) {
-        ExistingEntryClass::Absent | ExistingEntryClass::LegacyShape => {
-            servers.insert(MCP_SERVER_KEY.to_string(), managed_server_value(&command));
-            write_json(&dest, &value, MCP_CONFIG_PATH)?;
-            Ok(Some(McpConfigOutcome {
-                path: MCP_CONFIG_PATH.to_string(),
-                action: McpConfigAction::Updated,
-            }))
-        }
+    let class = classify_existing_entry(servers.get(MCP_SERVER_KEY));
+    let legacy = servers
+        .get(LEGACY_MCP_SERVER_KEY)
+        .is_some_and(is_managed_for_removal)
+        .then(|| servers.shift_remove(LEGACY_MCP_SERVER_KEY))
+        .flatten();
+
+    let refreshed = match class {
+        ExistingEntryClass::Absent => legacy
+            .as_ref()
+            .filter(|entry| is_marked(entry))
+            .map_or_else(
+                || managed_server_value(&command),
+                |entry| refresh_marked_server_value(entry, &command),
+            ),
+        ExistingEntryClass::LegacyShape => managed_server_value(&command),
         ExistingEntryClass::Marked => {
-            let refreshed = managed_server_value(&command);
-            if servers.get(MCP_SERVER_KEY) == Some(&refreshed) {
+            let refreshed = servers.get(MCP_SERVER_KEY).map_or_else(
+                || managed_server_value(&command),
+                |entry| refresh_marked_server_value(entry, &command),
+            );
+            if legacy.is_none() && servers.get(MCP_SERVER_KEY) == Some(&refreshed) {
                 return Ok(None);
             }
-            servers.insert(MCP_SERVER_KEY.to_string(), refreshed);
-            write_json(&dest, &value, MCP_CONFIG_PATH)?;
-            Ok(Some(McpConfigOutcome {
-                path: MCP_CONFIG_PATH.to_string(),
-                action: McpConfigAction::Updated,
-            }))
+            refreshed
         }
-        ExistingEntryClass::Collision => Err(GraphtorError::Config {
-            message: format!(
-                "'{MCP_SERVER_KEY}' already exists in {MCP_CONFIG_PATH} and is not a \
-                 kbdb-managed entry; refusing to overwrite it. Remove or rename the \
-                 conflicting entry to let kbdb manage '{MCP_SERVER_KEY}'."
-            ),
-            field: Some(format!("mcpServers.{MCP_SERVER_KEY}")),
-        }),
-    }
+        ExistingEntryClass::Collision => {
+            return Err(GraphtorError::Config {
+                message: format!(
+                    "'{MCP_SERVER_KEY}' already exists in {MCP_CONFIG_PATH} and is not a \
+                     kbdb-managed entry; refusing to overwrite it. Remove or rename the \
+                     conflicting entry to let kbdb manage '{MCP_SERVER_KEY}'."
+                ),
+                field: Some(format!("mcpServers.{MCP_SERVER_KEY}")),
+            });
+        }
+    };
+    servers.insert(MCP_SERVER_KEY.to_string(), refreshed);
+    write_json(&dest, &value, MCP_CONFIG_PATH)?;
+    Ok(Some(McpConfigOutcome {
+        path: MCP_CONFIG_PATH.to_string(),
+        action: McpConfigAction::Updated,
+    }))
 }
 
 /// Classification of the existing value (if any) at the fixed
@@ -288,10 +309,51 @@ fn resolve_command(project_root: &Path) -> Result<String, GraphtorError> {
 
 /// Returns `true` when `entry` carries the managed-entry provenance marker.
 fn is_marked(entry: &serde_json::Value) -> bool {
-    entry
-        .get(MANAGED_MARKER_KEY)
-        .and_then(serde_json::Value::as_bool)
-        == Some(true)
+    [MANAGED_MARKER_KEY, LEGACY_MANAGED_MARKER_KEY]
+        .iter()
+        .any(|key| entry.get(key).and_then(serde_json::Value::as_bool) == Some(true))
+}
+
+/// Recognize standard binary invocations only after provenance is established.
+#[must_use]
+fn is_standard_managed_command(command: &str) -> bool {
+    let normalized = command.replace('\\', "/");
+    matches!(command, "kbdb" | "kbdb.exe")
+        || LEGACY_COMMAND_SHAPES.contains(&command)
+        || [
+            "/.kbdb/bin/kbdb",
+            "/.kbdb/bin/kbdb.exe",
+            "/.graphtor/bin/graphtor-docs",
+            "/.graphtor/bin/graphtor-docs.exe",
+        ]
+        .iter()
+        .any(|suffix| normalized.ends_with(suffix))
+}
+
+/// Refresh provenance and standard invocations without losing custom launch settings.
+#[must_use]
+fn refresh_marked_server_value(existing: &serde_json::Value, command: &str) -> serde_json::Value {
+    // An independent object is needed for comparison before an atomic write;
+    // cloning retains all user fields and their original ordering.
+    let Some(mut entry) = existing.as_object().cloned() else {
+        return managed_server_value(command);
+    };
+    let standard_command = entry
+        .get("command")
+        .is_none_or(|value| value.as_str().is_some_and(is_standard_managed_command));
+    let standard_args = entry
+        .get("args")
+        .is_none_or(|value| value == &serde_json::json!(["serve"]));
+    if standard_command && standard_args {
+        entry.insert("command".to_string(), serde_json::json!(command));
+        entry.insert("args".to_string(), serde_json::json!(["serve"]));
+    }
+    if !entry.contains_key("transport") && !entry.contains_key("type") {
+        entry.insert("transport".to_string(), serde_json::json!("stdio"));
+    }
+    entry.shift_remove(LEGACY_MANAGED_MARKER_KEY);
+    entry.insert(MANAGED_MARKER_KEY.to_string(), serde_json::json!(true));
+    serde_json::Value::Object(entry)
 }
 
 /// Returns `true` when `entry` EXACTLY matches the historical pre-marker
@@ -487,7 +549,10 @@ fn prune_managed_server(content: &str) -> PruneOutcome {
 
     let managed_keys: Vec<String> = servers
         .iter()
-        .filter(|(key, cfg)| key.as_str() == MCP_SERVER_KEY && is_managed_for_removal(cfg))
+        .filter(|(key, cfg)| {
+            (key.as_str() == MCP_SERVER_KEY || key.as_str() == LEGACY_MCP_SERVER_KEY)
+                && is_managed_for_removal(cfg)
+        })
         .map(|(key, _)| key.clone())
         .collect();
 
@@ -727,6 +792,214 @@ mod tests {
   }
 }
 "#;
+
+    #[test]
+    fn stream_a_mcp_compat_migrates_legacy_graphtor_docs_key_and_marker() {
+        for command in ["graphtor-docs", "graphtor-docs.exe"] {
+            for marked in [false, true] {
+                let tmp = tempfile::tempdir().expect("tempdir");
+                let path = tmp.path().join(MCP_CONFIG_PATH);
+                let mut entry = serde_json::json!({
+                    "command": command, "args": ["serve"], "transport": "stdio"
+                });
+                if marked {
+                    entry["x-graphtor-managed"] = serde_json::json!(true);
+                    assert!(is_marked(&entry), "legacy marker must be recognized");
+                } else {
+                    assert!(is_exact_legacy_shape(&entry), "bare legacy binary shape");
+                }
+                let doc = serde_json::json!({
+                    "mcpServers": {"graphtor-docs": entry, "other": {"command": "other"}}
+                });
+                fs::write(&path, doc.to_string()).expect("write");
+                let outcome = generate_mcp_config(tmp.path())
+                    .expect("generate")
+                    .expect("migration outcome");
+                assert_eq!(outcome.action, McpConfigAction::Updated);
+                let after: serde_json::Value =
+                    serde_json::from_str(&fs::read_to_string(&path).expect("read")).expect("json");
+                assert!(after["mcpServers"].get("graphtor-docs").is_none());
+                assert_eq!(after["mcpServers"]["kbdb"], managed_server_value("kbdb"));
+                assert_eq!(after["mcpServers"]["other"], doc["mcpServers"]["other"]);
+                let before = fs::read_to_string(&path).expect("before");
+                assert!(generate_mcp_config(tmp.path()).expect("repeat").is_none());
+                assert_eq!(fs::read_to_string(&path).expect("after"), before);
+            }
+        }
+        assert!(!is_marked(
+            &serde_json::json!({"x-graphtor-managed": false})
+        ));
+        assert!(!is_marked(
+            &serde_json::json!({"x-graphtor-managed": "true"})
+        ));
+    }
+
+    #[test]
+    fn stream_a_mcp_compat_prunes_stale_graphtor_docs_when_kbdb_present() {
+        let legacy = serde_json::json!({
+            "command": "bun", "args": ["shim.cjs"], "x-graphtor-managed": true
+        });
+        for current in [
+            managed_server_value("kbdb"),
+            serde_json::json!({
+                "command": ".kbdb/bin/kbdb", "args": ["serve"], "transport": "stdio"
+            }),
+        ] {
+            let tmp = tempfile::tempdir().expect("tempdir");
+            let path = tmp.path().join(MCP_CONFIG_PATH);
+            let doc = serde_json::json!({
+                "mcpServers": {"kbdb": current, "graphtor-docs": legacy, "alias": legacy}
+            });
+            fs::write(&path, doc.to_string()).expect("write");
+            assert_eq!(
+                generate_mcp_config(tmp.path())
+                    .expect("generate")
+                    .expect("prune")
+                    .action,
+                McpConfigAction::Updated
+            );
+            let after: serde_json::Value =
+                serde_json::from_str(&fs::read_to_string(&path).expect("read")).expect("json");
+            assert!(after["mcpServers"].get("graphtor-docs").is_none());
+            assert_eq!(after["mcpServers"]["kbdb"], managed_server_value("kbdb"));
+            assert_eq!(after["mcpServers"]["alias"], legacy);
+        }
+        let tmp = tempfile::tempdir().expect("tempdir");
+        for rel in managed_config_candidates() {
+            let path = tmp.path().join(&rel);
+            fs::create_dir_all(path.parent().expect("parent")).expect("mkdir");
+            let doc = serde_json::json!({
+                "mcpServers": {"kbdb": managed_server_value("kbdb"),
+                    "graphtor-docs": legacy, "alias": legacy}, "inputs": []
+            });
+            fs::write(&path, doc.to_string()).expect("write");
+            assert!(file_has_managed_entry(tmp.path(), &rel));
+            let outcomes =
+                remove_mcp_config_from(tmp.path(), std::slice::from_ref(&rel)).expect("remove");
+            assert_eq!(outcomes.len(), 1);
+            let after: serde_json::Value =
+                serde_json::from_str(&fs::read_to_string(&path).expect("read")).expect("json");
+            assert!(after["mcpServers"].get("kbdb").is_none());
+            assert!(after["mcpServers"].get("graphtor-docs").is_none());
+            assert_eq!(after["mcpServers"]["alias"], legacy);
+            assert_eq!(after["inputs"], serde_json::json!([]));
+            assert!(!file_has_managed_entry(tmp.path(), &rel));
+
+            fs::write(
+                &path,
+                serde_json::json!({"mcpServers": {"graphtor-docs": legacy}}).to_string(),
+            )
+            .expect("write sole legacy");
+            assert!(file_has_managed_entry(tmp.path(), &rel));
+            assert_eq!(
+                remove_mcp_config_from(tmp.path(), std::slice::from_ref(&rel))
+                    .expect("remove sole")[0]
+                    .action,
+                McpConfigAction::Removed
+            );
+            assert!(!path.exists());
+        }
+        let path = tmp.path().join(MCP_CONFIG_PATH);
+        let collision = serde_json::json!({
+            "mcpServers": {"kbdb": {"command": "custom"}, "graphtor-docs": legacy}
+        })
+        .to_string();
+        fs::write(&path, &collision).expect("write collision");
+        assert!(generate_mcp_config(tmp.path()).is_err());
+        assert_eq!(fs::read_to_string(&path).expect("read"), collision);
+        let custom = serde_json::json!({
+            "command": "graphtor-docs", "args": ["serve"], "transport": "stdio", "env": {}
+        });
+        fs::write(
+            &path,
+            serde_json::json!({"mcpServers": {"graphtor-docs": custom}}).to_string(),
+        )
+        .expect("write custom legacy");
+        assert!(!file_has_managed_entry(tmp.path(), MCP_CONFIG_PATH));
+        generate_mcp_config(tmp.path()).expect("preserve custom legacy");
+        let after: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&path).expect("read")).expect("json");
+        assert_eq!(after["mcpServers"]["graphtor-docs"], custom);
+    }
+
+    #[test]
+    fn stream_a_mcp_compat_preserves_custom_fields_on_marked_entry() {
+        for command in [
+            "kbdb",
+            "kbdb.exe",
+            "graphtor-docs",
+            "graphtor-docs.exe",
+            ".kbdb/bin/kbdb",
+            ".graphtor/bin/graphtor-docs.exe",
+            "/project/.kbdb/bin/kbdb",
+            r"C:\project\.graphtor\bin\graphtor-docs.exe",
+        ] {
+            let tmp = tempfile::tempdir().expect("tempdir");
+            let path = tmp.path().join(MCP_CONFIG_PATH);
+            let entry = serde_json::json!({
+                "command": command, "args": ["serve"], "type": "stdio",
+                "tools": ["search"], "env": {"MODE": "test"}, "cwd": "docs",
+                "x-kbdb-managed": true
+            });
+            fs::write(
+                &path,
+                serde_json::json!({"mcpServers": {"kbdb": entry}}).to_string(),
+            )
+            .expect("write");
+            generate_mcp_config(tmp.path()).expect("generate");
+            let after: serde_json::Value =
+                serde_json::from_str(&fs::read_to_string(&path).expect("read")).expect("json");
+            let mut expected = entry;
+            expected["command"] = serde_json::json!("kbdb");
+            assert_eq!(after["mcpServers"]["kbdb"], expected);
+            let before = fs::read_to_string(&path).expect("before");
+            assert!(generate_mcp_config(tmp.path()).expect("repeat").is_none());
+            assert_eq!(fs::read_to_string(&path).expect("after"), before);
+        }
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let path = tmp.path().join(MCP_CONFIG_PATH);
+        fs::write(&path, r#"{"mcpServers":{"kbdb":{"x-kbdb-managed":true}}}"#).expect("write");
+        generate_mcp_config(tmp.path()).expect("fill missing fields");
+        let after: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&path).expect("read")).expect("json");
+        assert_eq!(after["mcpServers"]["kbdb"], managed_server_value("kbdb"));
+    }
+
+    #[test]
+    fn stream_a_mcp_compat_preserves_custom_shim_command_and_args_on_marked_entry() {
+        for (command, args) in [
+            ("bun", serde_json::json!([".copilot/graphtor-mcp-shim.cjs"])),
+            ("kbdb", serde_json::json!(["serve", "--custom"])),
+            ("/opt/custom/kbdb", serde_json::json!(["serve"])),
+        ] {
+            for key in ["kbdb", "graphtor-docs"] {
+                let tmp = tempfile::tempdir().expect("tempdir");
+                let path = tmp.path().join(MCP_CONFIG_PATH);
+                let mut entry = serde_json::json!({
+                    "command": command, "args": args, "type": "stdio", "tools": ["query"],
+                    "env": {"MODE": "shim"}, "cwd": ".copilot", "x-graphtor-managed": true
+                });
+                fs::write(
+                    &path,
+                    serde_json::json!({"mcpServers": {key: entry}}).to_string(),
+                )
+                .expect("write");
+                generate_mcp_config(tmp.path()).expect("generate");
+                let after: serde_json::Value =
+                    serde_json::from_str(&fs::read_to_string(&path).expect("read")).expect("json");
+                entry
+                    .as_object_mut()
+                    .expect("object")
+                    .shift_remove("x-graphtor-managed");
+                entry["x-kbdb-managed"] = serde_json::json!(true);
+                assert_eq!(after["mcpServers"]["kbdb"], entry);
+                assert!(after["mcpServers"].get("graphtor-docs").is_none());
+                let before = fs::read_to_string(&path).expect("before");
+                assert!(generate_mcp_config(tmp.path()).expect("repeat").is_none());
+                assert_eq!(fs::read_to_string(&path).expect("after"), before);
+            }
+        }
+    }
 
     #[test]
     fn generate_creates_root_mcp_json() {
