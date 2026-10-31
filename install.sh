@@ -21,6 +21,7 @@ set -eu
 
 REPO="softwaresalt/graphtor-docs"
 BINARY="kbdb"
+LEGACY_BINARY="graphtor-docs"
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -96,13 +97,18 @@ mkdir -p "${INSTALL_DIR}"
 # ── Download ──────────────────────────────────────────────────────────────────
 BASE_URL="https://github.com/${REPO}/releases/download/${KBDB_VERSION}"
 ARCHIVE="${BINARY}-${KBDB_VERSION}-${TARGET}.tar.gz"
+LEGACY_ARCHIVE="${LEGACY_BINARY}-${KBDB_VERSION}-${TARGET}.tar.gz"
 SUMS_FILE="SHA256SUMS"
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "${TMP}"' EXIT
 
 info "Downloading ${ARCHIVE}…"
-curl -sSfL "${BASE_URL}/${ARCHIVE}"   -o "${TMP}/${ARCHIVE}"
+if ! curl -sSfL "${BASE_URL}/${ARCHIVE}" -o "${TMP}/${ARCHIVE}"; then
+    info "Primary archive download failed; falling back to ${LEGACY_ARCHIVE}…"
+    ARCHIVE="${LEGACY_ARCHIVE}"
+    curl -sSfL "${BASE_URL}/${ARCHIVE}" -o "${TMP}/${ARCHIVE}"
+fi
 curl -sSfL "${BASE_URL}/${SUMS_FILE}" -o "${TMP}/${SUMS_FILE}"
 
 # ── Checksum verification ─────────────────────────────────────────────────────
@@ -121,8 +127,17 @@ info "Checksum OK."
 
 # ── Extract and install ───────────────────────────────────────────────────────
 info "Extracting to ${INSTALL_DIR}…"
-tar -xzf "${ARCHIVE}" -C "${TMP}" "${BINARY}"
-install -m 0755 "${TMP}/${BINARY}" "${INSTALL_DIR}/${BINARY}"
+tar -xzf "${ARCHIVE}" -C "${TMP}"
+SRC_BINARY="${TMP}/${BINARY}"
+if [ ! -f "${SRC_BINARY}" ]; then
+    SRC_BINARY="${TMP}/${LEGACY_BINARY}"
+fi
+[ -f "${SRC_BINARY}" ] || error "Neither ${BINARY} nor ${LEGACY_BINARY} was found in ${ARCHIVE}."
+install -m 0755 "${SRC_BINARY}" "${INSTALL_DIR}/${BINARY}"
+
+if [ -e "${INSTALL_DIR}/${LEGACY_BINARY}" ] || [ -e "${HOME}/.local/bin/${LEGACY_BINARY}" ]; then
+    warn "Legacy ${LEGACY_BINARY} binary detected and left unchanged. You may remove it after updating references to ${BINARY}."
+fi
 
 # ── PATH guidance ─────────────────────────────────────────────────────────────
 case ":${PATH}:" in
