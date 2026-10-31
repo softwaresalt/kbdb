@@ -8,6 +8,7 @@ stash_ids:
   - "3FFE51B4"
   - "1074A164"
   - "C365AB98"
+  - "AF676684"
   - "CCAC612D"
 backlog_refs:
   - "061-F"
@@ -38,7 +39,7 @@ Following the constitutional MSRV `1.88` amendment (`053-S`, PR #136) and the co
    * `.github/agents/_orchestrator.agent.md` frontmatter and `Configuration shape` block still declare `orchestrator` as `claude-sonnet-5.5` / `anthropic` / `medium` and `ship` in `Configuration shape` as `claude-sonnet-5.5` / `anthropic` / `medium` instead of `gpt-6.1-sol` / `openai` / `medium`.
    * `.github/instructions/adversarial-review.instructions.md` (lines 60–64) still states that `alt_provider` is `google` and `alt_family` is `gemini-2.5-pro`, contradicting `.autoharness/config.yaml` and `.github/agents/subagents/adversarial-review.agent.md` where `alt_review_provider` and `alt_review_family` are empty (`""`).
 4. **Derived SQL schema documentation gap (`1074A164`)**: `.github/instructions/backlogit-sql-schema.instructions.md` (line 81) documents `stash_entries.kind` as accepting only 5 values (`feature`, `task`, `bug`, `epic`, `unknown`), omitting `spike`, `subtask`, `deliberation`, `review`, `shipment`, and workspace-configured WIT types such as `chore`.
-5. **Duplicate `.engram/` blanket ignore in `.gitignore` (`C365AB98`)**: A second `.engram/` line under `# UE` (line 97) overrides earlier negations (`!.engram/.version`, `!.engram/.workspace-id`, `!.engram/config.toml`, `!.engram/registry.yaml`).
+5. **`.engram/` directory exclusion vs child configuration-file negations in `.gitignore` (`C365AB98`, `AF676684`)**: Under `# Engram runtime data` (line 81; line 72 in original stash capture), a trailing-slash directory rule `.engram/` causes Git to skip descending into `.engram/`, preventing subsequent `!.engram/.version`, `!.engram/.workspace-id`, `!.engram/config.toml`, and `!.engram/registry.yaml` negations from ever matching; additionally, a duplicate `.engram/` line under `# UE` (line 110; line 97/98 in original stash capture) re-ignores `.engram/`. Replacing `.engram/` with `.engram/*` under `# Engram runtime data` and removing the duplicate `.engram/` under `# UE` ignores all runtime children (`.engram/cozo`, `.engram/code-graph`, `.engram/run`, `.engram/metrics`, `.engram/diagnostics`, `.engram/db`) while making the four `!` configuration-file negations effective.
 6. **Ad-hoc debugging scripts in `scripts/` (`CCAC612D`)**: `scripts/git_commands.py` and `scripts/run_git_commands.sh` hardcode `C:\Source\GitHub\graphtor` and one-off commit SHAs from an interactive debugging session.
 
 *(Note: Stage-owned `.backlogit/queue/060-F.md` updates for `9A31F048`, `1FF1BDC0`, `55AC021B`, and `80083AF8` and `docs/exec-plans/2026-08-21-mcp-serve-initialize-handshake-regression-plan.md` updates for `906BA4E3` were applied directly by Stage under P-010 because Ship is forbidden from modifying plan artifacts or backlog item planning fields.)*
@@ -51,7 +52,8 @@ Following the constitutional MSRV `1.88` amendment (`053-S`, PR #136) and the co
 | `0E67835A` | Repair `FM_MISSING_REQUIRED` and `FM_UNKNOWN_KEY` frontmatter in `.github/agents/subagents/rust-mcp-expert.agent.md` | Unit 2 (`061.002-T`) |
 | `3FFE51B4` | Reconcile model-routing config, manifest variables/checksums, frontmatter, and prose across `.autoharness/config.yaml`, `.autoharness/harness-manifest.yaml`, `.github/agents/_orchestrator.agent.md`, and `.github/instructions/adversarial-review.instructions.md` | Unit 3 (`061.003-T`), Unit 5 (`061.005-T`) |
 | `1074A164` | Document full CLI-accepted `stash_entries.kind` set and workspace-configured WIT types (`chore`) in `.github/instructions/backlogit-sql-schema.instructions.md` | Unit 4 (`061.004-T`), Unit 5 (`061.005-T`) |
-| `C365AB98` | Remove duplicate `.engram/` entry under `# UE` in `.gitignore` so `.engram/` config negations work | Unit 6 (`061.006-T`) |
+| `C365AB98` | Remove duplicate `.engram/` entry under `# UE` in `.gitignore` so `.engram/` config negations are not overridden | Unit 6 (`061.006-T`) |
+| `AF676684` | Replace retained `.engram/` rule under `# Engram runtime data` in `.gitignore` with `.engram/*` so Git descends into `.engram/` and child `!` configuration-file negations match while runtime data remains ignored | Unit 6 (`061.006-T`) |
 | `CCAC612D` | Remove ad-hoc debugging helper scripts `scripts/git_commands.py` and `scripts/run_git_commands.sh` | Unit 7 (`061.007-T`) |
 
 ## Implementation Units
@@ -141,18 +143,19 @@ Every unit satisfies the 2-Hour Rule (`1` or `2` files, strictly `< 3` files), 1
   * Run `autoharness verify-workspace --workspace . --json` and confirm `strict_schema_blockers: []`, `blockers: []`, `warnings: []`, and `warning_instances: 0`.
   * Run `autoharness routing resolve --workspace . --site orchestrator --json` and confirm `gemini-4-argon` / `google` / `high` / `long_context`.
 
-### Unit 6: Remove Duplicate Blanket `.engram/` Ignore in `.gitignore` (`061.006-T`)
+### Unit 6: Replace Retained `.engram/` Rule with `.engram/*` and Remove Duplicate `.engram/` in `.gitignore` (`061.006-T`)
 
-* **Source Stash ID(s)**: `C365AB98`
+* **Source Stash ID(s)**: `C365AB98`, `AF676684`
 * **Domain / Width**: Repository Git Configuration (`.gitignore`)
 * **Size / Complexity**: `size: XS`, `complexity: trivial`
 * **Execution Posture**: `test-first` (verify `git check-ignore -v .engram/config.toml` before and after)
 * **Files Affected (1)**:
   1. `.gitignore`
 * **Changes**:
-  * Remove the duplicate `.engram/` line under `# UE` (around line 97) while preserving the earlier `# Engram runtime data` block (`.engram/` followed by `!.engram/.version`, `!.engram/.workspace-id`, `!.engram/config.toml`, `!.engram/registry.yaml`).
+  * Under `# Engram runtime data` (line 81; line 72 in original stash capture), replace the trailing-slash directory rule `.engram/` with `.engram/*` so Git descends into `.engram/` and evaluates the subsequent `!.engram/.version`, `!.engram/.workspace-id`, `!.engram/config.toml`, and `!.engram/registry.yaml` negations.
+  * Remove the duplicate `.engram/` line under `# UE` (line 110; line 97/98 in original stash capture).
 * **Verification**:
-  * Run `git check-ignore -v .engram/config.toml` and `git check-ignore -v .engram/registry.yaml` and confirm both match the `!` negation lines (exit code 0 with `!` prefix) rather than being ignored by line 97, while `.engram/db` remains ignored.
+  * Run `git check-ignore -v .engram/.version .engram/.workspace-id .engram/config.toml .engram/registry.yaml` and confirm all four match the `!` negation lines (exit code 0 showing the `!` negation rule), while runtime children (`.engram/cozo`, `.engram/code-graph`, `.engram/run`, `.engram/metrics`, `.engram/diagnostics`, `.engram/db`) remain ignored by `.engram/*`.
 
 ### Unit 7: Remove Ad-Hoc Debugging Helper Scripts (`061.007-T`)
 
