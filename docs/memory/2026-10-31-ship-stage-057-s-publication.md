@@ -4,7 +4,7 @@ agent: ship
 shipment_id: 057-S
 feature_id: 062-F
 scope: orchestrator-step-1.5-publication-only
-status: publication-in-progress
+status: publication-awaiting-final-gates
 ---
 
 ## Scope and authority
@@ -49,9 +49,29 @@ No planning files were edited and no thread was replied to or resolved.
 
 ## Next steps
 
-Commit only mandatory deferred captures and this Ship-owned continuity record.
-Review the resulting HEAD, publish the PR, verify all five readiness checks,
-CI, and P-018, then merge under the scoped authorization.
+PR #153 is open. CI detect-code-changes and pipeline-topology checks passed;
+build and MSRV were correctly skipped for docs/backlog-only scope.
+Copilot completed review for HEAD `391ba02f24289fa485164ae8e7565debd01962a1`.
+Four planning findings were captured before replies, then substantively replied
+to with their IDs and resolved:
+
+| Task | Deferred entry | Thread | Stage-owned correction |
+|---|---|---|---|
+| 062.001-T | 1E585DFF | PRRT_kwDORiB5E86yTdqj | Literal-dollar PowerShell harness regex escaping |
+| 062.003-T | 4ABF7389 | PRRT_kwDORiB5E86yTdqv | Retain legacy Git exclusion while content remains |
+| 062.003-T | BAA98E91 | PRRT_kwDORiB5E86yTdq7 | Treat retained legacy lockfile as removal blocker |
+| 062.004-T | ACDAB8DA | PRRT_kwDORiB5E86yTdrD | Preserve source paths unless backing content migrates |
+
+These are task-level, run-level, and publication residual-risk references.
+Each capture records PR 153 and its actual thread ID, full C1 rationale,
+requires-deliberation flag, provisional priority, and lookup-unavailable marker.
+All require Stage planning or acceptance-criteria edits forbidden to Ship.
+No planning or queue record was changed. The initial two captures retain their
+correct pre-PR N/A fields; PR 153 is their later publication context.
+
+Commit only mandatory captures and this Ship-owned continuity update.
+Review the resulting HEAD, update PR readiness, verify all five checks and CI,
+and await a current-HEAD Copilot review before merge.
 Return to main, pull origin main, remove the merged local staging branch,
 and verify the remote queued manifest. Leave `.engram/.workspace-id` unstaged.
 Do not invoke execution or shipment closure for this staging publication.
