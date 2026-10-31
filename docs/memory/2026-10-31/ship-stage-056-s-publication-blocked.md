@@ -68,3 +68,22 @@
   There is one worktree on `chore/stage-056-S` and no open PR.
 * Full local build is not applicable: this publication changes only
   planning, backlog, and documentation artifacts.
+
+## Local review and Stage handoff
+
+* Exact patch review of `7e8fe820e7b500648c2e1c5daada99c100088545`
+  covered all 21 changed paths and returned `READY_WITH_FOLLOWUPS`,
+  with P0=0 and P1=0. No runtime validation is applicable.
+* Task-level residual risk for `061.006-T`: its retained `.engram/`
+  exclusion conflicts with effective child-file negations. This P2 planning
+  issue is outside Ship's publication-only authority under P-021 C1 and
+  P-010. No acceptance criterion or plan was changed.
+* Run-level and publication-closure residual-risk reference: deferred entry
+  `AF676684`, captured before disposition with all six C2 payload fields.
+  Active and archived discovery found no reusable capture. The finding is
+  threadless and pre-PR, so no thread reply or resolution applies.
+* Follow-up handoff: Stage must deliberate and reconcile the task and plan
+  before `061.006-T` execution. Source: local review of
+  `.backlogit/queue/061.006-T.md:20` and plan Unit 6.
+* The capture and this memory update require a final current-HEAD review
+  before PR creation. Shipment `056-S` remains queued.
