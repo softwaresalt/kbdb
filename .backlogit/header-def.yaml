@@ -146,6 +146,14 @@ types:
         suffix: -T
         id_format: '{NNN}{suffix}'
         fields:
+            complexity:
+                type: enum
+                values:
+                    - trivial
+                    - low
+                    - medium
+                    - high
+                optional: true
             priority:
                 type: enum
                 values:
@@ -154,6 +162,25 @@ types:
                     - high
                     - critical
                 default: medium
+            size:
+                type: enum
+                values:
+                    - XS
+                    - S
+                    - M
+                    - L
+                    - XL
+                optional: true
+            size_ruleset_version:
+                type: string
+                optional: true
+            size_source:
+                type: enum
+                values:
+                    - human
+                    - agent
+                    - derived
+                optional: true
             status:
                 type: enum
                 values:
