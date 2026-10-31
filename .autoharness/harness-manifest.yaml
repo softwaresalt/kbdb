@@ -898,8 +898,8 @@ variables_used:
   SHIP_ESCALATION_FAMILY: claude-sonnet-5.5
   SHIP_ESCALATION_PROVIDER: anthropic
   SHIP_ESCALATION_REASONING_EFFORT: high
-  SHIP_FAMILY: claude-sonnet-5.5
-  SHIP_PROVIDER: anthropic
+  SHIP_FAMILY: gpt-6.1-sol
+  SHIP_PROVIDER: openai
   SHIP_REASONING_EFFORT: medium
   SOURCE_DIR: src
   SOURCE_GLOB: src/**/*.rs

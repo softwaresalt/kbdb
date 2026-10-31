@@ -1,6 +1,6 @@
 ---
 name: shipment-reconcile
-description: "GI/GR reconciliation gate for shipment manifests — verifies every manifest item exists in queue (pre-mode) or archive (post-mode) with the expected status, and closes shipments with the single-artifact safe-close procedure that archives ONLY manifest item IDs and closes the shipment record via live `shipped` -> verify -> explicit archive -> verify `archived_status: shipped`, instead of the destructive cascade backlogit_ship_shipment — except for the narrow, machine-verified P-015 fully-covered-root case, where the cascade op is the permitted and independently-verified close path."
+description: "GI/GR reconciliation gate for shipment manifests — verifies manifest status and provenance, then closes through single-artifact safe-close or a machine-verified P-015 fully-covered-root or engine-inert-terminal-partial-feature exception with independent post-close invariance checks."
 ---
 
 # Shipment Reconcile
@@ -13,6 +13,9 @@ explicit item IDs one artifact at a time, verifying after each that the parent
 feature and any unshipped sibling tasks survive — safe-close's own Step 0 first
 runs the P-015 verified fully-covered-root classification and, only when every
 precondition holds, delegates to the Cascade Close Sub-Procedure instead.
+For a terminal partial-feature shipment, Step 8 alone may select P-015's
+engine-inert fallback after the exact direct-move engine refusal; Step 0 never
+pre-authorizes that invocation.
 
 > **Why safe-close exists.** `backlogit_ship_shipment` treats a shipment as a
 > proxy for its covering feature and cascade-archives the whole feature subtree.
@@ -28,9 +31,10 @@ precondition holds, delegates to the Cascade Close Sub-Procedure instead.
   **instead of** the cascade `backlogit_ship_shipment` call, then `mode: post`.
   Safe-close's own Step 0 selects the close path from the machine-checkable
   P-015 classification; it archives manifest item IDs individually and never
-  calls the cascade op directly **unless** that classification confirms the
-  narrow verified fully-covered-root exception, in which case the Cascade
-  Close Sub-Procedure runs (and is itself independently verified) instead.
+  calls the cascade op directly **unless** Step 0 confirms the fully-covered-root
+  exception or Step 8 verifies the engine-inert-terminal-partial-feature
+  exception after the required direct-move refusal. Each permitted path has
+  independent post-close verification.
 * **Ship Step 0.5** (sanity check): pre-mode at intake with `expected_status: queued`
   (or `active` if the shipment was already claimed in a prior session)
   to catch Stage-side over-inclusion before any build work begins.
@@ -70,7 +74,7 @@ Every item in the manifest is classified as one of:
 | `matched` | Queue file present AND declared status matches `expected_status` | Archive file present for this item |
 | `archived-provenance-deferred` | **Pre-mode-only preflight candidate.** No queue file found but an archive file exists. Pre-mode does **not** receive `merge_commit_sha` (it is a post-mode/safe-close input), so the merge-proof half of the Safe-Close Mode step 4 provenance proof cannot be evaluated at this gate. The item is therefore recorded as archived-with-deferred-provenance rather than being forced into either archived case. The report MUST capture the decidable evidence for later use: whether the id is present in **this** shipment's `custom_fields.items`, and whether the archived record carries a frontmatter `commit` (and its value). This state is **not ambiguity** and does not halt; the authoritative split is performed in safe-close once the SHA exists | N/A (post-mode uses `matched` / `missing`) |
 | `current-delivery-pending-finalization` | Not emitted by pre-mode (see `archived-provenance-deferred`). Safe-close meaning: no queue file found but an archive file exists because **this shipment's own execution** moved the task to terminal `status: done`, and the installed status routing relocated it into `.backlogit/archive/` immediately — before the PR merge SHA existed — so its final archive markers/evidence are not yet complete. Valid **only** when the fail-closed provenance proof in Safe-Close Mode step 4 passes; ambiguous provenance halts | N/A (all items are expected in archive; use `matched` / `missing`) |
-| `pre-archived` | Not emitted by pre-mode (see `archived-provenance-deferred`). Safe-close meaning: no queue file found but an archive file exists because an **earlier shipment** delivered/archived the item, or it otherwise **predates** this shipment — distinct from `current-delivery-pending-finalization`, which is this shipment's own in-flight delivery; its commit evidence belongs to that earlier delivery and is never overwritten with this run's SHA | N/A (all items are expected in archive; use `matched` / `missing`) |
+| `pre-archived` | Not emitted by pre-mode (see `archived-provenance-deferred`). Safe-close meaning: an earlier delivery, or a RESUMED `current-delivery-finalized` own member verified under Step 4 Case B. Preserve its verified delivered-work SHA and skip all writes and re-archival; distinct from pending finalization | N/A (all items are expected in archive; use `matched` / `missing`) |
 | `missing` | No queue or archive file found for this manifest item | Archive file not found for this manifest item |
 | `status-mismatch` | Queue file present but declared status does not match `expected_status` | N/A (post-mode does not check status fields) |
 | `conflict` | This manifest item ID also appears in the `custom_fields.items` manifest of **another live shipment** (queued or active) — a duplicate/overlapping assignment | N/A (post-mode does not scan live shipment manifests) |
@@ -82,7 +86,8 @@ Every item in the manifest is classified as one of:
 > completes the task, so this shipment's **own** members routinely land there mid-run (see
 > `.backlogit/registry.yaml`). Classifying them as `pre-archived` would forbid writing this
 > shipment's SHA and then halt on the resulting missing evidence, deadlocking closure
-> permanently. The two cases are therefore split, and the split is decided by the
+> permanently. Pending finalization and preserved finalized evidence are therefore
+> split (the latter includes RESUMED own members under Step 4 Case B), decided by the
 > **provenance proof** in Safe-Close Mode step 4 — never by membership or a missing commit
 > alone. Because that proof consumes `merge_commit_sha`, which pre-mode never receives,
 > **pre-mode never performs the split**: it emits the `archived-provenance-deferred`
@@ -165,14 +170,14 @@ The report ends with a `recommendation`:
 * `CLOSED` — safe-close archived every manifest item individually, archived the
   shipment record itself, and the protected set (parent feature + unshipped siblings)
   is intact
-* `HALT — cascade detected, revert required` — safe-close found a non-manifest artifact (parent feature or a sibling task) archived or deleted; the unintended change must be reverted before any commit
+* `HALT — cascade detected, revert required` — a queue-protected artifact moved or vanished, or an archived invariance member changed path or SHA-256; recovery requires approval before any commit
 
 For `mode: safe-close`, the report also records the **protected set** (the parent
 feature file and every unshipped sibling task file that must survive closure) and,
 per manifest item, whether it was `matched` (archived by this run),
 `current-delivery-pending-finalization` (this shipment's own member, already relocated
 by its terminal `done` transition and finalized in place once its provenance proof
-passed), or `pre-archived` (delivered by an earlier shipment; skipped to avoid
+passed), or `pre-archived` (earlier delivery or verified RESUMED own finalized member; skipped to avoid
 double-archival and false-positive cascade flags).
 
 ### Mixed-Role Detection Classification (`mode: detect-mixed-role` only, distinct from the record-scope classification above)
@@ -252,7 +257,7 @@ commit **evidence source** and the SHA **value**:
 | `atomic-archive-metadata` | The **selected invocation transport** for the archive operation itself accepted the delivered SHA **and** its own tool contract guarantees the value is persisted to the archived artifact's frontmatter `commit` atomically with archival, so archival and evidence committed together |
 | `frontmatter-commit-update` | The delivered-work merge SHA was written to the still-**live** artifact's frontmatter `commit` by a commit-only update (MCP `backlogit_update_item` carrying only `commit`, or CLI `backlogit update {id} --commit {sha}`) and verified there before any terminal mutation |
 | `current-delivery-post-terminal` | **This** shipment's own member had already been relocated into `.backlogit/archive/` by its terminal `done` transition **before** the PR merge SHA existed, so the delivered-work SHA was written to the **archived** record's frontmatter `commit` by the same commit-only update and verified there — but only after the fail-closed provenance proof in Safe-Close Mode step 4 passed. An **explicit exception** to the live-before-terminal rule, forced by the installed status routing; never silent inference and never a backfill |
-| `pre-existing` | A pre-archived member's own earlier merge commit, preserved and verified — never overwritten with this run's closure SHA |
+| `pre-existing` | A pre-archived member's verified delivered-work merge commit, from an earlier delivery or RESUMED own finalization, preserved without writes |
 > **Canonical evidence, resolved by transport.** The artifact's frontmatter `commit` is
 > safe-close's **canonical** closure evidence. The two installed surfaces reach it
 > differently, so resolve `track_commit` by transport **before** calling anything:
@@ -285,7 +290,8 @@ commit **evidence source** and the SHA **value**:
   the shipment record's `custom_fields.items` — and
   the shipment record itself (`{shipment_id}`). It must NEVER archive the parent
   feature or any sibling task that is not in the manifest. It never calls the cascade
-  `backlogit_ship_shipment`; the shipment record is closed as its own single artifact.
+  `backlogit_ship_shipment` outside the machine-verified P-015 fully-covered-root
+  (Step 0) or engine-inert-terminal-partial-feature (Step 8) exceptions.
 * **No prune / no auto-repair.** Auto-mutation of the manifest itself is reserved
   for a future version. Safe-close never prunes the manifest and never
   auto-deletes non-manifest artifacts. On cascade detection it **halts** and records a
@@ -314,10 +320,11 @@ commit **evidence source** and the SHA **value**:
   `.backlogit/archive/` is classified `current-delivery-pending-finalization` **only** when a
   fail-closed provenance proof shows it is **this** shipment's own member, relocated there by
   its terminal `done` transition before the merge SHA existed; otherwise it is `pre-archived`
-  (an earlier shipment's delivery). Membership in `custom_fields.items` alone and a missing
+  (an earlier delivery or RESUMED own finalized member under Step 4 Case B).
+  Membership in `custom_fields.items` alone and a missing
   `commit` alone are **never** proof, ambiguous provenance halts, and a record already fully
-  `status: archived` is out of safe-close's scope entirely — it routes to historical
-  evidence remediation.
+  `status: archived` with missing or contradictory evidence routes to historical
+  evidence remediation. Verified finalized records are preserved without writes.
 * **Single-writer logical lock.** When invoked from Ship Step 6, this skill holds the
   `.backlogit/queue/.{shipment_id}.md.lock` file (via the `file-lock` skill) for the
   duration of pre-mode → safe-close → post-mode. That original queue-path lock file is the
@@ -537,7 +544,8 @@ missing evidence, ambiguous lock state, circuit-breaker trip, or operator abort:
 Runs **in place of** the destructive cascade `backlogit_ship_shipment` call —
 **except** in the narrow P-015 verified fully-covered-root case selected by
 Step 0 below, where the cascade op is the *permitted* close path and safe-close
-steps 1–10 are skipped entirely. Archives only the shipment manifest's explicit
+steps 1–10 are skipped entirely, or the engine-inert-terminal-partial-feature
+fallback verified at Step 8 after the exact engine refusal. Archives only the shipment manifest's explicit
 item IDs, one artifact at a time, verifying after each archival that the parent
 feature and any unshipped sibling tasks survive. Invoked between pre-mode
 (`PROCEED`) and post-mode, under the lock pre-mode already holds. If invoked
@@ -590,8 +598,10 @@ completion.
       described in P-015 over the manifest `items` loaded in (a). Workspaces
       with a Python implementation installed reuse a
       `classify_shipment_close_path(manifest_items, workspace_backlog_dir)`-shaped
-      function (this self-hosting repository's own implementation lives at
-      `src/autoharness/gates/shipment_closure.py`); other workspaces implement
+      function from the installed `autoharness.gates.shipment_closure` module
+      in the autoharness package home/site-packages. The self-host source path
+      is `src/autoharness/gates/shipment_closure.py` in the autoharness engine
+      checkout, not a required file in installed target workspaces; other workspaces implement
       the equivalent check directly against `.backlogit/queue/` +
       `.backlogit/archive/`. The cascade close path is permitted
       **only** when, for **every** feature member of the manifest: it is a
@@ -691,6 +701,16 @@ completion.
      ambiguity, or unresolved precondition) → continue to step 1 below
      (step 1's own manifest load is idempotent with (a) above — reuse the
      already-loaded manifest rather than issuing a second call).
+     A partial-feature result is **not** permission to invoke `ShipShipment`.
+     Record only a possible engine-inert candidate for Step 8: the covering
+     feature must be excluded from the manifest. Reject every manifest member
+     whose positively read `artifact_type` is `feature`, including nested or
+     archived features; missing, malformed, or unknown types fail closed.
+     All manifest members must
+     already be archived with verified delivery provenance, and the complete
+     descendant enumeration must satisfy P-015's INV-6 condition. Step 8 must
+     independently verify all four requirements, including the direct-move
+     exit-9 refusal, before any fallback invocation.
 
 1. **Load manifest** via `backlogit_get_item(shipment_id)`. Read membership explicitly from
    the shipment record's `custom_fields.items` list — never a top-level `items` field. These
@@ -713,8 +733,18 @@ completion.
      `done`). Mere archive-file presence, `archived_status: active|queued|blocked|abandoned`,
      generic `status: archived` without shipped/done provenance, or missing/ambiguous
      provenance are **NOT** sufficient — in those cases the sibling stays protected
-     fail-closed.
-   * The **protected set** is the parent feature plus every unshipped sibling task
+     fail-closed. Keep verified archived exclusions in an **archived invariance
+     set**, protected by SHA-256 byte identity (INV-7), not queue presence.
+   * **Stage-dispositioned exclusion**: also exclude an out-of-manifest sibling
+     from queue presence ONLY if it is in `.backlogit/archive/` with parsed
+     `status: archived`, `archived_status: done`, and verified Stage-ratified
+     `done` + `selection:not-needed` provenance citing the merged Stage decision
+     on `origin/main`. Record that decision and its reachability proof. Add the
+     sibling to the archived invariance set. A Stage disposition is not delivered
+     work: never fabricate or require a delivery commit for that exclusion.
+     Missing or contradictory disposition evidence leaves the sibling protected
+     by queue presence and fails closed at Step 3.
+   * The **queue-protected set** is the parent feature plus every unshipped sibling task
      that MUST remain in `.backlogit/queue/` after closure. It is computed
      from **expected IDs**, not merely the files currently present in queue, so a
      sibling or parent that was already wrongly archived is still detected.
@@ -722,13 +752,17 @@ completion.
 3. **Baseline integrity gate** (before archiving anything): Run
    `git status --short -- ".backlogit/"` and record the pre-closure
    working-tree state so any later archival or deletion of a protected-set path can be
-   attributed to this procedure. Then confirm **every** protected-set member currently
-   exists in `.backlogit/queue/`. If any protected-set member is already in
+   attributed to this procedure. Then confirm **every queue-protected** member currently
+   exists in `.backlogit/queue/`. If any queue-protected member is already in
    `.backlogit/archive/` or missing from the working tree, a cascade has
    **already** occurred (or the shipment scope is wrong): halt immediately with
    `HALT — cascade detected, revert required`, name the affected artifact IDs, and do
    NOT archive any manifest item. The `pre-archived` exemption (step 4) applies to
-   **manifest items only** — never to the protected set.
+   **manifest items only**. The only queue-presence exclusions are Step 2's
+   verified predecessor-delivered and Stage-dispositioned archived siblings;
+   they are not unprotected. Capture SHA-256 baselines and paths for every
+   archived invariance member and require byte identity after every mutation
+   and at final verification (INV-7). An unexplained archive remains a halt.
 
    **Archived-member evidence preflight (same gate, still before the first mutation).**
    Evidence validation for already-archived members MUST complete here, for **every**
@@ -742,6 +776,12 @@ completion.
      **fully** `status: archived` while lacking or contradicting the expected `commit`.
    * For a `pre-archived` candidate, confirm its existing merge commit is **present** and
      **not contradictory** with the item's documented delivery.
+     This explicitly permits a RESUMED `current-delivery-finalized` own
+     manifest member under Step 4 Case B: parsed `status: archived`,
+     `archived_status: done` or `accepted`, and frontmatter `commit` equal
+     to this shipment's correct verified delivered-work merge SHA on
+     `origin/main`, with same-scope Ship-owned completion/finalization evidence.
+     Preserve that evidence; no rewrite or re-archive is needed.
    * If **any** archived member fails these checks, halt the whole run with
      `RECONCILE_FAIL`, name every failing item, and route them to the Historical
      Evidence-Remediation Workflow below. **Zero** manifest items are archived on this run.
@@ -868,12 +908,22 @@ completion.
        unreachable from inside the loop; if it is ever reached, the preflight was skipped —
        halt immediately. Safe-close **never silently rewrites fully archived
        provenance** during closure.
-   * **Case B — `pre-archived`** (delivered by an earlier shipment, or otherwise predating
-     this shipment; the Case A proof above did **not** hold):
+   * **Case B — `pre-archived`** (earlier delivery, or RESUMED
+     `current-delivery-finalized`; no pending finalization remains):
      classify `pre-archived` and **skip** — do not re-archive. Reusing the `pre-archived`
      classification prevents false-positive cascade flags on items that were legitimately
-     shipped earlier. Its commit evidence belongs to the earlier shipment that delivered
-     it, so:
+     finalized before this closure attempt.
+     A RESUMED own manifest member qualifies only with parsed `status: archived`,
+     `archived_status: done` or `accepted`, frontmatter `commit` equal to
+     this shipment's correct verified delivered-work merge SHA on `origin/main`,
+     and Ship-owned same-scope completion/finalization evidence tying it to this
+     shipment, with no contradictory or foreign delivery evidence. Step 3
+     verifies this before any mutation. Preserve all existing evidence and
+     markers, report `pre-existing` with the exact SHA, perform no write or
+     re-archive, and continue through Step 7 to Step 8.
+     This does not relax Case A's pending-finalization proof; missing or
+     contradictory finalized evidence still halts at preflight.
+     For both earlier deliveries and RESUMED own finalized members:
      * **Preserve** the item's existing actual merge commit as the **authoritative** existing
        delivery evidence. **Verify and report** it — never **overwrite** it with this run's
        closure SHA. A foreign (earlier-shipment) archived member is **never** overwritten
@@ -900,19 +950,23 @@ completion.
      `RECONCILE_FAIL`, and do not continue archiving.
 
 5. **Verify-after-each invariant** (run immediately after each item's archival):
-   * Confirm **every** protected-set member is still present in
+   * Confirm **every queue-protected** member is still present in
      `.backlogit/queue/` — not moved to `.backlogit/archive/`,
      not deleted from the working tree.
    * Run `git status --short -- ".backlogit/"` and confirm no
-     protected-set path appears as a deletion, rename into `archive/`, or new
+     queue-protected path appears as a deletion, rename into `archive/`, or new
      `archive/` addition beyond the baseline captured in step 3.
-   * The protected set was proven fully present in queue at the baseline gate
-     (step 3), so **any** protected-set member now found in `archive/` or missing from
+   * Verify every archived invariance member remains at its baseline archive
+     path with byte-identical SHA-256, with no duplicate queue record (INV-7).
+   * The queue-protected set was proven fully present in queue at the baseline gate
+     (step 3), so **any queue-protected** member now found in `archive/` or missing from
      the working tree is a cascade. There is **no** pre-archived exemption for the
-     protected set — the exemption in step 4 covers manifest items only.
+     queue-protected set. Step 2's verified archived exclusions are instead
+     guarded by their archived invariance baselines.
 
 6. **Approval-gated cascade recovery** (never automatic): If the invariant fails (a
-   protected-set artifact was archived or deleted by the preceding archival):
+   queue-protected artifact moved or vanished, or an archived invariance
+   member changed path or SHA-256):
    * **Cascade detected. Stop.** Do **not** run any recovery command yet. Recovery here is
      a Git mutation (`git restore` / `git revert`) and is therefore
      `ActionRisk: destructive` with `change_kind: rollback`, which Constitution VII
@@ -939,15 +993,55 @@ completion.
      corrupt backlog state.
 
 7. **Final invariant re-check**: After the loop completes, re-confirm the full
-   protected set is intact in `.backlogit/queue/`.
+   queue-protected set is intact in `.backlogit/queue/` and every archived
+   invariance member remains byte-identical at its baseline path.
 
 8. **Close the shipment record itself** (single artifact, non-cascading; authoritative order):
    * Move **ONLY** the live shipment record to `status: shipped` via the generic,
      non-cascading `backlogit move <shipment_id> --status shipped`.
+   * **Deterministic engine-inert fallback**: ONLY if that direct move returns
+     **exit 9** with `shipment must be shipped via ShipShipment`, evaluate all
+     four requirements of P-015's **VERIFIED ENGINE-INERT TERMINAL
+     PARTIAL-FEATURE EXCEPTION (INV-6 ALIGNMENT)**. Any other failure halts;
+     do not infer authorization from a partial-feature shape or retry by cascade.
+     Before invoking, verify:
+     1. The covering feature is excluded from the manifest. Reject every manifest
+        member whose positively read `artifact_type` is `feature`, including
+        nested or archived features; missing, malformed, or unknown types fail
+        closed. Every manifest member is already archived with parsed `status: archived`,
+        `archived_status: done|accepted`, and a verified delivered-work merge
+        commit on `origin/main` (preserving earlier deliveries' genuine SHAs).
+     2. A complete live `parent_id` graph scan across queue and archive covers
+        **every depth** of that feature's descendants. Every out-of-manifest
+        descendant has parsed `status: archived` in archive, **zero** descendants
+        remain in queue, and no duplicate or torn records exist. Failed,
+        incomplete, malformed, or ambiguous enumeration fails closed.
+     3. Probe the **invoked** CLI and require minor `1.11` or `1.12`; retain
+        `.backlogit/queue/.{shipment_id}.md.lock` continuously through invocation
+        and verification. Capture pre-invocation SHA-256 hashes and paths for
+        `.backlogit/queue/{feature_id}.md` and **all archived descendants**.
+     4. Invoke `backlogit shipment ship <shipment_id> --sha <merge_commit_sha>`
+        with the actual delivered-work merge SHA, then immediately require
+        `returned_ids: []`, `archived_ids: ["<shipment_id>"]` only, exactly one
+        shipment record at `.backlogit/archive/<shipment_id>.md`, and parsed
+        `status: archived`, `archived_status: shipped`, and
+        `commit: <merge_commit_sha>`. Re-enumerate the full descendant graph
+        and verify the feature and every descendant retain their paths and
+        byte-identical baseline SHA-256 hashes, with zero missing, added,
+        duplicate, or torn records (INV-7 / INV-10).
+     An unmet precondition forbids invocation. Any post-close deviation emits
+     P-005 and halts under Step 6's approval-gated exact-path rollback, with
+     no automatic recovery or commit. Only after all post-invariants pass,
+     record the fallback evidence and skip ALL remaining direct-path sub-bullets
+     in Step 8: the live `shipped` reread and live-status fail check, the archive
+     call, the direct-path archive-provenance reread, and its final invariant
+     rerun. Go straight to Steps 9/10; the fallback's four requirements and
+     immediate post-invariants replace those checks, with no second archival.
    * Re-read and verify the live shipment record now reports `status: shipped`. If the
      record remains `active`, is already `archived`, is missing, or resolves to any other
      shape, halt fail-closed with `RECONCILE_FAIL_SHIPMENT_RECORD_LIVE_STATUS`. Do **NOT**
-     auto-retry by calling the cascade op, and do not archive an `active` shipment record.
+     auto-retry by calling the cascade op outside the verified fallback above,
+     and do not archive an `active` shipment record.
    * Archive **ONLY** the shipment record via `backlogit archive <shipment_id>` (single-
      artifact archive; this stamps `archived_status` from the live status at archive time).
    * Re-read and verify the archived record now reports `archived_status: shipped`.
@@ -959,11 +1053,13 @@ completion.
      intact after the shipment-record close sequence.
 
 9. **Produce safe-close report** per the same schema, recording the protected set, each
-   item's classification, the shipment-record archival, and the recommendation. For **each
+   item's classification, the archived invariance set and hash comparisons,
+   any engine-inert fallback's four-requirement evidence, the shipment-record
+   archival, and the recommendation. For **each
    member and for the shipment record**, record the commit **evidence source** — one of
    `atomic-archive-metadata`, `frontmatter-commit-update`, `current-delivery-post-terminal`
    (this shipment's own terminal-relocated member, finalized after its provenance proof), or
-   `pre-existing` (preserved from an earlier shipment) — alongside the exact SHA **value**
+   `pre-existing` (preserved from an earlier delivery or RESUMED own finalization) — alongside the exact SHA **value**
    recorded or preserved, the provenance proof behind any
    `current-delivery-post-terminal` write, and any supplemental MCP commit_link recorded in
    addition, so a reviewer can audit per member where each piece of commit evidence came
@@ -971,7 +1067,9 @@ completion.
 
 10. **Gate decision**:
     * All manifest items `matched`, `current-delivery-pending-finalization`, or
-      `pre-archived`, the shipment record archived, and the protected set intact →
+      `pre-archived`, the shipment record archived, the queue-protected set intact,
+      the archived invariance set byte-identical, and any fallback post-invariants
+      verified →
       `recommendation: CLOSED`. Proceed to post-mode.
     * Any cascade detected → `recommendation: HALT — cascade detected, revert required`
       (see step 6). Do not proceed to the commit step.
@@ -1052,8 +1150,10 @@ of that fact and does not add a new classifier precondition; Step 0(c)'s
 precondition wording is unchanged.
 
 This tolerance applies to **manifest members only** — it does not
-restate, weaken, or cross-apply to the protected set, which has no
-pre-archived exemption (see Safe-Close Mode steps 3/5 above). A manifest
+restate, weaken, or cross-apply to the queue-protected set, which has no
+pre-archived exemption. Step 2's verified predecessor-delivered and
+Stage-dispositioned archived siblings instead retain path and SHA-256
+protection in the archived invariance set (see Safe-Close Mode steps 3/5 above). A manifest
 that qualifies for `CASCADE` has no protected set by construction (full
 coverage is itself a Step 0(c) precondition), so no protected set arises
 on this path.
@@ -1420,22 +1520,26 @@ If pre-mode cannot acquire the logical shipment lock because another process hol
 * `mode: pre` runs before closing a shipment in Ship Step 6
 * `mode: pre` with `expected_status: queued` (or `active` for already-claimed shipments) runs at Ship Step 0.5 intake
 * Manifest membership is read explicitly from the shipment record's `custom_fields.items`, never from a top-level `items` field
-* `mode: safe-close` runs **in place of** the cascade `backlogit_ship_shipment` call and archives only the manifest item IDs (one artifact at a time) plus the shipment record itself — **except** when Step 0's P-015 verified fully-covered-root classification selects `CASCADE`, in which case the Cascade Close Sub-Procedure runs instead and safe-close steps 1–10 are skipped entirely
-* Close-path selection is made **only** from the machine-checkable classification result (Step 0), never inferred from prose or manifest shape alone; any classifier error, ambiguity, or unresolved precondition falls back to safe-close
+* `mode: safe-close` runs **in place of** the cascade `backlogit_ship_shipment` call and archives only the manifest item IDs (one artifact at a time) plus the shipment record itself — **except** when Step 0's P-015 verified fully-covered-root classification selects `CASCADE`, in which case the Cascade Close Sub-Procedure runs instead and safe-close steps 1–10 are skipped entirely, or Step 8 verifies P-015's engine-inert-terminal-partial-feature fallback after the exact exit-9 direct-move refusal and checks all four pre/post requirements before Steps 9/10
+* Step 0 selects fully-covered-root `CASCADE` only from machine-checkable classification, never prose or manifest shape; errors, ambiguity, or unresolved preconditions select safe-close. Only Step 8 may later select the engine-inert-terminal-partial-feature exception, after its exact refusal and all four requirements are verified
+* The engine-inert candidate and fallback reject every manifest member whose
+  positively read `artifact_type` is `feature`, including nested or archived
+  features; missing, malformed, or unknown types fail closed before invocation.
+  This no-feature-member guard does not apply to the fully-covered-root exception
 * Step 0(c)'s "fully covered" check walks the qualifying feature's **full descendant tree, at every depth** (via a full `parent_id` graph, not a single-level scan of direct children only) — a manifest such as `[feature, task]` where that task has an out-of-manifest subtask must fall back to safe-close, never wrongly qualify for `CASCADE` (155-S, PR #407 review, thread PRRT_kwDORzpWpM6b2MJv)
 * The Cascade Close Sub-Procedure independently verifies `returned_ids` is empty, `archived_ids` against the two-set `allowed_ids` / `required_ids` gate (step 3: `allowed_ids` = manifest tasks + qualifying feature members + each qualifying feature member's validated linked deliberation IDs (Step 0(c), same engine-defined `source_deliberation_id` (taken as a complete literal string, never regex-scanned) / description / references sources — the latter two scanned with the exact `\b(?:DL\d+|[0-9]+(?:\.[0-9]+)*-DL)\b` matcher Backlogit's own `internal/core.deliberationIDPattern` uses, never a broader "any embedded deliberation ID" reading — and existence-and-`artifact_type: deliberation` validation Backlogit's own `collectArchiveCandidateIDs` uses — never a blanket allowance for arbitrary IDs) + the shipment record; `required_ids` = the shipment record and every qualifying feature member, both unconditionally, plus every other allowed member (a manifest task item, or a qualifying feature member's validated linked deliberation) NOT truly `status: archived` in the Step 0(b)/(c) pre-close declared-status snapshot; `archived_ids - allowed_ids` non-empty halts with `HALT — cascade archived unexpected artifact {id}`, `required_ids - archived_ids` non-empty halts with `HALT — cascade did not archive required artifact {id}`, evaluated as two independent, never-merged conditions — a truly pre-archived **non-shipment, non-feature** allowed member (i.e. a manifest task item, or a qualifying feature's linked deliberation, e.g. 147-F's already-archived 027-DL) has no transition to report and is correctly, expectedly absent from `archived_ids`, never a mismatch, but this tolerance never extends to the shipment record itself, which remains unconditionally required regardless of its own pre-close declared status, nor does it extend to a qualifying feature member itself, which is likewise unconditionally required regardless of its own pre-close declared status — since Backlogit's own `ShipShipment` forces every explicit qualifying feature member through `status: done` before archive-candidate collection ever runs, so it is never still `archived` by that point either), and no `parent_id` was cleared — a mismatch on any of these halts fail-closed with a P-005 violation even though the cascade path was itself permitted
-* Safe-close computes the protected set (parent feature + unshipped siblings) from expected IDs and proves it is fully present in queue at a baseline gate before archiving anything
-* Safe-close verifies the protected set survives after every single-item archival (verify-after-each invariant), with no pre-archived exemption for protected-set members
-* Safe-close moves the shipment record to live `shipped`, verifies it, explicitly archives only that record, and verifies `archived_status: shipped` before closure completes
-* Safe-close archives the shipment record as its own single artifact and never via the cascade op
-* Safe-close writes the delivered-work merge SHA to each live manifest item's and the shipment record's **frontmatter `commit`** before any terminal transition or archival of that artifact, and never after archival
+* Safe-close derives the queue-protected set from expected IDs and proves queue presence before mutation; verified predecessor-delivered and Stage-dispositioned archived siblings instead form the archived invariance set, guarded by baseline paths and SHA-256 byte identity
+* Both sets survive every mutation and final verification: no archive-presence exemption applies to queue-protected members, and no archived invariance member may change path or bytes
+* The default direct path moves the shipment record to live `shipped`, verifies it, archives only that record, and verifies `archived_status: shipped`; Step 0's fully-covered-root and Step 8's engine-inert-terminal-partial-feature machine-verified P-015 exceptions instead require their independent post-close checks
+* No cascade operation is permitted outside those two verified P-015 exceptions; after Step 8 fallback passes all post-invariants it skips ALL remaining direct-path sub-bullets, including the live-status fail check and archive call, straight to Steps 9/10
+* Safe-close writes or atomically persists the delivered-work merge SHA in each live artifact's frontmatter before or with terminal archival, except for Case A's proven pending-finalization path; Case B finalized evidence is preserved without writes
 * Safe-close archives each live manifest item and the shipment record **exactly once**: it dispatches once on whether the **selected invocation transport** both accepts the SHA and guarantees atomic frontmatter-`commit` persistence, and the atomic and live-update paths are **mutually exclusive** — never chained
 * Registry parameter presence alone never selects the atomic path: the installed CLI mapping `backlogit archive {id}` has no commit flag, so CLI invocation always takes the live-update path
 * The atomic path calls `archive_item` exactly once with commit metadata and never follows it with `backlogit_move_item` / `backlogit_archive_item` / `backlogit_update_item` / `backlogit_track_commit` on that same artifact
 * The live-update path writes frontmatter `commit` with a commit-only update (no other field), verifies it while the artifact is still live, then runs the non-atomic terminal/archival sequence exactly once — `done` for a task member, `shipped` for the shipment record — and never writes evidence after a terminal transition that relocates the file
 * `backlogit_track_commit` / commit_links are supplemental provenance only and never substitute for the canonical frontmatter `commit`
 * The CLI `track_commit` mapping resolves to the **same** `backlogit update {id} --commit {sha}` command as the canonical frontmatter write, so on CLI it is executed **once** and classified as the canonical write, never double-called as a supplemental commit-link; only on MCP is `backlogit_track_commit` a distinct supplemental commit_links call
-* An archived manifest member is split into exactly two cases: `current-delivery-pending-finalization` (this shipment's own member, terminal-relocated by its `done` transition before the merge SHA existed) and `pre-archived` (an earlier shipment's delivery) — never one blanket case
+* Archived members split into pending finalization (Case A, unchanged fail-closed proof) and preserved finalized evidence (Case B: earlier delivery or verified RESUMED `current-delivery-finalized` own member with `status: archived`, `archived_status: done|accepted`, and the correct delivered merge SHA on `origin/main`); finalized members are never rewritten or re-archived
 * Pre-mode never performs that split: it lacks `merge_commit_sha` (a post-mode/safe-close input) and so emits the `archived-provenance-deferred` preflight candidate, carrying forward the decidable evidence (this-shipment membership, and the archived record's frontmatter `commit` presence and value); the deferral neither halts nor blocks `PROCEED`, and safe-close performs the authoritative classification once the SHA exists
 * Evidence validation for **every** archived member completes in the step 3 preflight, before the first mutation: a missing or contradictory commit halts the whole run with `RECONCILE_FAIL` and archives zero items, so an invalid later member can never leave a partially closed shipment; step 4 consumes the preflight decisions and never introduces a new evidence halt
 * `current-delivery-pending-finalization` is fail-closed: it requires current-shipment `custom_fields.items` membership, Ship-owned same-scope completion evidence tying the `done` transition to this exact shipment, no evidence of delivery by another shipment, the merge SHA confirmed on `origin/main`, and a non-contradictory terminal `done` record — membership alone and a missing commit alone are never proof, and ambiguous provenance halts
@@ -1489,8 +1593,8 @@ If pre-mode cannot acquire the logical shipment lock because another process hol
 * `.github/skills/file-lock/SKILL.md` — lock acquisition/release primitives
 * `.github/agents/_ship.agent.md` — integration points (Step 0.5, Step 6 safe-close)
 * `.github/agents/_stage.agent.md` — scope guard (Step 5.5)
-* `.github/policies/workflow-policies.md` — P-007 archive integrity policy; P-015 single-artifact closure (cascade prohibition) plus the verified fully-covered-root exception
-* `src/autoharness/gates/shipment_closure.py` — this self-hosting repository's own `classify_shipment_close_path` implementation, reused by Step 0 of Safe-Close Mode
+* `.github/policies/workflow-policies.md` — P-007 archive integrity policy; P-015 single-artifact closure plus the verified fully-covered-root and engine-inert-terminal-partial-feature exceptions
+* `autoharness.gates.shipment_closure` — installed module in the autoharness package home/site-packages, reused by Step 0; `src/autoharness/gates/shipment_closure.py` is its self-host source path in the autoharness engine checkout, not a required target-workspace file
 
 ## Model Routing
 

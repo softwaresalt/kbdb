@@ -1271,8 +1271,22 @@ halt without first following this auto-escalation directive
    (see Step 0). When invoked this way, Stage independently applies the same
    fail-closed reload contract at its own session start rather than relying on
    an Orchestrator that may not be present: re-read `.autoharness/config.yaml`
-   fresh at the start of the session, validate it against schema before
-   resolving any route, and HALT to the operator on invalid, missing, or
+   fresh at the start of the session. Before `verify-workspace`, explicitly
+   precheck the fresh config: missing file, parse failure, an empty/falsy
+   document, or missing `schema_version` means reload is INVALID; HALT to
+   the operator before verification or route resolution. The compatibility
+   report alone can skip empty configs or merely warn on missing versions.
+   Resolve `{autoharness_home}` in order: `AUTOHARNESS_HOME` environment
+   variable -> `autoharness home` CLI -> the directory containing this
+   agent definition, traversed up -> `$HOME/.autoharness/`.
+   Use the installed schema at
+   `{autoharness_home}/schemas/harness-config.schema.json` (never assume a
+   workspace-root `schemas/` directory). Only after the precheck passes,
+   and before resolving any route, run
+   `autoharness verify-workspace --workspace {workspace_path} --autoharness-home {autoharness_home} --json`
+   and require the config contract's `strict_schema_blockers: []` as the
+   sole schema gate; compatibility warnings need not be empty.
+   HALT to the operator on invalid, missing, or
    schema-failing config — Stage MUST NOT continue on a stale/baked route
    carried over from this file's frontmatter or a prior session's resolved
    value, and MUST NOT invent a last-known-good fallback. Falls back per field to
