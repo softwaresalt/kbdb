@@ -186,3 +186,14 @@ Prior same-session checkpoint `checkpoint-20261031-090552.json` is resolved.
   capture; entries `150A478A` and `E4B2B0B3` remain unaltered.
 * Full Rust quality suite is parent-owned for the completed non-Rust batch.
 * No backlog mutations, push, PR, merge, or runtime-data relocation performed.
+
+## Task 061.003-T
+
+* Base: task 002 commit `7edc65b`
+* Exact published harness: red exit 1, green exit 0
+* Updated orchestrator frontmatter and Configuration shape to the authorized
+  Gemini route; Ship example now uses OpenAI gpt-6.1-sol
+* Adversarial alternate-provider prose reflects both empty configuration fields
+* `autoharness gate check --base HEAD --task 061.003-T --json`:
+  exit 0 against pre-task HEAD; no validation gates configured
+* Full Rust quality suite remains parent-owned; no backlog mutations
