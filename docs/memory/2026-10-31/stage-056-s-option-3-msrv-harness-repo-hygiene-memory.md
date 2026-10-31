@@ -94,4 +94,10 @@ Following `_Ship`'s P-010 execution-metadata handoff on `056-S`, `_Orchestrator`
    * `backlogit shipment get 056-S` reports `size_composition.unsized: 0` (`histogram: {"S": 2, "XS": 5}`).
    * `autoharness gate size <task_id> --dry-run --json` returns `action: "skipped-existing"`, `ok: true` across all 7 tasks (`061.001-T`..`061.007-T`).
    * `backlogit hooks poll --consumer-id stage` returned `events: []`.
+4. **Step 1.5 Local Review `Harness command:` Fixes & Red-Phase Verification**:
+   * `061.002-T`: Replaced `$_.file` with `$_.path` in the `autoharness verify-workspace --workspace . --json` warning filter (`Where-Object { $_.path -like '*rust-mcp-expert.agent.md*' }`) to match the `verify-workspace` JSON schema.
+   * `061.003-T`: Strengthened the `.github/agents/_orchestrator.agent.md` assertions to check for the absence of stale `model: claude-sonnet-5.5` and the presence of `model: gemini-4-argon` and `model_family: "gpt-6.1-sol"`.
+   * `061.005-T`: Updated `autoharness routing resolve --workspace . --site orchestrator --json` assertions to read `$rt.resolved.model_family`, `$rt.resolved.model_provider`, and `$rt.resolved.reasoning_effort`, and added a check for the absence of `rust-version 1.75` in `.autoharness/harness-manifest.yaml`.
+   * Executed all 7 `Harness command:` expressions (`061.001-T`..`061.007-T`) against the pre-implementation tree; all 7 exited with code `1` in red phase for the intended pre-implementation conditions.
+
 
