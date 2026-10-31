@@ -207,3 +207,19 @@ Prior same-session checkpoint `checkpoint-20261031-090552.json` is resolved.
 * `autoharness gate check --base HEAD --task 061.004-T --json`:
   exit 0 against pre-task HEAD; no validation gates configured
 * Full Rust quality suite remains parent-owned; no backlog mutations
+
+## Task 061.005-T
+
+* Base: task 004 commit `973c51e`
+* Exact published harness: red exit 1, green exit 0
+* Verified `stash@{0}` title `orchestrator-route-061.005-T`, SHA
+  `11190d623c3961721f2d01217b9f1f6cde96a753`, and config-only patch
+* Applied cleanly, then dropped exactly that stash with explicit approval;
+  remaining five stashes preserved (ActionResult: applied)
+* Config Gemini orchestrator route retained, manifest variables aligned, and
+  SHA-256 checksums updated for the four task-owned managed artifacts
+* Harness verifies zero strict schema blockers, blockers, and warnings,
+  plus the resolved Gemini/Google/high/long_context orchestrator route
+* `autoharness gate check --base HEAD --task 061.005-T --json`:
+  exit 0 against pre-task HEAD; no validation gates configured
+* Full Rust quality suite remains parent-owned; no backlog mutations
