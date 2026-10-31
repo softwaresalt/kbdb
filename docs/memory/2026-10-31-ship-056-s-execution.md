@@ -197,3 +197,13 @@ Prior same-session checkpoint `checkpoint-20261031-090552.json` is resolved.
 * `autoharness gate check --base HEAD --task 061.003-T --json`:
   exit 0 against pre-task HEAD; no validation gates configured
 * Full Rust quality suite remains parent-owned; no backlog mutations
+
+## Task 061.004-T
+
+* Base: task 003 commit `4b1c395`
+* Exact published harness: red exit 1, green exit 0
+* Stash kind reference lists all accepted built-ins and configured WIT
+  extensibility, including `chore`; workspace profile now declares Rust 1.88
+* `autoharness gate check --base HEAD --task 061.004-T --json`:
+  exit 0 against pre-task HEAD; no validation gates configured
+* Full Rust quality suite remains parent-owned; no backlog mutations
