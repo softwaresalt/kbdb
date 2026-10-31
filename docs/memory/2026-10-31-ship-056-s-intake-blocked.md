@@ -223,6 +223,43 @@ explicitly select and confirm that checkpoint after Stage remediation,
 then review the resulting current HEAD before publication. The temporary
 review patch is removed.
 
+## Confirmed v4 publication recovery
+
+The operator explicitly selected and confirmed Ship-owned
+`checkpoint-20261031-084027.json` for `056-S`, `061-F`, and
+`chore/stage-056-S`. Fresh H6 validation returned
+`strict_schema_blockers: []`. The official CLI enumerated 28 checkpoint
+summaries without validation anomalies; the selected checkpoint was the
+sole active Ship checkpoint and its get result was valid and conforming.
+The CLI does not support the registry's consumer filter, so enumeration
+was unfiltered and ownership was checked locally.
+
+Engram statistics succeeded with 100 percent coverage. Bounded recovery
+retained the publication-only cursor, selected checkpoint, stash identity,
+and historical gate verdicts without replaying superseded traces. Recovery
+succeeded and the official resolve operation returned `status: resolved`
+at `2026-10-31T08:48:03.9734144Z`. Ship hook polling returned no events.
+
+Stage supplied commit `505e7a20691cd108cd02e6ebd09465583c91ad5b`,
+addressing the four remaining P2 assertion-precision findings. Review-fix
+cycle 3 is complete. Earlier BLOCKED dispositions are historical; current
+publication readiness must be established against the committed v4 HEAD.
+Only unresolved P0/P1 findings block the local review gate. Any residual
+P2/P3 observations require explicit follow-up or residual-risk handling.
+
+Next: review the complete staging diff, publish its merge-commit PR, verify
+current-HEAD readiness, CI, P-018, and P-009/P-016, then merge under the
+operator's publication-only dark-mode authorization. Admin fallback is
+authorized solely for a required-review rejection after the normal merge
+attempt and passing gates. Full local build and runtime verification are
+not applicable to this planning/backlog/docs-only publication.
+
+`056-S` is independently confirmed queued. No task or shipment is claimed,
+executed, or closed. Preserve `stash@{0}` at
+`11190d623c3961721f2d01217b9f1f6cde96a753`. Only the current worktree exists.
+After confirmed publication, sync `main` and return evidence to Orchestrator
+for its separate Step 2 gate. No delivery closure is part of this session.
+
 ## Original blocked-intake evidence
 
 * Fresh configuration precheck passed; installed-home workspace verification
