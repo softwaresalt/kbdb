@@ -72,3 +72,26 @@ Following the merge of Step 1.5 publication PR #148 (`1851839c73cf11cf8a496f130b
    * Executed P-021 C5/C6 Obligation A (`CLEAN DUPLICATE SCAN`: `AF676684` complements `C365AB98` by addressing the retained `# Engram runtime data` `.engram/` trailing-slash rule) and Obligation B (reconciled `pr_number=148` from Step 1.5 publication PR #148 and `docs/memory/2026-10-31/ship-stage-056-s-publication-blocked.md`; `review_thread_id=N/A` stands for the threadless local review finding) in `docs/decisions/2026-10-31-option-3-msrv-harness-repo-hygiene-deliberation.md`.
    * Updated `docs/exec-plans/2026-10-31-msrv-harness-repo-hygiene-plan.md` (`stash_ids`, `Problem Frame`, `Requirements Trace`, and Unit 6), `.backlogit/queue/061-F.md`, and `.backlogit/queue/061.006-T.md` (`custom_fields.source_stash_ids: C365AB98,AF676684`) so `061.006-T` replaces `.engram/` with `.engram/*` under `# Engram runtime data` AND removes the duplicate `.engram/` under `# UE`, allowing `!.engram/.version`, `!.engram/.workspace-id`, `!.engram/config.toml`, and `!.engram/registry.yaml` to match their `!` negation rules while keeping runtime children ignored.
    * Archived `AF676684` via `backlogit stash archive AF676684` and verified `.backlogit/stash.jsonl` contains only the 8 excluded stash entries (3 Stream A + 5 Stream C).
+
+## P-010 Execution-Metadata Handoff Resolution (`056-S`: `size`/`complexity` WIT Schema & `harness-ready`)
+
+Following `_Ship`'s P-010 execution-metadata handoff on `056-S`, `_Orchestrator` invoked `_Stage` to populate structured sizing and harness-ready metadata on `061-F` and `061.001-T`..`061.007-T`:
+
+1. **WIT Schema Alignment in `.backlogit/header-def.yaml`**:
+   * Added `backlogit` 1.12.0's canonical optional `complexity` (`trivial`, `low`, `medium`, `high`), `size` (`XS`, `S`, `M`, `L`, `XL`), `size_ruleset_version` (`string`), and `size_source` (`human`, `agent`, `derived`) field definitions under `types.task.fields` in `.backlogit/header-def.yaml`.
+2. **Structured Sizing & Harness Metadata on `061-F` and `061.001-T`..`061.007-T`**:
+   * Set `custom_fields.harness_status: scaffolded` on `.backlogit/queue/061-F.md`.
+   * Added the `harness-ready` label, structured `custom_fields` (`size`, `complexity`, `size_source: agent`, `size_ruleset_version: 1.0.0`), and a deterministic non-Rust CLI `Harness command:` line to `.backlogit/queue/061.001-T.md`..`061.007-T.md`:
+     * `061.001-T`: `size: XS`, `complexity: trivial`
+     * `061.002-T`: `size: XS`, `complexity: low`
+     * `061.003-T`: `size: S`, `complexity: low`
+     * `061.004-T`: `size: XS`, `complexity: trivial`
+     * `061.005-T`: `size: S`, `complexity: low`
+     * `061.006-T`: `size: XS`, `complexity: trivial`
+     * `061.007-T`: `size: XS`, `complexity: trivial`
+3. **Verification**:
+   * `backlogit sync` indexed 531 artifacts with `0` parse failures.
+   * `backlogit shipment get 056-S` reports `size_composition.unsized: 0` (`histogram: {"S": 2, "XS": 5}`).
+   * `autoharness gate size <task_id> --dry-run --json` returns `action: "skipped-existing"`, `ok: true` across all 7 tasks (`061.001-T`..`061.007-T`).
+   * `backlogit hooks poll --consumer-id stage` returned `events: []`.
+
