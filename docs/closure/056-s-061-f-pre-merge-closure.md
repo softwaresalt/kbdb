@@ -49,9 +49,9 @@ acquisition, or synchronization implementation changes.
 | Rust format check | Satisfied | Parent handoff reports passed |
 | Strict all-targets clippy | Satisfied | Parent handoff reports passed |
 | `cargo test --all-targets` | Satisfied | Parent handoff reports passed with default OS temporary environment |
-| Full local build | Pending | Parent-owned execution ongoing; no result asserted |
-| CI-policy allowlist audit | Pending | Current parent-owned audit ongoing; historical pass is not current evidence |
-| Current-HEAD local adversarial review | Pending | Initial attempt lacked the diff; no completed verdict available |
+| Full local build | Satisfied | `cargo build --all-targets` exited 0 in this session |
+| CI-policy allowlist audit | Satisfied | Exact CI eleven-ignore `cargo audit --deny warnings` exited 0 |
+| Local adversarial review | Satisfied for prior HEAD | Patch-backed three-reviewer review of `d8c0c0b` found P0=0, P1=0; this documentary correction requires final-HEAD review |
 | Required merge CI | Pending | No current successful checks supplied |
 | Application runtime verification | Not applicable | No application runtime surface changed in the inspected diff |
 | Manual application checkpoints | Not applicable | No affected application surface for this release unit |
@@ -68,7 +68,8 @@ changes. Runtime verdict: not applicable.
 * Scope audit passed: no Rust, Cargo, database migration, or deployment changes
 * Feature flags, service coordination, and data migration checks: not applicable
 * Harness schema and checksum verification: recorded pass; repeat after merge
-* Full build, current allowlist audit, and local review: pending parent evidence
+* Full build and current allowlist audit passed in the parent session.
+* Patch-backed review completed; recheck the final corrected HEAD before PR.
 * Current-HEAD readiness record and required CI: mandatory before merge
 * P-009 merge-commit strategy and P-016 topology: recheck before each merge
 * Copilot gate: mandatory when engaged or required; do not infer a pass
@@ -181,12 +182,12 @@ the contained-scratch failures do not override the default-environment pass.
 | Runtime profile external-client follow-up | Not applicable to this release unit; no client validation claimed |
 | Monitoring, rollback, owner, validation window | Satisfied by the scoped procedures above |
 | Source retirement handoff | Recorded; terminal source status requires Stage confirmation |
-| Full build and current audit | Pending parent results |
-| Local review and current-HEAD readiness | Pending completed review and readiness record |
+| Full build and current audit | Satisfied; current-session commands exited 0 |
+| Local review and current-HEAD readiness | Prior-HEAD review passed; final corrected HEAD requires readiness verification |
 | Required CI and applicable Copilot gate | Pending pre-merge verification |
 | P-020 compaction status | Pending post-merge closure |
 
-Readiness: `READY_WITH_CONDITIONS`. Merge must wait for the pending build,
-audit, local review/readiness, required CI, and applicable Copilot gate evidence.
+Readiness: `READY_WITH_CONDITIONS`. Build and audit passed. Merge must wait
+for final-HEAD review/readiness, required CI, and applicable Copilot gate evidence.
 Any failed mandatory gate changes the disposition to `BLOCKED`; this document
 does not waive or pre-judge those results.
