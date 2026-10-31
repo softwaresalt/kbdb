@@ -67,8 +67,6 @@ CI, hosted Copilot, and merge gates have not run because local readiness
 is blocked. Resume publication only after Stage supplies the correction,
 then review the resulting current HEAD before creating the PR.
 
-## Original blocked-intake evidence
-
 ## Confirmed publication recovery after Stage remediation
 
 The operator explicitly selected and confirmed Ship-owned
@@ -104,7 +102,41 @@ Only the current worktree exists. The preserved stash identity is
 `11190d623c3961721f2d01217b9f1f6cde96a753`
 (`stash@{0}`, `orchestrator-route-061.005-T`); no stash operation is authorized.
 
-### Historical original intake details
+## Publication re-review blocked at 2396e5e
+
+The six standard report-only personas (Constitution, Rust, Correctness,
+Maintainability, Learnings, and Template Integrity) read the complete temporary
+patch for HEAD `2396e5e07c476c8fcc6128a1fdbe788295349b50`. The patch was then
+removed as requested. No review artifact or planning edits were created.
+
+Current readiness is `BLOCKED`, not `LOCAL_REVIEW_READY`. Correctness reported
+a P1 in `.backlogit/queue/061.002-T.md:28`, also affecting `061.005-T` and
+`061.006-T`: the published double-quoted `-Command` argument allows invoking
+PowerShell to interpolate child-script variables (`$r`, `$_`, `$rt`, and
+`$LASTEXITCODE`) before execution. Stage's reported execution of inner
+expressions does not establish exact published invocation correctness.
+
+Cross-persona P2 findings concern verification failing open on unsuccessful
+CLI execution or invalid/missing JSON (`061.002-T`, `061.005-T`), whole-file
+model-string checks insensitive to intended section and quoted YAML
+(`061.003-T`), missing positive MSRV/frontmatter/route/manifest checks,
+incomplete stash-kind documentation assertions (`061.004-T`), incomplete
+ignore-path coverage (`061.006-T`), and omitted script-reference scanning
+(`061.007-T`). These are completion of existing task acceptance contracts,
+not deferred scope expansion; no P-021 capture was created.
+
+P-010 handoff: Stage must correct its planning/harness metadata and validate
+the exact published invocations, including failure paths. Ship does not
+repair planning fields. No remote branch deletion, push, PR creation, CI
+request, hosted review, merge, checkout, claim, or closure was attempted.
+The branch remains `chore/stage-056-S`; `056-S` was independently confirmed
+queued. Full local build remains not applicable to staging-only changes.
+The preserved stash remains untouched. Next recovery must explicitly select
+and confirm the new Ship-owned publication-blocked checkpoint after Stage
+remediation; review the then-current HEAD before any publication.
+The single resumable checkpoint is `checkpoint-20261031-082307.json`.
+
+## Original blocked-intake evidence
 
 * Fresh configuration precheck passed; installed-home workspace verification
   returned `strict_schema_blockers: []` with existing conformity warnings.
