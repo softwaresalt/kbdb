@@ -255,3 +255,35 @@ Next: commit, push, create the amendment PR, verify exact-HEAD readiness,
 CI and P-018, then use the operator's explicit merge approval. Admin
 fallback is authorized only for a normal required-review rejection.
 Return to `main` after confirmed merge; Pass 2 remains a separate handoff.
+
+### Copilot round 1 at 2026-10-31T02:06:00Z
+
+PR `145` opened for `3aadbf6c7ddd4b92c6ca7daefb4413f38ffe08da`.
+All four CI checks passed. Copilot review `5720500934` completed with two
+inline findings; P-018 correctly blocked on the two unresolved threads.
+
+* `PRRT_kwDORiB5E86yMf7U`: same-contract-surface completion under P-021 C1.
+  The fix-ci executor added a positively read artifact-type guard rejecting
+  every feature member, including nested/archived features, before the
+  engine-inert fallback. Unknown/malformed types fail closed. Policy,
+  Step 0, Step 8, and Quality Criteria agree; the fully-covered-root path
+  is unchanged. Four assertions went red to green; YAML and diff checks pass.
+* `PRRT_kwDORiB5E86yMf7b`: out of scope under P-021 C1 and Stage-owned under
+  P-010. Read-only backlog query confirms 15 siblings still declare `done`:
+  `056.005-T` through `056.010-T`, `056.014-T` through `056.018-T`,
+  and `056.024-T` through `056.027-T`. Capture-first P-021 C2 stash
+  `E5C4DFFC` records the full refs (PR, review, thread, task, feature,
+  shipment), expansion, rationale, deliberation flag and provisional priority.
+  No decision or sibling status was edited. **Pass 2 remains on hold** for
+  Stage correction/disposition and a separately authorized prerequisite;
+  archive-directory presence never replaces declared archived status.
+
+Current-diff single-agent persona re-review: P0=0, P1=0,
+`READY_WITH_FOLLOWUPS` (`0E67835A`, `E5C4DFFC`). Schema blockers and
+blockers remain empty; full build remains non-applicable for this non-code
+fix. Compact-context re-invoked for the active scope: preserve the recovery
+cursor and evidence, no in-scope archive candidates.
+
+Next: push the remediation before replying with its commit, reply to the
+out-of-scope finding citing `E5C4DFFC`, resolve only the bot threads, update
+the PR readiness to the new HEAD, and rerun CI/P-018 before any merge.

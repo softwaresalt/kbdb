@@ -703,7 +703,10 @@ completion.
      already-loaded manifest rather than issuing a second call).
      A partial-feature result is **not** permission to invoke `ShipShipment`.
      Record only a possible engine-inert candidate for Step 8: the covering
-     feature must be excluded from the manifest, all manifest members must
+     feature must be excluded from the manifest. Reject every manifest member
+     whose positively read `artifact_type` is `feature`, including nested or
+     archived features; missing, malformed, or unknown types fail closed.
+     All manifest members must
      already be archived with verified delivery provenance, and the complete
      descendant enumeration must satisfy P-015's INV-6 condition. Step 8 must
      independently verify all four requirements, including the direct-move
@@ -1002,8 +1005,10 @@ completion.
      PARTIAL-FEATURE EXCEPTION (INV-6 ALIGNMENT)**. Any other failure halts;
      do not infer authorization from a partial-feature shape or retry by cascade.
      Before invoking, verify:
-     1. The covering feature is excluded from the manifest and every manifest
-        member is already archived with parsed `status: archived`,
+     1. The covering feature is excluded from the manifest. Reject every manifest
+        member whose positively read `artifact_type` is `feature`, including
+        nested or archived features; missing, malformed, or unknown types fail
+        closed. Every manifest member is already archived with parsed `status: archived`,
         `archived_status: done|accepted`, and a verified delivered-work merge
         commit on `origin/main` (preserving earlier deliveries' genuine SHAs).
      2. A complete live `parent_id` graph scan across queue and archive covers
@@ -1517,6 +1522,10 @@ If pre-mode cannot acquire the logical shipment lock because another process hol
 * Manifest membership is read explicitly from the shipment record's `custom_fields.items`, never from a top-level `items` field
 * `mode: safe-close` runs **in place of** the cascade `backlogit_ship_shipment` call and archives only the manifest item IDs (one artifact at a time) plus the shipment record itself — **except** when Step 0's P-015 verified fully-covered-root classification selects `CASCADE`, in which case the Cascade Close Sub-Procedure runs instead and safe-close steps 1–10 are skipped entirely, or Step 8 verifies P-015's engine-inert-terminal-partial-feature fallback after the exact exit-9 direct-move refusal and checks all four pre/post requirements before Steps 9/10
 * Step 0 selects fully-covered-root `CASCADE` only from machine-checkable classification, never prose or manifest shape; errors, ambiguity, or unresolved preconditions select safe-close. Only Step 8 may later select the engine-inert-terminal-partial-feature exception, after its exact refusal and all four requirements are verified
+* The engine-inert candidate and fallback reject every manifest member whose
+  positively read `artifact_type` is `feature`, including nested or archived
+  features; missing, malformed, or unknown types fail closed before invocation.
+  This no-feature-member guard does not apply to the fully-covered-root exception
 * Step 0(c)'s "fully covered" check walks the qualifying feature's **full descendant tree, at every depth** (via a full `parent_id` graph, not a single-level scan of direct children only) — a manifest such as `[feature, task]` where that task has an out-of-manifest subtask must fall back to safe-close, never wrongly qualify for `CASCADE` (155-S, PR #407 review, thread PRRT_kwDORzpWpM6b2MJv)
 * The Cascade Close Sub-Procedure independently verifies `returned_ids` is empty, `archived_ids` against the two-set `allowed_ids` / `required_ids` gate (step 3: `allowed_ids` = manifest tasks + qualifying feature members + each qualifying feature member's validated linked deliberation IDs (Step 0(c), same engine-defined `source_deliberation_id` (taken as a complete literal string, never regex-scanned) / description / references sources — the latter two scanned with the exact `\b(?:DL\d+|[0-9]+(?:\.[0-9]+)*-DL)\b` matcher Backlogit's own `internal/core.deliberationIDPattern` uses, never a broader "any embedded deliberation ID" reading — and existence-and-`artifact_type: deliberation` validation Backlogit's own `collectArchiveCandidateIDs` uses — never a blanket allowance for arbitrary IDs) + the shipment record; `required_ids` = the shipment record and every qualifying feature member, both unconditionally, plus every other allowed member (a manifest task item, or a qualifying feature member's validated linked deliberation) NOT truly `status: archived` in the Step 0(b)/(c) pre-close declared-status snapshot; `archived_ids - allowed_ids` non-empty halts with `HALT — cascade archived unexpected artifact {id}`, `required_ids - archived_ids` non-empty halts with `HALT — cascade did not archive required artifact {id}`, evaluated as two independent, never-merged conditions — a truly pre-archived **non-shipment, non-feature** allowed member (i.e. a manifest task item, or a qualifying feature's linked deliberation, e.g. 147-F's already-archived 027-DL) has no transition to report and is correctly, expectedly absent from `archived_ids`, never a mismatch, but this tolerance never extends to the shipment record itself, which remains unconditionally required regardless of its own pre-close declared status, nor does it extend to a qualifying feature member itself, which is likewise unconditionally required regardless of its own pre-close declared status — since Backlogit's own `ShipShipment` forces every explicit qualifying feature member through `status: done` before archive-candidate collection ever runs, so it is never still `archived` by that point either), and no `parent_id` was cleared — a mismatch on any of these halts fail-closed with a P-005 violation even though the cascade path was itself permitted
 * Safe-close derives the queue-protected set from expected IDs and proves queue presence before mutation; verified predecessor-delivered and Stage-dispositioned archived siblings instead form the archived invariance set, guarded by baseline paths and SHA-256 byte identity

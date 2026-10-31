@@ -483,6 +483,9 @@ manifest, Ship MAY invoke `backlogit shipment ship <shipment_id> --sha
 `shipment must be shipped via ShipShipment`. All four requirements are mandatory:
 
 1. **Pre-archived manifest with delivery evidence.** Every manifest member is
+   checked using its positively read `artifact_type`. Reject every feature member,
+   including nested or archived features; missing, malformed, or unknown types
+   fail closed before invocation. Every manifest member is
    already in `.backlogit/archive/` with parsed `status: archived`,
    `archived_status: done` or `accepted`, and its verified delivered-work merge
    `commit` on `origin/main`. Earlier shipments' genuine delivery SHAs are
