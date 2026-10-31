@@ -136,6 +136,43 @@ and confirm the new Ship-owned publication-blocked checkpoint after Stage
 remediation; review the then-current HEAD before any publication.
 The single resumable checkpoint is `checkpoint-20261031-082307.json`.
 
+## Confirmed recovery after exact-command remediation
+
+The operator selected and confirmed Ship-owned
+`checkpoint-20261031-082307.json` for `056-S`, `061-F`, and
+`chore/stage-056-S`. Fresh configuration verification passed with
+`strict_schema_blockers: []`. Unfiltered checkpoint enumeration returned
+27 valid summaries, no quarantine anomalies, and this single active Ship
+checkpoint. The official get result confirmed its owner, scope, and validity.
+
+Engram statistics returned 100 percent embedding coverage during restore.
+Bounded read-select-summarize retained the publication-only cursor, selected
+checkpoint identity, stash identity, and historical blocked verdicts.
+Superseded traces were not replayed. Recovery succeeded; the official resolve
+operation returned `status: resolved` at `2026-10-31T08:38:05.2149954Z`.
+Ship-addressed hook polling returned no events.
+
+Stage supplied remediation commit
+`7576e7a390981cbab100a1310bc50d28de85b65b`, correcting all seven published
+PowerShell harness commands and the prior acceptance-coverage findings.
+Stage reports verbatim execution returning red with no parse/runtime errors.
+Historical BLOCKED verdicts do not establish readiness for this new HEAD.
+The branch is ready for publication review, not yet declared merge-ready.
+
+Next: commit this recovery record and the resolved checkpoint, review the
+complete `origin/main..HEAD` staging diff, and publish only after current-HEAD
+local readiness passes. Full local build is not applicable: planning,
+backlog, and documentation-only staging publication. CI, P-018, current-HEAD
+readiness, merge-commit strategy, and single-worktree gates remain mandatory.
+Dark-mode merge approval covers this publication; admin fallback covers only
+a required-review rejection after the normal merge attempt and passing gates.
+
+No shipment or task was claimed, executed, or closed. Keep `056-S` queued
+on `origin/main` for the separate Orchestrator Step 2 invocation. Preserve
+`stash@{0}` at `11190d623c3961721f2d01217b9f1f6cde96a753`.
+Only the current worktree exists. After publication, sync `main` and return
+the PR, merge SHA, and gate outcomes to Orchestrator.
+
 ## Original blocked-intake evidence
 
 * Fresh configuration precheck passed; installed-home workspace verification
