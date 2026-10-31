@@ -193,3 +193,26 @@ sequence 1296 were inspected and acknowledged; derived signals were not.
 The final commit's exact SHA will be recorded in the PR readiness block.
 CI and P-018 remain required before the already-authorized merge; this
 memory does not claim that those future gates have passed.
+
+## Closure PR review round
+
+PR 146 opened at `d970aa845df325e4700b58e38bec09cc4c9e0a83`.
+CI run 41164909295 succeeded: topology and change detection passed; Rust
+build/MSRV jobs were intentionally skipped for the docs/backlog-only diff.
+P-018 returned `SATISFIED`. Copilot review 5720955414 completed for that HEAD
+with no inline threads or open-finding sections.
+
+The review's overview risk note identified a real continuity defect:
+Stage's governing decision still references the original Ship memory pointer
+that compaction archived. The P-021 C1 classification is in scope because
+preserving links is part of this exact archive/compaction contract.
+A small Ship-owned redirect now preserves the original reference without
+editing Stage's decision, moving an archived original, or altering any
+protected backlog artifact. This is not a deferred expansion.
+
+The six original archives and their recorded compaction byte counts remain
+unchanged. The redirect is new continuity, not an unarchived original.
+Bounded `compact-context target: all` assessment preserves the redirect,
+current cursor, latest task evidence, and other-agent continuity; no further
+archive, plan consolidation, or closure compaction is needed.
+This fix requires fresh local readiness, CI, and P-018 for the advanced HEAD.
