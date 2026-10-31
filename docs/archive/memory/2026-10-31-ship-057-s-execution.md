@@ -3,7 +3,7 @@ title: Ship execution for 057-S
 agent: ship
 shipment_id: 057-S
 feature_id: 062-F
-status: delivery-review-remediation
+status: delivered-awaiting-closure-pr
 ---
 
 ## Startup and scope
@@ -142,3 +142,28 @@ Next: review the current remediation HEAD, update the PR readiness block,
 push, reply with the fixing commit, resolve the Copilot thread, and re-run
 CI plus all five readiness checks. The active checkpoint remains same-scope
 continuity only and is not a claim or merge authorization.
+
+## Confirmed delivery and close
+
+Delivery PR #155 merged normally at
+`c250723282d13e82ceb2f2e8173fd265b4389780`, confirmed in origin/main.
+Current delivery review HEAD was
+`8268e8a8fc8949cf8ada946e474fa7f16e7f7afe`.
+All five readiness checks and CI passed; Copilot returned SATISFIED.
+No admin fallback was used.
+
+The closure branch is post-merge/057-s-kbdb-rename-continuity.
+Fresh main closure contracts were reloaded and pre-archive lifecycle passed.
+Official cascade classification and execution returned exit 0, CASCADE,
+VERIFIED, and postcondition pass. Exactly six artifacts were archived,
+with no returned, missing-required, unexpected, or parent-invariance failures.
+No manual commit evidence or repair-evidence call was used.
+The completed local journal was removed as explicitly requested.
+No archive deletion was observed; index sync succeeded.
+
+Checkpoint checkpoint-20261031-203647.json was read, validated as Ship-owned
+and same shipment scope, and officially resolved after successful delivery.
+Next: compact this completed-work memory, validate the canonical uppercase
+closure artifact, review and merge the closure PR under the separate scoped
+approval, then return to main. Stage followups and installed-client monitoring
+are handoffs; no production installation or manual observation is fabricated.
