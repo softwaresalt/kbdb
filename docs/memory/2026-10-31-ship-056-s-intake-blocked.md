@@ -69,6 +69,43 @@ then review the resulting current HEAD before creating the PR.
 
 ## Original blocked-intake evidence
 
+## Confirmed publication recovery after Stage remediation
+
+The operator explicitly selected and confirmed Ship-owned
+`checkpoint-20261031-081039.json` for this same shipment, feature, and branch.
+Fresh H6 verification returned `strict_schema_blockers: []`; backlog CLI
+availability and index sync passed. Unfiltered checkpoint enumeration found
+the selected checkpoint as the sole active Ship checkpoint. Its official
+get result was conforming and valid, with no quarantine requirement.
+
+Engram statistics succeeded during restore. Bounded read-select-summarize
+retained the publication-only cursor, checkpoint identity, and prior blocked
+gate verdict without replaying superseded traces. Recovery succeeded and the
+official resolve operation returned `status: resolved` at
+`2026-10-31T08:21:35.0195171Z`.
+
+Stage supplied remediation commit
+`cb94b0702ead387e2b3cab277fbc421f3e66b153`: the warning filter now uses `path`,
+the model assertions cover removal and replacement, and the routing assertion
+uses the `resolved` envelope and checks obsolete manifest MSRV removal.
+Stage reports all seven task harness commands observed red before implementation.
+The earlier BLOCKED verdict remains historical, not current-HEAD readiness.
+
+Next: review the complete staging diff, publish a PR with current-HEAD local
+readiness, await passing CI and P-018, and merge by merge commit under the
+explicit staging-publication dark-mode authorization. Admin fallback is
+authorized only after normal merge fails solely for required review.
+Full local build and runtime validation are not applicable to this
+planning/backlog/docs-only publication. Do not claim or close `056-S`, execute
+tasks, change planning fields, or start delivery closure. After publication,
+sync main and return evidence to Orchestrator for its separate Step 2 gate.
+
+Only the current worktree exists. The preserved stash identity is
+`11190d623c3961721f2d01217b9f1f6cde96a753`
+(`stash@{0}`, `orchestrator-route-061.005-T`); no stash operation is authorized.
+
+### Historical original intake details
+
 * Fresh configuration precheck passed; installed-home workspace verification
   returned `strict_schema_blockers: []` with existing conformity warnings.
 * Registry-backed CLI fallbacks were used because backlog MCP tools were not
