@@ -91,4 +91,98 @@ Prior same-session checkpoint `checkpoint-20261031-090552.json` is resolved.
 * Dependencies, audit configuration, and deferred stash entry 150A478A unchanged.
 * All seven tasks remain active for parent current-HEAD review; no pre-merge
   commit fields or commit-tracking operations will be written.
-* Subsequent tests direct process temporary paths into the workspace `target`.
+* Correction: tests must retain the default OS `TEMP` and `TMP`; overriding
+  either inside the repository creates artificial ancestor-discovery failures.
+
+## Task 061.002-T gate blocker
+
+* Task 061.001-T committed as `24acc0d`; includes the legitimate pre-existing
+  shipment claim, resolved recovery checkpoints, hook acknowledgment, and stash
+  provenance without modifying captured entry 150A478A.
+* Telemetry begin for 061.002-T returned `disabled`; no context carried.
+* Exact supplied task 002 harness: red exit 1, scoped edit, green exit 0.
+* Changed only `.github/agents/subagents/rust-mcp-expert.agent.md`: required
+  route fields replace unknown `model_routing`, Docker uses Rust 1.88,
+  and Model Routing and Subagent Depth sections reflect declared metadata.
+* `cargo check`, format check, and strict all-targets clippy passed.
+* Full `cargo test --quiet` with `TMP` and `TEMP` inside workspace `target`
+  failed (exit 101); binary summary reported 230 passed and 2 failed.
+* One bounded diagnostic, `cargo test --bin kbdb --quiet`, reproduced exit 101:
+  231 passed and 1 failed. Stable failure:
+  `workspace::paths::tests::find_workspace_dir_returns_error_when_absent`,
+  `src/workspace/paths.rs:131`, assertion `result.is_err()`.
+* Cause: the test creates its scratch directory underneath the repository;
+  ancestor discovery finds the repository's existing `.kbdb` directory.
+  The earlier default-environment suite passed. Default OS temporary paths are
+  required for the tests; the contained-temp failures were artificial.
+* Same-operation failure count: 2; no third attempt or test mutation made.
+* Task 002 remains uncommitted because its mandatory full-test gate is blocked.
+  Tasks 003-007 have not begun; all seven tasks remain active.
+* Parent disposition needed for a compliant full-suite scratch environment.
+  Do not disable or modify the test within this metadata task.
+* All six Git stashes remain untouched; task 005 apply/drop not attempted.
+* compact-context invoked with target memory, bounded to this active session:
+  no completed-work candidate; active evidence preserved; no files archived.
+* No push, PR, review/plan artifact, task completion, or commit-field update.
+
+## Ship resumption disposition
+
+* Owner: Ship; scope: `056-S` / `061-F`
+* Recovery selected and confirmed by the operator:
+  `checkpoint-20261031-090951.json`, now resolved after successful restore
+* Fresh config precheck and installed-schema verification passed with
+  `strict_schema_blockers: []`; the initial metadata warning belongs to task 002
+* Engram returned full embedding coverage with its model loaded
+* Lifecycle topology passed: sole active shipment `056-S`, correct branch,
+  single implementation worktree
+* Registry-declared backlog CLI fallbacks used; index sync succeeded
+* Ship-addressed concrete hook event 1318 processed and acknowledged
+* Task 001 implementation committed as
+  `24acc0de52c17162213af5e713c8497c0c194ded`
+* Task 002 metadata harness is green; implementation remains uncommitted
+* All seven tasks remain active pending successful gates and local review
+* No delivery PR or closure PR exists; no merge or closure SHA exists
+* Task 003 through task 007 have not run; all six Git stashes remain intact
+* Correct CI allowlist audit passed; `150A478A` remains untouched and is
+  handed to Stage for disposition as already covered by existing audit policy
+
+### Test-isolation residual risk
+
+* Mandatory full-suite validation is blocked under workspace-contained scratch:
+  `find_workspace_dir_returns_error_when_absent` discovers the ancestor `.kbdb`
+* Exact-path confirmation: `find_workspace_dir` canonicalizes the scratch path,
+  then searches every ancestor; a scratch directory inside this repository
+  therefore cannot satisfy the test's absence assumption
+* Two executor failures recorded; no third attempt, skipped test, changed test,
+  runtime-data relocation, or containment bypass authorized
+* P-021 C1: a hermetic-test or discovery-code repair exceeds task 002's metadata
+  contract and must be planned separately by Stage
+* Mandatory C2 capture created once: `E4B2B0B3`; task-level, run-level, and
+  future closure residual-risk reference is this same ID
+* `DISCOVERY-STATUS: LOOKUP-UNAVAILABLE`: active stash queried without a match;
+  archived-stash enumeration unavailable through the installed official CLI
+* No thread exists; PR and thread refs were independently `N/A` at capture
+* Follow-up handoff: Stage owns deliberation and any separate repair work
+* Operator action required: select a safe test-isolation approach before resume;
+  no permission to move or rename the live `.kbdb` directory is assumed
+* ProposedAction: relocate live `.kbdb` temporarily for contained test execution
+* ActionRisk: destructive; approval_required: true; ActionResult: blocked
+* The proposal is not executed and requires an explicit, reviewed procedure,
+  including runtime ownership and restoration checks, before approval
+* Compaction assessed for this active Ship memory only: no eligible completed
+  release-unit candidate; active cursor and all gate verdicts preserved
+* Final resumable checkpoint: `checkpoint-20261031-092940.json`
+* Final derived-index sync succeeded; all six Git stashes remain intact
+
+## Task 061.002-T resumed implementation
+
+* Parent explicitly recovered and resolved `checkpoint-20261031-092940.json`.
+* Default OS `TEMP` and `TMP` remain unchanged; do not move live `.kbdb`.
+* Previous contained-temp failures were artificial, not a source regression.
+* Existing task 002 edit preserved; exact published harness green exit 0.
+* `autoharness gate check --base 24acc0de52c17162213af5e713c8497c0c194ded --task 061.002-T --json`:
+  exit 0, no validation gates configured.
+* Commit includes the parent-resolved checkpoint and existing `E4B2B0B3`
+  capture; entries `150A478A` and `E4B2B0B3` remain unaltered.
+* Full Rust quality suite is parent-owned for the completed non-Rust batch.
+* No backlog mutations, push, PR, merge, or runtime-data relocation performed.
