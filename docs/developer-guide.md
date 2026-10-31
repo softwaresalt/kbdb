@@ -10,7 +10,7 @@ commands, understand the codebase layout, and extend the Rust MCP server.
 
 | Requirement | Version | Notes |
 |---|---|---|
-| Rust toolchain | 1.75+ stable | Install via [rustup](https://rustup.rs/) |
+| Rust toolchain | 1.88+ stable | Install via [rustup](https://rustup.rs/) |
 | Git | any recent | Needed only to clone the repository |
 
 graphtor-docs is a single Rust binary. The ingestion path is docline-emitted
@@ -105,7 +105,7 @@ docs/                     <- user-facing and developer-facing documentation
 
 ### Rust baseline
 
-Production code uses Rust 2021 with `rust-version = "1.75"`.
+Production code uses Rust 2021 with `rust-version = "1.88"`.
 `#![forbid(unsafe_code)]` is set at crate roots. Clippy warnings, including
 `clippy::pedantic`, are treated as errors.
 
