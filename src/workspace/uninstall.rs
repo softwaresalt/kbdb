@@ -30,7 +30,7 @@ use graphtor_core::GraphtorError;
 const WORKSPACE_LOCK_FILE: &str = "kbdb.lock";
 const LEGACY_WORKSPACE_LOCK_FILE: &str = "graphtor.lock";
 
-/// Only regular, non-reparse lock files participate in empty-root cleanup.
+/// Only regular, non-reparse lock files participate in root-removal planning.
 #[must_use]
 fn is_regular_workspace_lock(path: &Path) -> bool {
     let known_name = path.file_name().is_some_and(|name| {
@@ -40,6 +40,26 @@ fn is_regular_workspace_lock(path: &Path) -> bool {
     known_name
         && !is_symlink(path)
         && fs::symlink_metadata(path).is_ok_and(|metadata| metadata.file_type().is_file())
+}
+
+/// Return an ownership token only for a regular legacy lock with a dead owner.
+/// Missing, malformed, or live ownership information is not proof of staleness.
+#[must_use]
+fn stale_legacy_lock_token(path: &Path) -> Option<String> {
+    if path.file_name()? != std::ffi::OsStr::new(LEGACY_WORKSPACE_LOCK_FILE)
+        || !is_regular_workspace_lock(path)
+    {
+        return None;
+    }
+    let token = fs::read_to_string(path).ok()?;
+    let mut owners = token.lines().filter_map(|line| line.strip_prefix("pid="));
+    let pid = owners.next()?.parse::<u32>().ok()?;
+    if pid == 0 || owners.next().is_some() {
+        return None;
+    }
+    let mut system = sysinfo::System::new();
+    system.refresh_processes();
+    (system.process(sysinfo::Pid::from_u32(pid)).is_none()).then_some(token)
 }
 
 /// Result of an uninstall operation.
@@ -194,10 +214,13 @@ fn predict_root_removal(workspace_dir: &Path, managed_dirs: &[PathBuf]) -> bool 
             return false;
         };
         let path = entry.path();
-        // The current lock is released by the caller; stale regular lock files
-        // are cleaned in the approved empty-root phase. Links and directories
-        // bearing either lock name must still block root-removal prediction.
-        if is_regular_workspace_lock(&path) {
+        // Ignore only the regular current lock the caller will release, and
+        // legacy locks whose owners are proven dead. Use the same legacy
+        // predicate as execution so unknown/live owners block both paths.
+        if (path.file_name() == Some(std::ffi::OsStr::new(WORKSPACE_LOCK_FILE))
+            && is_regular_workspace_lock(&path))
+            || stale_legacy_lock_token(&path).is_some()
+        {
             continue;
         }
         // A managed directory that will actually be removed does not block
@@ -212,7 +235,10 @@ fn predict_root_removal(workspace_dir: &Path, managed_dirs: &[PathBuf]) -> bool 
 }
 
 /// Remove the `.graphtor/` workspace root, but ONLY when it is genuinely
-/// empty right now apart from stale regular workspace lock files.
+/// empty right now apart from proven-stale regular legacy lock files.
+///
+/// A current `kbdb.lock` observed after caller lock release belongs to a
+/// possible new writer and is NEVER a deletion candidate.
 ///
 /// Emptiness is re-checked immediately before removal to keep the window
 /// between the check and the unlink as small as possible, and removal uses
@@ -246,20 +272,25 @@ pub fn remove_empty_workspace_root(workspace_dir: &Path) -> Result<Option<String
     let Ok(entries) = fs::read_dir(workspace_dir) else {
         return Ok(None);
     };
-    let mut stale_locks = Vec::with_capacity(2);
+    let mut stale_locks = Vec::with_capacity(1);
     for entry in entries {
         let Ok(entry) = entry else {
             return Ok(None);
         };
         let path = entry.path();
-        if !is_regular_workspace_lock(&path) {
+        let Some(token) = stale_legacy_lock_token(&path) else {
             return Ok(None);
-        }
-        stale_locks.push(path);
+        };
+        stale_locks.push((path, token));
     }
-    for lock in stale_locks {
-        // Revalidate against replacement with a directory or link after scanning.
-        if is_symlink(workspace_dir) || !is_regular_workspace_lock(&lock) {
+    for (lock, token) in stale_locks {
+        // Revalidate file type, owner liveness, and the exact scanned token
+        // before unlinking a legacy artifact. A newly acquired current lock
+        // also blocks cleanup; never reacquire via the stale-reclaiming API.
+        if is_symlink(workspace_dir)
+            || fs::symlink_metadata(workspace_dir.join(WORKSPACE_LOCK_FILE)).is_ok()
+            || stale_legacy_lock_token(&lock).as_deref() != Some(token.as_str())
+        {
             return Ok(None);
         }
         fs::remove_file(&lock).map_err(|e| GraphtorError::Config {
@@ -419,12 +450,80 @@ mod tests {
     use crate::workspace::gitignore::add_gitignore_entry;
     use crate::workspace::install::{install, install_minimal};
 
+    fn dead_legacy_owner_token() -> String {
+        let mut system = sysinfo::System::new();
+        system.refresh_processes();
+        assert!(system.process(sysinfo::Pid::from_u32(u32::MAX)).is_none());
+        format!("pid={}\ntimestamp=1\n", u32::MAX)
+    }
+
+    #[test]
+    fn stream_a_legacy_gitignore_live_or_unknown_legacy_owner_blocks_cleanup() {
+        for token in [
+            format!("pid={}\ntimestamp=1\n", std::process::id()),
+            "stale".to_string(),
+        ] {
+            let tmp = tempfile::tempdir().expect("tempdir");
+            let ws = tmp.path().join(GRAPHTOR_DIR);
+            fs::create_dir(&ws).expect("root");
+            let lock = ws.join(LEGACY_WORKSPACE_LOCK_FILE);
+            fs::write(&lock, &token).expect("legacy lock");
+            assert!(
+                !plan_uninstall_full(tmp.path(), false).root_removal,
+                "legacy owner must be proven dead before predicting cleanup"
+            );
+            assert!(remove_empty_workspace_root(&ws).expect("cleanup").is_none());
+            assert_eq!(
+                fs::read_to_string(&lock).expect("legacy lock retained"),
+                token
+            );
+        }
+    }
+
+    #[test]
+    fn stream_a_legacy_gitignore_reacquired_current_lock_blocks_root_cleanup() {
+        use crate::workspace::lock::WorkspaceLock;
+
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let ws = tmp.path().join(GRAPHTOR_DIR);
+        fs::create_dir(&ws).expect("root");
+        let uninstall_lock = WorkspaceLock::acquire(&ws, false).expect("uninstall lock");
+        let plan = plan_uninstall_full(tmp.path(), false);
+        assert!(
+            plan.root_removal,
+            "caller-owned lock is released before cleanup"
+        );
+        uninstall_planned(tmp.path(), false, &plan).expect("uninstall");
+        drop(uninstall_lock);
+
+        // Deterministically enter the release -> cleanup window in cmd_uninstall.
+        let install_lock = WorkspaceLock::acquire(&ws, false).expect("concurrent install lock");
+        let lock = ws.join(WORKSPACE_LOCK_FILE);
+        let token = fs::read_to_string(&lock).expect("new owner's token");
+        assert!(
+            remove_empty_workspace_root(&ws).expect("cleanup").is_none(),
+            "a reacquired current lock must keep the workspace alive"
+        );
+        assert_eq!(
+            fs::read_to_string(&lock).expect("live lock retained"),
+            token
+        );
+        assert!(
+            WorkspaceLock::acquire(&ws, false).is_err(),
+            "cleanup must not admit a competing writer"
+        );
+        drop(install_lock);
+        assert!(remove_empty_workspace_root(&ws)
+            .expect("empty cleanup")
+            .is_some());
+    }
+
     #[test]
     fn stream_a_legacy_gitignore_uninstall_cleans_legacy_gitignore_and_lock() {
         let tmp = tempfile::tempdir().expect("tempdir");
         install(tmp.path()).expect("install");
         let ws = tmp.path().join(GRAPHTOR_DIR);
-        fs::write(ws.join("graphtor.lock"), "stale").expect("legacy lock");
+        fs::write(ws.join("graphtor.lock"), dead_legacy_owner_token()).expect("legacy lock");
         fs::write(
             tmp.path().join(".gitignore"),
             "# graphtor-docs - managed by graphtor-docs install\n.graphtor/\n.env\n",
@@ -461,14 +560,26 @@ mod tests {
             let ws = tmp.path().join(GRAPHTOR_DIR);
             fs::create_dir(&ws).expect("root");
             let lock = ws.join(name);
-            fs::write(&lock, "stale").expect("lock");
+            let token = dead_legacy_owner_token();
+            fs::write(&lock, &token).expect("lock");
             let user = ws.join("user.db");
             fs::write(&user, "user data").expect("user");
             assert!(!plan_uninstall_full(tmp.path(), false).root_removal);
             assert!(remove_empty_workspace_root(&ws).expect("keep").is_none());
-            assert_eq!(fs::read_to_string(&lock).expect("lock retained"), "stale");
+            assert_eq!(fs::read_to_string(&lock).expect("lock retained"), token);
             fs::remove_file(&user).expect("remove fixture");
             assert!(plan_uninstall_full(tmp.path(), false).root_removal);
+            if name == WORKSPACE_LOCK_FILE {
+                assert!(remove_empty_workspace_root(&ws)
+                    .expect("keep current lock")
+                    .is_none());
+                assert_eq!(
+                    fs::read_to_string(&lock).expect("current lock retained"),
+                    token
+                );
+                // Only the caller's release removes the current lock.
+                fs::remove_file(&lock).expect("simulate caller release");
+            }
             assert!(remove_empty_workspace_root(&ws).expect("remove").is_some());
             assert!(!ws.exists());
         }
@@ -517,13 +628,26 @@ mod tests {
             let ws = tmp.path().join(GRAPHTOR_DIR);
             fs::create_dir(&ws).expect("root");
             let lock = ws.join(name);
-            fs::write(&lock, "stale").expect("lock");
+            fs::write(&lock, dead_legacy_owner_token()).expect("lock");
             let held = fs::OpenOptions::new()
                 .read(true)
-                .share_mode(0)
+                // Permit ownership verification but deny deletion.
+                .share_mode(1)
                 .open(&lock)
                 .expect("exclusive handle");
             assert!(plan_uninstall_full(tmp.path(), false).root_removal);
+            if name == WORKSPACE_LOCK_FILE {
+                assert!(remove_empty_workspace_root(&ws)
+                    .expect("keep current lock")
+                    .is_none());
+                assert!(lock.exists());
+                drop(held);
+                fs::remove_file(&lock).expect("simulate caller release");
+                assert!(remove_empty_workspace_root(&ws)
+                    .expect("empty cleanup")
+                    .is_some());
+                continue;
+            }
             let error = remove_empty_workspace_root(&ws).expect_err("locked file must fail");
             assert!(error.to_string().contains(name), "error must identify lock");
             assert!(ws.exists());
