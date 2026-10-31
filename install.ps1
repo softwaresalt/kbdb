@@ -25,6 +25,7 @@ $ErrorActionPreference = 'Stop'
 
 $Repo   = 'softwaresalt/graphtor-docs'
 $Binary = 'kbdb'
+$LegacyBinary = 'graphtor-docs'
 $Target = 'x86_64-pc-windows-msvc'
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -81,6 +82,7 @@ if (-not (Test-Path $installDir)) {
 
 $baseUrl  = "https://github.com/$Repo/releases/download/$version"
 $archive  = "$Binary-$version-$Target.zip"
+$legacyArchive = "$LegacyBinary-$version-$Target.zip"
 $sumsFile = "SHA256SUMS"
 $tmpDir   = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName())
 New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
@@ -90,7 +92,14 @@ try {
     $sumsPath    = Join-Path $tmpDir $sumsFile
 
     Write-Info "Downloading $archive..."
-    Invoke-WebRequest "$baseUrl/$archive"   -OutFile $archivePath -UseBasicParsing
+    try {
+        Invoke-WebRequest "$baseUrl/$archive" -OutFile $archivePath -UseBasicParsing
+    } catch {
+        Write-Info "Primary archive download failed; falling back to $legacyArchive..."
+        $archive = $legacyArchive
+        $archivePath = Join-Path $tmpDir $archive
+        Invoke-WebRequest "$baseUrl/$archive" -OutFile $archivePath -UseBasicParsing
+    }
     Invoke-WebRequest "$baseUrl/$sumsFile"  -OutFile $sumsPath    -UseBasicParsing
 
     # ── Checksum verification ──────────────────────────────────────────────────
@@ -126,10 +135,19 @@ try {
     $dstExe  = Join-Path $installDir $exeName
 
     if (-not (Test-Path $srcExe)) {
-        Write-Err "Binary $exeName not found in archive. Archive contents may differ from expected."
+        $srcExe = Join-Path $tmpDir "$LegacyBinary.exe"
+    }
+    if (-not (Test-Path $srcExe)) {
+        Write-Err "Neither $exeName nor $LegacyBinary.exe was found in archive. Archive contents may differ from expected."
     }
 
     Copy-Item -Path $srcExe -Destination $dstExe -Force
+
+    $legacyInstallDir = Join-Path $env:LOCALAPPDATA 'graphtor-docs\bin'
+    $legacyExe = Join-Path $installDir "$LegacyBinary.exe"
+    if ((Test-Path $legacyInstallDir) -or (Test-Path $legacyExe)) {
+        Write-Warn "Legacy $LegacyBinary installation detected and left unchanged. You may remove it after updating references to $Binary."
+    }
 
     # ── User PATH mutation (idempotent) ────────────────────────────────────────
 

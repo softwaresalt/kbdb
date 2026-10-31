@@ -9,6 +9,19 @@ use std::path::Path;
 use crate::workspace::install::installed_binary_path;
 use crate::workspace::paths::{GRAPHTOR_INGESTION_SUBDIRS, GRAPHTOR_SUBDIRS};
 
+/// Workspace directory used before the kbdb rename.
+pub const LEGACY_GRAPHTOR_DIR: &str = ".graphtor";
+
+/// Detect an occupied legacy workspace path without following links.
+///
+/// Linked or corrupt legacy entries are also reported so doctor does not hide
+/// stale state; migration separately requires regular, non-reparse paths.
+#[must_use]
+pub fn detect_legacy_workspace_dir(project_root: &Path) -> Option<std::path::PathBuf> {
+    let legacy_dir = project_root.join(LEGACY_GRAPHTOR_DIR);
+    legacy_dir.symlink_metadata().ok().map(|_| legacy_dir)
+}
+
 /// Severity of a diagnostic finding.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Severity {
@@ -110,6 +123,17 @@ fn check_workspace_dir(workspace_dir: &Path) -> Check {
             name: "workspace-dir",
             severity: Severity::Pass,
             message: format!("workspace directory exists: {}", workspace_dir.display()),
+        }
+    } else if let Some(legacy_dir) = workspace_dir.parent().and_then(detect_legacy_workspace_dir) {
+        Check {
+            name: "workspace-dir",
+            severity: Severity::Fail,
+            message: format!(
+                "workspace directory not found: {}; legacy .graphtor/ found at {}; \
+                 migrate to .kbdb/ (see scripts/convert-to-kbdb.ps1) or run `kbdb install`",
+                workspace_dir.display(),
+                legacy_dir.display()
+            ),
         }
     } else {
         Check {
@@ -221,6 +245,17 @@ pub fn run_doctor(workspace_dir: &Path) -> Vec<Check> {
     let footprint = detect_footprint(workspace_dir);
 
     checks.push(check_workspace_dir(workspace_dir));
+    if let Some(legacy_dir) = workspace_dir.parent().and_then(detect_legacy_workspace_dir) {
+        checks.push(Check {
+            name: "legacy-workspace-dir",
+            severity: Severity::Warn,
+            message: format!(
+                "legacy .graphtor/ workspace directory detected at {}; migrate to .kbdb/ \
+                 (see scripts/convert-to-kbdb.ps1) or remove the stale directory",
+                legacy_dir.display()
+            ),
+        });
+    }
     checks.extend(check_subdirs(workspace_dir, footprint));
 
     // Binary present.
@@ -330,6 +365,50 @@ fn human_bytes(bytes: u64) -> String {
 mod tests {
     use super::*;
     use crate::workspace::install::{install, install_minimal};
+
+    #[test]
+    fn stream_a_legacy_workspace_doctor_warns_when_only_legacy_graphtor_exists() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let legacy = tmp.path().join(".graphtor");
+        std::fs::create_dir(&legacy).expect("legacy dir");
+        let checks = run_doctor(&tmp.path().join(".kbdb"));
+        let missing = checks
+            .iter()
+            .find(|check| check.name == "workspace-dir")
+            .expect("workspace check");
+        assert_eq!(missing.severity, Severity::Fail);
+        assert!(missing.message.contains(".graphtor"));
+        assert!(missing.message.contains(".kbdb"));
+        assert!(missing.message.contains("migrat"));
+        let warning = checks
+            .iter()
+            .find(|check| check.name == "legacy-workspace-dir")
+            .expect("legacy warning");
+        assert_eq!(warning.severity, Severity::Warn);
+        assert!(warning.message.contains(&legacy.display().to_string()));
+    }
+
+    #[test]
+    fn stream_a_legacy_workspace_doctor_warns_when_legacy_graphtor_coexists_with_kbdb() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        install_minimal(tmp.path()).expect("minimal install");
+        let ws = tmp.path().join(".kbdb");
+        let clean = run_doctor(&ws);
+        assert!(!clean
+            .iter()
+            .any(|check| check.name == "legacy-workspace-dir"));
+        assert!(clean.iter().all(|check| check.severity == Severity::Pass));
+
+        std::fs::create_dir(tmp.path().join(".graphtor")).expect("legacy dir");
+        let checks = run_doctor(&ws);
+        assert_eq!(checks.len(), clean.len() + 1);
+        assert!(checks.iter().any(|check| {
+            check.name == "legacy-workspace-dir" && check.severity == Severity::Warn
+        }));
+        assert!(checks
+            .iter()
+            .any(|check| { check.name == "workspace-dir" && check.severity == Severity::Pass }));
+    }
 
     #[test]
     fn doctor_reports_fail_when_dir_missing() {
