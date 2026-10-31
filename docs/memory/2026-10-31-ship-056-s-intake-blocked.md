@@ -39,6 +39,34 @@ queued. Stage subsequently resolved the task sizing, complexity, and
 * The existing `stash@{0}` (`orchestrator-route-061.005-T`) is preserved
   untouched. Only the current worktree exists.
 
+## Publication review blocked
+
+Local review of `f91b0d44a8215f8ec512364d4cae9c469db7b43a` identified an
+in-scope validation defect in the Stage-provided harness for `061.002-T`
+(`.backlogit/queue/061.002-T.md`, line 28): its warning filter uses
+`$_.file`, whereas `autoharness verify-workspace` warning records use `path`.
+An independent verification returned `FM_MISSING_REQUIRED` for
+`.github/agents/subagents/rust-mcp-expert.agent.md`, but the harness's
+`file`-property filter matched no records. Consequently this harness does
+not enforce its stated zero-frontmatter-warning acceptance criterion.
+
+Readiness is `BLOCKED` (P1 validation gap); no `LOCAL_REVIEW_READY` was
+emitted. The standard review personas could not execute Git with their
+available read-only tools; their reports did not establish readiness.
+Ship directly inspected the exact Git diff and verified the concrete
+warning-field mismatch through the installed CLI. No temporary patch was
+created, no review artifact was written, and no planning field was edited.
+
+P-010 handoff to Stage: correct the existing `061.002-T` harness metadata
+and revalidate its acceptance checks. This is completion of the already
+authorized metadata contract, not deferred scope expansion. Ship cannot
+repair task planning/harness fields. No push, PR creation, remote-ref
+deletion, merge, or task execution has occurred. The publication branch
+is `chore/stage-056-S`; the resolved original checkpoint stays resolved.
+CI, hosted Copilot, and merge gates have not run because local readiness
+is blocked. Resume publication only after Stage supplies the correction,
+then review the resulting current HEAD before creating the PR.
+
 ## Original blocked-intake evidence
 
 * Fresh configuration precheck passed; installed-home workspace verification
