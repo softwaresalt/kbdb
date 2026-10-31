@@ -90,6 +90,26 @@ Singular stash and both deliberation ID fields were absent. Stage owns
 traceability-preserving archival of any confirmed still-active sources.
 Ship did not mutate those source entries.
 
+## Task and run residual risk
+
+Final delivery review at `b21298c789d453510ff939343ff61f53ab56adfd`
+returned READY_WITH_FOLLOWUPS, P0=0, P1=0, P2=1, P3=0.
+The unique LOW-confidence P2 concerns an already-malformed marked MCP
+entry with custom arguments but no command. Reproduction was not executed.
+Task 062.002-T explicitly preserves custom command/args; adding validation
+or command recovery fails the P-021 C1 same-contract-surface test.
+
+Deferred entry `7D2BDEFA` is the task-level, run-level, and closure residual
+reference. It was captured once with the full six-field payload before
+disposition, with pre-PR/threadless N/A references and requires deliberation.
+Active discovery found no matching task entry; the unavailable archived-stash
+surface is recorded as DISCOVERY-STATUS: LOOKUP-UNAVAILABLE.
+The registry's obsolete `--text` capture syntax failed without a write;
+the installed CLI's positional text syntax succeeded.
+No production change was made and no thread existed.
+Stage owns verification, duplicate reconciliation, and separate deliberation.
+The entry must not be edited if a PR or thread becomes available later.
+
 ## Next steps
 
 Commit execution state and validator reports, review the final delivery HEAD,
