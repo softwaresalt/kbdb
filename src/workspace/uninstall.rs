@@ -28,6 +28,19 @@ use graphtor_core::GraphtorError;
 /// cleanup planner must ignore it because the caller releases the lock (which
 /// deletes this file) before attempting to remove the now-empty root.
 const WORKSPACE_LOCK_FILE: &str = "kbdb.lock";
+const LEGACY_WORKSPACE_LOCK_FILE: &str = "graphtor.lock";
+
+/// Only regular, non-reparse lock files participate in empty-root cleanup.
+#[must_use]
+fn is_regular_workspace_lock(path: &Path) -> bool {
+    let known_name = path.file_name().is_some_and(|name| {
+        name == std::ffi::OsStr::new(WORKSPACE_LOCK_FILE)
+            || name == std::ffi::OsStr::new(LEGACY_WORKSPACE_LOCK_FILE)
+    });
+    known_name
+        && !is_symlink(path)
+        && fs::symlink_metadata(path).is_ok_and(|metadata| metadata.file_type().is_file())
+}
 
 /// Result of an uninstall operation.
 #[derive(Debug)]
@@ -176,11 +189,15 @@ fn predict_root_removal(workspace_dir: &Path, managed_dirs: &[PathBuf]) -> bool 
     let Ok(entries) = fs::read_dir(workspace_dir) else {
         return false;
     };
-    for entry in entries.flatten() {
+    for entry in entries {
+        let Ok(entry) = entry else {
+            return false;
+        };
         let path = entry.path();
-        // The workspace lock file is deleted when the caller releases the lock
-        // before root removal, so it does not block emptiness.
-        if path.file_name() == Some(std::ffi::OsStr::new(WORKSPACE_LOCK_FILE)) {
+        // The current lock is released by the caller; stale regular lock files
+        // are cleaned in the approved empty-root phase. Links and directories
+        // bearing either lock name must still block root-removal prediction.
+        if is_regular_workspace_lock(&path) {
             continue;
         }
         // A managed directory that will actually be removed does not block
@@ -195,7 +212,7 @@ fn predict_root_removal(workspace_dir: &Path, managed_dirs: &[PathBuf]) -> bool 
 }
 
 /// Remove the `.graphtor/` workspace root, but ONLY when it is genuinely
-/// empty right now.
+/// empty right now apart from stale regular workspace lock files.
 ///
 /// Emptiness is re-checked immediately before removal to keep the window
 /// between the check and the unlink as small as possible, and removal uses
@@ -208,8 +225,8 @@ fn predict_root_removal(workspace_dir: &Path, managed_dirs: &[PathBuf]) -> bool 
 ///
 /// # Errors
 ///
-/// Returns [`GraphtorError::Config`] if the (verified-empty) directory cannot
-/// be removed.
+/// Returns [`GraphtorError::Config`] if a stale lock file or the
+/// (verified-empty) directory cannot be removed.
 pub fn remove_empty_workspace_root(workspace_dir: &Path) -> Result<Option<String>, GraphtorError> {
     // Workspace-containment guard (Constitution III/IV): never operate on a
     // symlinked/junction `.graphtor` root. `is_dir()`/`read_dir()` below follow
@@ -222,6 +239,36 @@ pub fn remove_empty_workspace_root(workspace_dir: &Path) -> Result<Option<String
     }
     if !workspace_dir.is_dir() {
         return Ok(None);
+    }
+    // This phase runs ONLY after caller lock release and approved root removal.
+    // Do not touch stale locks while any user data, preserved config, directory,
+    // or reparse point would keep the root alive.
+    let Ok(entries) = fs::read_dir(workspace_dir) else {
+        return Ok(None);
+    };
+    let mut stale_locks = Vec::with_capacity(2);
+    for entry in entries {
+        let Ok(entry) = entry else {
+            return Ok(None);
+        };
+        let path = entry.path();
+        if !is_regular_workspace_lock(&path) {
+            return Ok(None);
+        }
+        stale_locks.push(path);
+    }
+    for lock in stale_locks {
+        // Revalidate against replacement with a directory or link after scanning.
+        if is_symlink(workspace_dir) || !is_regular_workspace_lock(&lock) {
+            return Ok(None);
+        }
+        fs::remove_file(&lock).map_err(|e| GraphtorError::Config {
+            message: format!(
+                "failed to remove stale workspace lock {}: {e}",
+                lock.display()
+            ),
+            field: None,
+        })?;
     }
     let is_empty = fs::read_dir(workspace_dir).is_ok_and(|mut entries| entries.next().is_none());
     if !is_empty {
@@ -371,6 +418,120 @@ mod tests {
     use super::*;
     use crate::workspace::gitignore::add_gitignore_entry;
     use crate::workspace::install::{install, install_minimal};
+
+    #[test]
+    fn stream_a_legacy_gitignore_uninstall_cleans_legacy_gitignore_and_lock() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        install(tmp.path()).expect("install");
+        let ws = tmp.path().join(GRAPHTOR_DIR);
+        fs::write(ws.join("graphtor.lock"), "stale").expect("legacy lock");
+        fs::write(
+            tmp.path().join(".gitignore"),
+            "# graphtor-docs - managed by graphtor-docs install\n.graphtor/\n.env\n",
+        )
+        .expect("gitignore");
+        fs::write(
+            tmp.path().join(".mcp.json"),
+            r#"{"mcpServers":{"graphtor-docs":{"command":"graphtor-docs","args":["serve"],"x-graphtor-managed":true},"user":{"command":"custom"}}}"#,
+        )
+        .expect("mcp");
+        let plan = plan_uninstall_full(tmp.path(), false);
+        assert!(plan.gitignore_cleanup);
+        assert!(
+            plan.root_removal,
+            "regular legacy lock must not block preview"
+        );
+        assert!(ws.join("graphtor.lock").exists(), "preview cannot mutate");
+        let result = uninstall(tmp.path(), false).expect("uninstall");
+        assert!(!ws.exists());
+        assert!(result.removed.contains(&ws.display().to_string()));
+        assert_eq!(
+            fs::read_to_string(tmp.path().join(".gitignore")).expect("read"),
+            ".env\n"
+        );
+        let mcp = fs::read_to_string(tmp.path().join(".mcp.json")).expect("mcp retained");
+        assert!(mcp.contains("user"));
+        assert!(!mcp.contains("graphtor-docs"));
+    }
+
+    #[test]
+    fn stream_a_legacy_gitignore_regular_locks_cleanup_only_when_otherwise_empty() {
+        for name in ["kbdb.lock", "graphtor.lock"] {
+            let tmp = tempfile::tempdir().expect("tempdir");
+            let ws = tmp.path().join(GRAPHTOR_DIR);
+            fs::create_dir(&ws).expect("root");
+            let lock = ws.join(name);
+            fs::write(&lock, "stale").expect("lock");
+            let user = ws.join("user.db");
+            fs::write(&user, "user data").expect("user");
+            assert!(!plan_uninstall_full(tmp.path(), false).root_removal);
+            assert!(remove_empty_workspace_root(&ws).expect("keep").is_none());
+            assert_eq!(fs::read_to_string(&lock).expect("lock retained"), "stale");
+            fs::remove_file(&user).expect("remove fixture");
+            assert!(plan_uninstall_full(tmp.path(), false).root_removal);
+            assert!(remove_empty_workspace_root(&ws).expect("remove").is_some());
+            assert!(!ws.exists());
+        }
+    }
+
+    #[test]
+    fn stream_a_legacy_gitignore_lock_directories_block_preview_and_cleanup() {
+        for name in ["kbdb.lock", "graphtor.lock"] {
+            let tmp = tempfile::tempdir().expect("tempdir");
+            let ws = tmp.path().join(GRAPHTOR_DIR);
+            let lock = ws.join(name);
+            fs::create_dir_all(&lock).expect("lock directory");
+            assert!(!plan_uninstall_full(tmp.path(), false).root_removal);
+            assert!(remove_empty_workspace_root(&ws).expect("keep").is_none());
+            assert!(lock.is_dir());
+        }
+    }
+
+    #[test]
+    fn stream_a_legacy_gitignore_lock_links_block_preview_and_cleanup() {
+        for name in ["kbdb.lock", "graphtor.lock"] {
+            let tmp = tempfile::tempdir().expect("tempdir");
+            let ws = tmp.path().join(GRAPHTOR_DIR);
+            fs::create_dir(&ws).expect("root");
+            let target = tmp.path().join("target");
+            fs::create_dir(&target).expect("target");
+            let lock = ws.join(name);
+            if try_symlink_dir(&target, &lock).is_err() {
+                eprintln!("symlink privilege unavailable; lock-link test skipped");
+                return;
+            }
+            assert!(!plan_uninstall_full(tmp.path(), false).root_removal);
+            assert!(remove_empty_workspace_root(&ws).expect("keep").is_none());
+            assert!(is_symlink(&lock));
+            assert!(target.is_dir());
+        }
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn stream_a_legacy_gitignore_lock_removal_failure_is_propagated() {
+        use std::os::windows::fs::OpenOptionsExt;
+
+        for name in ["kbdb.lock", "graphtor.lock"] {
+            let tmp = tempfile::tempdir().expect("tempdir");
+            let ws = tmp.path().join(GRAPHTOR_DIR);
+            fs::create_dir(&ws).expect("root");
+            let lock = ws.join(name);
+            fs::write(&lock, "stale").expect("lock");
+            let held = fs::OpenOptions::new()
+                .read(true)
+                .share_mode(0)
+                .open(&lock)
+                .expect("exclusive handle");
+            assert!(plan_uninstall_full(tmp.path(), false).root_removal);
+            let error = remove_empty_workspace_root(&ws).expect_err("locked file must fail");
+            assert!(error.to_string().contains(name), "error must identify lock");
+            assert!(ws.exists());
+            assert!(lock.exists());
+            drop(held);
+            assert!(remove_empty_workspace_root(&ws).expect("retry").is_some());
+        }
+    }
 
     /// Test-only convenience wrapper mirroring `cmd_uninstall`'s flow: compute
     /// the full plan once, execute it via [`uninstall_planned`], then perform

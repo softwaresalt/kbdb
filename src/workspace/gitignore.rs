@@ -15,6 +15,62 @@ const GITIGNORE_ENTRY: &str = ".kbdb/";
 /// Marker comment written before the managed entry.
 const MARKER_HEADER: &str = "# kbdb — managed by kbdb install";
 
+const LEGACY_GITIGNORE_ENTRY: &str = ".graphtor/";
+const LEGACY_MARKER_HEADERS: &[&str] = &[
+    "# graphtor-docs — managed by graphtor-docs install",
+    "# graphtor-docs - managed by graphtor-docs install",
+];
+
+#[must_use]
+fn is_legacy_marker_header(line: &str) -> bool {
+    LEGACY_MARKER_HEADERS.contains(&line.trim())
+}
+
+#[must_use]
+fn is_entry_line(line: &str, entry: &str) -> bool {
+    line.trim() == entry || line.trim() == entry.trim_end_matches('/')
+}
+
+#[must_use]
+fn legacy_graphtor_dir_exists(project_root: &Path) -> bool {
+    // Retain exclusions even for dangling links or inaccessible legacy roots:
+    // only proven absence permits stripping the old block.
+    !matches!(
+        fs::symlink_metadata(project_root.join(".graphtor")),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound
+    )
+}
+
+/// Strip only marker-adjacent entries, retaining all unmarked user lines.
+#[must_use]
+fn strip_managed_blocks(existing: &str, remove_current: bool, retain_legacy: bool) -> String {
+    let mut lines = existing.lines().peekable();
+    let mut kept = Vec::with_capacity(existing.lines().count());
+    let mut changed = false;
+    while let Some(line) = lines.next() {
+        let entry = if remove_current && line.trim() == MARKER_HEADER {
+            Some(GITIGNORE_ENTRY)
+        } else if !retain_legacy && is_legacy_marker_header(line) {
+            Some(LEGACY_GITIGNORE_ENTRY)
+        } else {
+            None
+        };
+        if let Some(entry) = entry {
+            changed = true;
+            if lines.peek().is_some_and(|next| is_entry_line(next, entry)) {
+                lines.next();
+            }
+        } else {
+            kept.push(line);
+        }
+    }
+    if changed {
+        kept.join("\n") + "\n"
+    } else {
+        existing.to_owned()
+    }
+}
+
 /// Append `.kbdb/` to `project_root/.gitignore`.
 ///
 /// - If `.gitignore` does not exist it is created.
@@ -58,14 +114,22 @@ pub fn add_gitignore_entry(project_root: &Path) -> Result<(), GraphtorError> {
         String::new()
     };
 
-    // Check whether the entry is already present.
-    if existing.lines().any(|l: &str| {
-        l.trim() == GITIGNORE_ENTRY.trim_end_matches('/') || l.trim() == GITIGNORE_ENTRY
-    }) {
+    // Migrate obsolete legacy blocks even when the current entry already exists.
+    let mut updated =
+        strip_managed_blocks(&existing, false, legacy_graphtor_dir_exists(project_root));
+    if updated
+        .lines()
+        .any(|line| is_entry_line(line, GITIGNORE_ENTRY))
+    {
+        if updated != existing {
+            fs::write(&path, updated).map_err(|e| GraphtorError::Config {
+                message: format!("failed to write .gitignore: {e}"),
+                field: None,
+            })?;
+        }
         return Ok(());
     }
 
-    let mut updated = existing.clone();
     if !updated.ends_with('\n') && !updated.is_empty() {
         updated.push('\n');
     }
@@ -84,8 +148,7 @@ pub fn add_gitignore_entry(project_root: &Path) -> Result<(), GraphtorError> {
 }
 
 /// Returns `true` when `project_root/.gitignore` exists and contains the
-/// kbdb managed marker header — i.e. a managed block that
-/// [`add_gitignore_entry`] wrote is actually present.
+/// kbdb or legacy graphtor-docs managed marker header.
 ///
 /// Uninstall planning uses this (rather than merely inferring from the
 /// workspace footprint) so that a Full install created with `--no-gitignore`
@@ -105,11 +168,13 @@ pub fn has_managed_gitignore_block(project_root: &Path) -> bool {
     let Ok(existing) = fs::read_to_string(&path) else {
         return false;
     };
-    existing.lines().any(|l: &str| l.trim() == MARKER_HEADER)
+    existing
+        .lines()
+        .any(|line| line.trim() == MARKER_HEADER || is_legacy_marker_header(line))
 }
 
-/// Remove ONLY the kbdb managed block (the [`MARKER_HEADER`] comment
-/// and the `.kbdb/` entry line it introduces) from `.gitignore`.
+/// Remove the kbdb managed block and, only when `.graphtor` is absent,
+/// legacy graphtor-docs managed blocks from `.gitignore`.
 ///
 /// The managed entry is identified by its adjacency to the marker header:
 /// [`add_gitignore_entry`] always writes the entry on the line immediately
@@ -145,29 +210,12 @@ pub fn remove_gitignore_entry(project_root: &Path) -> Result<(), GraphtorError> 
         field: None,
     })?;
 
-    let lines: Vec<&str> = existing.lines().collect();
-    let mut kept: Vec<&str> = Vec::with_capacity(lines.len());
-    let mut idx = 0;
-    while idx < lines.len() {
-        if lines[idx].trim() == MARKER_HEADER {
-            // Skip the marker line, plus a single immediately-following
-            // managed `.kbdb/` entry line (our block writes the entry
-            // directly after the marker). Any unmarked user entry elsewhere is
-            // untouched.
-            idx += 1;
-            if idx < lines.len() {
-                let next = lines[idx].trim();
-                if next == GITIGNORE_ENTRY || next == GITIGNORE_ENTRY.trim_end_matches('/') {
-                    idx += 1;
-                }
-            }
-            continue;
-        }
-        kept.push(lines[idx]);
-        idx += 1;
+    let updated = strip_managed_blocks(&existing, true, legacy_graphtor_dir_exists(project_root));
+    if updated == existing {
+        return Ok(());
     }
 
-    fs::write(&path, kept.join("\n") + "\n").map_err(|e| GraphtorError::Config {
+    fs::write(&path, updated).map_err(|e| GraphtorError::Config {
         message: format!("failed to write .gitignore: {e}"),
         field: None,
     })?;
@@ -178,6 +226,115 @@ pub fn remove_gitignore_entry(project_root: &Path) -> Result<(), GraphtorError> 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn stream_a_legacy_gitignore_has_and_removes_legacy_managed_block() {
+        for header in [
+            "# graphtor-docs — managed by graphtor-docs install",
+            "# graphtor-docs - managed by graphtor-docs install",
+        ] {
+            for entry in [".graphtor/", ".graphtor"] {
+                for retain in [false, true] {
+                    let tmp = tempfile::tempdir().expect("tempdir");
+                    if retain {
+                        fs::create_dir(tmp.path().join(".graphtor")).expect("legacy root");
+                    }
+                    let path = tmp.path().join(".gitignore");
+                    fs::write(
+                        &path,
+                        format!("target/\n.graphtor/\n{header}\n{entry}\n{MARKER_HEADER}\n.kbdb/\n.env\n"),
+                    )
+                    .expect("seed");
+                    assert!(has_managed_gitignore_block(tmp.path()));
+                    remove_gitignore_entry(tmp.path()).expect("remove");
+                    let after = fs::read_to_string(&path).expect("read");
+                    assert_eq!(after.contains(header), retain);
+                    assert!(!after.contains(MARKER_HEADER));
+                    assert!(!after.contains(".kbdb/"));
+                    assert!(after.contains("target/\n.graphtor/\n"));
+                    assert!(after.contains(".env\n"));
+                    let first = after;
+                    remove_gitignore_entry(tmp.path()).expect("repeat remove");
+                    assert_eq!(fs::read_to_string(&path).expect("read"), first);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn stream_a_legacy_gitignore_recognizes_legacy_only_and_preserves_unmarked_lines() {
+        for header in [
+            "# graphtor-docs — managed by graphtor-docs install",
+            "# graphtor-docs - managed by graphtor-docs install",
+        ] {
+            let tmp = tempfile::tempdir().expect("tempdir");
+            let path = tmp.path().join(".gitignore");
+            fs::write(&path, format!("{header}\n.graphtor/\n")).expect("seed");
+            assert!(has_managed_gitignore_block(tmp.path()));
+            remove_gitignore_entry(tmp.path()).expect("remove");
+            assert!(!has_managed_gitignore_block(tmp.path()));
+            fs::write(&path, ".graphtor/\n.kbdb/\n.env\n").expect("unmarked");
+            assert!(!has_managed_gitignore_block(tmp.path()));
+            remove_gitignore_entry(tmp.path()).expect("preserve");
+            assert_eq!(
+                fs::read_to_string(&path).expect("read"),
+                ".graphtor/\n.kbdb/\n.env\n"
+            );
+        }
+    }
+
+    #[test]
+    fn stream_a_legacy_gitignore_add_migrates_or_retains_legacy_managed_block() {
+        for header in [
+            "# graphtor-docs — managed by graphtor-docs install",
+            "# graphtor-docs - managed by graphtor-docs install",
+        ] {
+            for retain in [false, true] {
+                for already_current in [false, true] {
+                    let tmp = tempfile::tempdir().expect("tempdir");
+                    if retain {
+                        fs::create_dir(tmp.path().join(".graphtor")).expect("legacy root");
+                    }
+                    let path = tmp.path().join(".gitignore");
+                    let current = if already_current {
+                        format!("{MARKER_HEADER}\n.kbdb/\n")
+                    } else {
+                        String::new()
+                    };
+                    fs::write(
+                        &path,
+                        format!("target/\n{header}\n.graphtor\n{current}.env\n"),
+                    )
+                    .expect("seed");
+                    add_gitignore_entry(tmp.path()).expect("add");
+                    let after = fs::read_to_string(&path).expect("read");
+                    assert_eq!(after.contains(header), retain);
+                    assert_eq!(after.lines().any(|line| line == ".graphtor"), retain);
+                    assert!(after.contains(&format!("{MARKER_HEADER}\n.kbdb/\n")));
+                    assert!(after.contains("target/\n"));
+                    assert!(after.contains(".env\n"));
+                    add_gitignore_entry(tmp.path()).expect("repeat");
+                    assert_eq!(fs::read_to_string(&path).expect("read"), after);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn stream_a_legacy_gitignore_retains_block_for_dangling_legacy_link() {
+        let tmp = tempfile::tempdir().expect("tempdir");
+        let link = tmp.path().join(".graphtor");
+        if try_symlink_file(&tmp.path().join("missing"), &link).is_err() {
+            eprintln!("symlink privilege unavailable; dangling-link test skipped");
+            return;
+        }
+        let path = tmp.path().join(".gitignore");
+        let original = "# graphtor-docs - managed by graphtor-docs install\n.graphtor/\n";
+        fs::write(&path, original).expect("seed");
+        add_gitignore_entry(tmp.path()).expect("add");
+        remove_gitignore_entry(tmp.path()).expect("remove");
+        assert!(fs::read_to_string(&path).expect("read").contains(original));
+    }
 
     #[test]
     fn add_creates_entry() {
