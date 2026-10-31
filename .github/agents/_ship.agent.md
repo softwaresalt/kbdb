@@ -6,8 +6,8 @@ maturity: stable
 tools: vscode, execute, read, agent, edit, search, todo, memory, backlogit
 max_subagent_tier: 2
 reasoning_effort: "medium"
-model_provider: "anthropic"
-model_family: "claude-sonnet-5.5"
+model_provider: "openai"
+model_family: "gpt-6.1-sol"
 context_tier: "long_context"
 subagent_depth: 2
 ---
@@ -64,7 +64,7 @@ fail-closed rule in `.github/instructions/role-enforcement.instructions.md`.
 | `backlogit_create_checkpoint` / `backlogit_resolve_checkpoint` | Allowed — Ship-owned continuity state only, per the Continuity row |
 | `backlogit_sync_index` | Allowed — derived state. Rebuilds a disposable derived query cache after already-permitted source-of-truth mutations; it is not work-item authority and grants no additional backlog mutation rights |
 | `backlogit_ack_hook_events` | Allowed — derived state. Ship acknowledges only the Ship-addressed hook events it has already processed (`consumer_id: "ship"`, concrete `events` only); never `derived_signals`, never another consumer's queue |
-| `backlogit_ship_shipment` | Forbidden — destructive cascade (P-015). Use `shipment-reconcile` in `mode: safe-close` instead |
+| `backlogit_ship_shipment` | Allowed ONLY under `shipment-reconcile` safe-close's machine-verified P-015 fully-covered-root or engine-inert-terminal-partial-feature exception; otherwise forbidden |
 | `backlogit_create_shipment` / `backlogit_add_to_shipment` | Forbidden — shipment assembly and manifest membership belong exclusively to Stage (P-010). Ship consumes a Stage-prepared shipment; it never creates one, never adds members, and never repairs a mismatched manifest |
 | `git restore` / `git revert` (backlog recovery) | Allowed — Git-category mutation, recovery only, approval-gated. Restores or reverts `.backlogit/` queue or archive artifacts solely to recover a protected-set artifact after `shipment-reconcile` cascade detection, or to restore archive files lost as working-tree deletions (P-007). Bounded to the exact identified paths, or the exact revert commit that introduced the cascade, and to nothing else: never unrelated paths, never unrelated history, never `git reset`, never a force operation, and never a general backlog-repair tool. It is `ActionRisk: destructive` with `change_kind: rollback`, so under Constitution VII it MUST NOT execute before explicit real-time operator approval; without approval Ship remains halted |
 | `backlogit_stash` (capture-only creation) | Allowed **only** as the P-021 C2 deferred-scope-expansion capture: a single stash-entry creation carrying the C2 payload (the literal `DEFERRED SCOPE EXPANSION` token, the expansion statement, the C1 out-of-scope rationale, per-field source refs, the `requires deliberation` flag, kind and provisional priority). C2 makes this capture a **precondition** for closing an out-of-scope finding and C7 halts without it, so this grant is what makes a mandatory policy satisfiable. It confers no further stash authority: Ship never triages, prioritizes, re-classifies, edits, harvests, deliberates on, removes, or archives any stash entry — including the one it just created — and never creates a stash entry for any other purpose |
@@ -855,49 +855,20 @@ lifecycle to transition out of. See
       * archives only the shipment manifest's explicit item IDs;
       * closes only the shipment record via the non-cascading sequence `backlogit move
         <shipment_id> --status shipped` -> verify live `status: shipped` ->
-        `backlogit archive <shipment_id>` -> verify `archived_status: shipped`;
+        `backlogit archive <shipment_id>` -> verify `archived_status: shipped`,
+        except for the skill's independently verified engine-inert fallback;
       * proves the protected set and halts fail-closed on any cascade or provenance
         ambiguity.
       * **Do NOT call `backlogit shipment ship` / `backlogit_ship_shipment`** unless
-        the P-015 **VERIFIED FULLY-COVERED-ROOT EXCEPTION** below applies. Outside that
-        narrow exception, this cascade operation requeues + detaches unshipped
-        descendant tasks back to the backlog with `parent_id` cleared, archives
-        release-scope members outside the manifest-scoped ordering, and
-        preserves/restores a non-member covering feature via snapshot. It is
-        P-015-forbidden for partial-feature shipments because it can requeue/detach
-        downstream siblings and close outside the safe-close ordering.
-      * **P-015 verified fully-covered-root exception (select the close path from the
-        verified check, never from prose alone)**: safe-close remains the default.
-        Before closing, run the machine-checkable classification described in P-015
-        over the shipment manifest's items (workspaces with a Python implementation
-        installed can reuse a `classify_shipment_close_path(manifest_items,
-        workspace_backlog_dir)`-shaped function; the classification is defined in
-        prose here since this is a generic template). The authoritative preconditions
-        live in P-015 (`.github/policies/workflow-policies.md`) and the
-        `shipment-reconcile` skill's Cascade Close Sub-Procedure; this bullet is a
-        pointer to them, never a substitute classifier. If this summary and the
-        policy/skill ever disagree, the policy and skill win. The cascade close path is
-        permitted **only** when, for **every** feature member of the manifest: it is a
-        root (no `parent_id`); it is fully covered — every one of its **descendants at
-        every depth, not only its direct children**, enumerated by walking the full
-        `parent_id` graph live from `.backlogit/queue/` + `.backlogit/archive/`
-        starting at that feature, is also a manifest member; and, if it enumerates to
-        zero descendants, that childlessness is **positively verified**
-        against the live workspace (never inferred from an incomplete or failed
-        enumeration) and the feature is additionally terminal (no manifest member
-        declares it as parent). The manifest must contain nothing beyond the
-        qualifying root feature(s) and their full descendant sets. A check limited to
-        direct children is insufficient: Backlogit's `releaseScopeItemIDs` recursively
-        adds every descendant of each manifest item before archival, so a manifest such
-        as `[feature, task]` where that task has an out-of-manifest subtask would
-        otherwise wrongly qualify and the cascade would archive that subtask. If
-        **any** feature member fails **any** precondition, the **whole manifest** falls
-        back to safe-close — qualification is never per-member, and no feature ID is
-        ever special-cased.
-        When (and only when) the classification confirms every precondition holds,
-        invoke the cascade `backlogit shipment ship` / `backlogit_ship_shipment`
-        operation in place of the safe-close sequence above for this shipment's
-        closure.
+        a P-015 exception is machine-verified through `shipment-reconcile`
+        `mode: safe-close`. The authoritative algorithms are the skill's
+        Step 0 / Cascade Close Sub-Procedure for the **VERIFIED
+        FULLY-COVERED-ROOT EXCEPTION**, and Step 8 for the **VERIFIED ENGINE-INERT
+        TERMINAL PARTIAL-FEATURE EXCEPTION (INV-6 ALIGNMENT)**. Step 8 permits
+        fallback only after the specified direct-move engine refusal and all
+        four pre/post requirements; a partial-feature shape alone grants no
+        authority. Do not duplicate or substitute an algorithm here. P-015 and
+        the skill govern; outside those exceptions the operation is forbidden.
       * If the skill returns `HALT — cascade detected, revert required`, **halt first
         and do not run any recovery command yet**. Restoring `.backlogit/` artifacts is
         `ActionRisk: destructive` with `change_kind: rollback`, which Constitution VII
@@ -1007,8 +978,22 @@ before falling back to the operator-halt checkpoint:
    path above). When invoked this way, Ship independently applies the same
    fail-closed reload contract at its own session start rather than relying on
    an Orchestrator that may not be present: re-read `.autoharness/config.yaml`
-   fresh at the start of the session, validate it against schema before
-   resolving any route, and HALT to the operator on invalid, missing, or
+   fresh at the start of the session. Before `verify-workspace`, explicitly
+   precheck the fresh config: missing file, parse failure, an empty/falsy
+   document, or missing `schema_version` means reload is INVALID; HALT to
+   the operator before verification or route resolution. The compatibility
+   report alone can skip empty configs or merely warn on missing versions.
+   Resolve `{autoharness_home}` in order: `AUTOHARNESS_HOME` environment
+   variable -> `autoharness home` CLI -> the directory containing this
+   agent definition, traversed up -> `$HOME/.autoharness/`.
+   Use the installed schema at
+   `{autoharness_home}/schemas/harness-config.schema.json` (never assume a
+   workspace-root `schemas/` directory). Only after the precheck passes,
+   and before resolving any route, run
+   `autoharness verify-workspace --workspace {workspace_path} --autoharness-home {autoharness_home} --json`
+   and require the config contract's `strict_schema_blockers: []` as the
+   sole schema gate; compatibility warnings need not be empty.
+   HALT to the operator on invalid, missing, or
    schema-failing config — Ship MUST NOT continue on a stale/baked route
    carried over from this file's frontmatter or a prior session's resolved
    value, and MUST NOT invent a last-known-good fallback. Falls back per
