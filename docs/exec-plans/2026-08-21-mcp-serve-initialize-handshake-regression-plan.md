@@ -196,7 +196,7 @@ Stage executed the Final Assembly Protocol in
 | Managed MCP launch cwd field (T2d, conditional H0a/H3-B1) | `src/workspace/mcp_config.rs::managed_server_value` | Generate ONLY the evidence-selected canonical project-root `cwd` after T0/H3-B capability proof and align the cwd legacy-shape recognition/tests. The generator `type`/`transport` discriminator reconciliation is split out to `056.026-T` (generation)/`056.027-T` (delivery), not this task → `056.008-T` |
 | Managed MCP config discriminator (T2g, conditional on discriminator mismatch) | `src/workspace/mcp_config.rs::managed_server_value` | Reconcile the generator `type`/`transport` stdio discriminator to the exact CLI-honored field UNCONDITIONALLY when exact-CLI evidence shows a mismatch (else `not-needed`); own ONLY the discriminator field + legacy-shape recognition (`is_exact_legacy_shape`); depend only on `056.019-T` → `056.026-T` |
 | Existing-install discriminator delivery (T2h, conditional on discriminator mismatch) | `src/main.rs::cmd_upgrade`, managed-config typed APIs | Compose `056.017-T` typed actions + `056.018-T` recovery handles to refresh ONLY the marked entry's stdio discriminator field; depend on `056.026-T`/`056.018-T`, not on `056.008-T`/`056.009-T` → `056.027-T` |
-| Safe no-follow primitive decision (conditional H0a/H3-B1) | NEW `docs/decisions/YYYY-MM-DD-safe-no-follow-config-mutation-primitive.md` (parallel decision `056.017 → 056.024 → 056.018`, parallel to `056.017 → 056.008`) | Close `not-needed` when no managed-config mutation/recovery is selected; otherwise decide an MSRV-1.75, safe-call-site, no-follow/capability-based mutation primitive without relaxing `#![forbid(unsafe_code)]`; evaluate a narrowly justified safe dependency vs a std-only contract, prove with a minimal PoC, and record the decision in the NEW artifact (do not rewrite the OS-232 deliberation) or block 056.018/shipment → `056.024-T` |
+| Safe no-follow primitive decision (conditional H0a/H3-B1) | NEW `docs/decisions/YYYY-MM-DD-safe-no-follow-config-mutation-primitive.md` (parallel decision `056.017 → 056.024 → 056.018`, parallel to `056.017 → 056.008`) | Close `not-needed` when no managed-config mutation/recovery is selected; otherwise decide an MSRV-1.88, safe-call-site, no-follow/capability-based mutation primitive without relaxing `#![forbid(unsafe_code)]`; evaluate a narrowly justified safe dependency vs a std-only contract, prove with a minimal PoC, and record the decision in the NEW artifact (do not rewrite the OS-232 deliberation) or block 056.018/shipment → `056.024-T` |
 | Contained recovery primitive (conditional H0a/H3-B1) | selected primitive in `graphtor_core::path` (e.g. `src/path/handle.rs`) + lazy accessor in `src/workspace/paths.rs` | Implement ONLY the `056.024-T`-selected no-follow/reparse-safe primitive for I/O, exclusive owner-protected artifacts, and exact restore; assert no std handle-level no-follow, take no `unsafe` exemption, make no managed-config/install/uninstall/doctor edits → `056.018-T` |
 | Existing-install cwd/recovery delivery (T2e, conditional H0a/H3-B1) | `src/main.rs::cmd_upgrade`, managed-config typed APIs | Deliver the cwd/recovery refresh to existing installs: refresh marked/exact-legacy entries and expose typed text/JSON action + recovery metadata; preserve collision/non-JSON bytes and Minimal footprint. Discriminator existing-install delivery is `056.027-T`, not this task → `056.009-T` |
 | Advisory lock characterization + implementation (conditional H0b) | `src/lock.rs` shared `AdvisoryLock` used by Database and Workspace locks | Passing characterization → `056.016-T`; one conservative high-resolution/boot-aware policy plus task-local red/green and legacy recovery → `056.007-T` |
@@ -1261,7 +1261,7 @@ than restate every clause:
   phased release units: PHASE 1 evidence foundation (shipment `049-S`), PHASE 1.5
   the unconditional evidence-infrastructure unit (`056.028` standalone-probe CI,
   assembled by Stage after `049-S` closes and before any remedy shipment), PHASE
-  1.6 the Rust 1.75 compatibility and declaration unit (shipment `053-S`, with
+  1.6 the Rust 1.88 MSRV compatibility and declaration unit (shipment `053-S`, with
   `056.029` followed by `056.030`/`056.031`/`056.032`/`056.033`, ordered before
   `052-S`), PHASE 2 selected remediation units, and PHASE 3 final
   acceptance/docs. The authoritative PHASE 1.5 edge is
@@ -1405,7 +1405,7 @@ shipment-interface re-probe rule; see the Authoritative task ordering above.
   `056.021-T`.
 * `056.024-T` (retained, moved) — bounded decision/spike that closes
   `not-needed` when no managed-config mutation/recovery is selected, otherwise
-  selects an MSRV-1.75 safe no-follow config-mutation primitive and records it in
+  selects an MSRV-1.88 safe no-follow config-mutation primitive and records it in
   a NEW `docs/decisions/` artifact (or blocks `056.018`/shipment). Corrected DAG:
   after `056.017`, before `056.018` (parallel to `056.017 → 056.008`); it gates
   only `056.018`/shipment, never `056.008` cwd generation or `056.026`
@@ -2177,7 +2177,7 @@ and posture-classification context.
     replacement; ActionResult: **planned** (or **abandoned** if H0c is not
     evidenced).
 * ProposedAction (conditional, T2i safe no-follow primitive decision — `056.024-T`): decide an
-  MSRV-1.75, safe-call-site, no-follow/capability-based file-mutation primitive
+  MSRV-1.88, safe-call-site, no-follow/capability-based file-mutation primitive
   for the sensitive recovery path without relaxing `#![forbid(unsafe_code)]`;
   compare a narrowly justified safe dependency against a std-only contract and
   prove the choice with a minimal PoC.
@@ -2415,7 +2415,7 @@ closed all consensus P1/P2 findings in-artifact; residual items are P3 advisorie
 carried for Ship execution. **Counts (durable snapshot): P0 = 0, P1 = 0, P2 = 0
 (all prior P2 remediated), P3 = several advisories** (prefer targeted diagnostics
 over broad logging; keep the standalone probe crate out of the production
-dependency graph; preserve MSRV `cargo +1.75.0` on any dependency change). The
+dependency graph; preserve root MSRV `cargo +1.88.0` and standalone probe MSRV `cargo +1.75.0` on any dependency change). The
 fail-closed H3-B rule stands: an inconclusive `056.019-T` verdict moves it to
 `blocked` and blocks `049-S` closure pending a named bounded Stage follow-up.
 
