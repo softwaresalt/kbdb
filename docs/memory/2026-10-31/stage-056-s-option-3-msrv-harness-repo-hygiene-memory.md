@@ -21,7 +21,7 @@ Invoked by `_Orchestrator` under P-017 Dark Factory Mode (`DARK_MODE_ACTIVE = tr
    * `INDEX_SYNC_OK`: Initial sync indexed 550 artifacts; end-of-session sync indexed 531 artifacts (`0` parse failures).
 2. **Step 0 — Crash-Resumption & Hook Poll**:
    * `backlogit checkpoint list`: 23 checkpoints, all `status: resolved`, `needs_quarantine: 0`, `quarantined: 0` (zero-candidate normal startup).
-   * `backlogit hooks poll --consumer-id stage`: acknowledged processed concrete events through `seq: 1298`.
+   * `backlogit hooks poll --consumer-id stage`: acknowledged processed concrete events through `seq: 1317`.
 3. **Step 1 — Triage, Abandonment, Deliberation Retirement & P-021 C5/C6 Obligations**:
    * **Deliverable A**: Abandoned `F1CE20EC` via `backlogit stash archive F1CE20EC` per explicit operator directive.
    * **Deliverable B**: Appended Stage closure comments to `003-DL` (`057-F` / `050-S`) and `004-DL` (`060-F` / `054-S`..`055-S`), moved both `queued -> active -> done`, and archived them to `.backlogit/archive/003-DL.md` and `.backlogit/archive/004-DL.md`.
@@ -40,19 +40,19 @@ Invoked by `_Orchestrator` under P-017 Dark Factory Mode (`DARK_MODE_ACTIVE = tr
      * `061.003-T` (`Size: S | Complexity: low`): `.github/agents/_orchestrator.agent.md`, `.github/instructions/adversarial-review.instructions.md` (`3FFE51B4`)
      * `061.004-T` (`Size: XS | Complexity: trivial`): `.github/instructions/backlogit-sql-schema.instructions.md`, `.autoharness/workspace-profile.yaml` (`1074A164`, `358A5E68`)
      * `061.005-T` (`Size: S | Complexity: low`, depends on `061.002-T,061.003-T,061.004-T`): `.autoharness/config.yaml`, `.autoharness/harness-manifest.yaml` (`3FFE51B4`, `358A5E68`, `1074A164`)
-     * `061.006-T` (`Size: XS | Complexity: trivial`): `.gitignore` (`C365AB98`)
+     * `061.006-T` (`Size: XS | Complexity: trivial`): `.gitignore` (`C365AB98`, `AF676684`)
      * `061.007-T` (`Size: XS | Complexity: trivial`): `scripts/git_commands.py`, `scripts/run_git_commands.sh` (`CCAC612D`)
    * Note on sizing metadata: `.backlogit/header-def.yaml` in this workspace does not define `size` or `complexity` fields on `task` (`artifact type "task" does not define a size/complexity field`); per the Harvest Structured-Emission Capability Gate, enum-validated `Size: ... | Complexity: ...` metadata is embedded at the start of every task description.
 6. **Step 5.5 — Shipment Assembly (Mode H)**:
    * Verified `056-S` had zero prior allocation.
-   * Assembled fully-covered-root shipment `056-S` (`status: queued`) with `custom_fields.items`: `["061-F", "061.001-T", "061.002-T", "061.003-T", "061.004-T", "061.005-T", "061.006-T", "061.007-T"]`.
+   * Assembled fully-covered-root shipment `056-S` (`status: queued`) with `custom_fields.items`: `["061-F", "061.001-T", "061.002-T", "061.003-T", "061.004-T", "061.005-T", "061.006-T", "061.007-T"]`, and explicit sequencing edge `dependencies: ["055-S"]` (`backlogit dep add 056-S 055-S --type blocks`).
 7. **Step 5.6 — Stash Archival**:
-   * Archived all 28 Batch 1 stash entries (`F1CE20EC`, `C365AB98`, `3FFE51B4`, `B883681D`, `B8C0851E`, `CCF0F0CE`, `8C2E313D`, `CCAC612D`, `BAD41DF2`, `8AFB7B3A`, `67BA0629`, `1074A164`, `7A883184`, `8E8C6272`, `81588CD4`, `D948EC0B`, `9A31F048`, `84CA0D08`, `1FF1BDC0`, `D9CB4ACF`, `2EFFA000`, `80083AF8`, `55AC021B`, `8C8491A4`, `890D4468`, `358A5E68`, `906BA4E3`, `0E67835A`).
+   * Archived all 29 Batch 1 + Step 1.5 follow-up stash entries (`F1CE20EC`, `C365AB98`, `3FFE51B4`, `B883681D`, `B8C0851E`, `CCF0F0CE`, `8C2E313D`, `CCAC612D`, `BAD41DF2`, `8AFB7B3A`, `67BA0629`, `1074A164`, `7A883184`, `8E8C6272`, `81588CD4`, `D948EC0B`, `9A31F048`, `84CA0D08`, `1FF1BDC0`, `D9CB4ACF`, `2EFFA000`, `80083AF8`, `55AC021B`, `8C8491A4`, `890D4468`, `358A5E68`, `906BA4E3`, `0E67835A`, `AF676684`).
    * Verified `.backlogit/stash.jsonl` retains **only** the 8 excluded entries: Stream A (`0BD7D83C`, `6187B1EE`, `578B8678`) and Stream C (`ECD56875`, `AC2E02C0`, `787C92F9`, `8EFB7D92`, `FF798FA3`).
 
 ## Handoff Note on `.autoharness/config.yaml` (P-010 / P-011)
 
-Per P-010 Role Boundary (`Source code: Write, modify, or delete source, test, or config files -> Forbidden`), Stage did not stage or commit `.autoharness/config.yaml` on `main`. Its uncommitted operator diff (`model_routing.orchestrator: gemini-4-argon / google / high / long_context`) remains preserved in the working tree and is fully specified in `061.005-T`. Before `_Ship` runs its P-011 Branch Creation Gate, `_Orchestrator` or `_Ship` should stash `.autoharness/config.yaml` (`git stash push -m "orchestrator-route-061.005-T" -- .autoharness/config.yaml`) and pop it onto the `056-S` feature branch for `061.005-T`.
+Per P-010 Role Boundary (`Source code: Write, modify, or delete source, test, or config files -> Forbidden`), Stage did not stage or commit `.autoharness/config.yaml` on `main`. Its uncommitted operator diff (`model_routing.orchestrator: gemini-4-argon / google / high / long_context`) remains preserved in `git stash` (`stash@{0}: orchestrator-route-061.005-T`) and is fully specified in `061.005-T`. When `_Ship` executes `061.005-T` on the `056-S` feature branch, `_Ship` applies `stash@{0}` onto the feature branch.
 
 ## Step 1.5 Review Remediation Pass (P-010)
 
@@ -60,3 +60,15 @@ During Step 1.5 publication review of `c010cbda3cd2fbcab8c11bd58adb2d2b0ab04c11`
 
 1. Updated `docs/decisions/2026-10-31-option-3-msrv-harness-repo-hygiene-deliberation.md` so Option A's effort estimate (`7 width-isolated tasks, <2h each`), the `Per-Entry Disposition Matrix` task mappings (`358A5E68 -> 061.001-T, 061.002-T, 061.004-T, 061.005-T`; `0E67835A -> 061.002-T`; `3FFE51B4 -> 061.003-T, 061.005-T`; `1074A164 -> 061.004-T, 061.005-T`; `C365AB98 -> 061.006-T`; `CCAC612D -> 061.007-T`), Risk 1 (`Task 061.005-T`), and Risk 2 (centralized `.autoharness/harness-manifest.yaml` checksum ownership in `061.005-T`) match the 7-task hierarchy.
 2. Updated `.backlogit/queue/061.005-T.md` (`custom_fields.source_stash_ids: 3FFE51B4,358A5E68,1074A164` and `Scope` prose) and `docs/exec-plans/2026-10-31-msrv-harness-repo-hygiene-plan.md` (explicit `Source Stash ID(s)` per unit) so stash provenance is 100% consistent across the deliberation, the exec-plan, `061-F.md`, and `061.001-T.md`..`061.007-T.md`.
+
+## Pre-Claim Sequencing & P-021 Capture `AF676684` Reconciliation Pass (P-010 / P-021 C5/C6)
+
+Following the merge of Step 1.5 publication PR #148 (`1851839c73cf11cf8a496f130bb8dd7c8d367008`), `_Orchestrator` invoked `_Stage` before `_Ship` claims `056-S` to resolve two pre-claim requirements:
+
+1. **Explicit Shipment Sequencing Edge (`UNSEQUENCED_SHIPMENT` resolution)**:
+   * Recorded `backlogit dep add 056-S 055-S --type blocks` on `.backlogit/queue/056-S.md` (`dependencies: [055-S]`).
+   * Verified `autoharness gate pipeline-topology --mode agent --shipment 056-S --phase pre_claim --json` returns `exit_code: 0`, `blocked: false`, `invalid: false`, and `message: "topology gate pass"`.
+2. **P-021 C5/C6 Reconciliation and Plan/Task Update for `AF676684` (`061.006-T`)**:
+   * Executed P-021 C5/C6 Obligation A (`CLEAN DUPLICATE SCAN`: `AF676684` complements `C365AB98` by addressing the retained `# Engram runtime data` `.engram/` trailing-slash rule) and Obligation B (reconciled `pr_number=148` from Step 1.5 publication PR #148 and `docs/memory/2026-10-31/ship-stage-056-s-publication-blocked.md`; `review_thread_id=N/A` stands for the threadless local review finding) in `docs/decisions/2026-10-31-option-3-msrv-harness-repo-hygiene-deliberation.md`.
+   * Updated `docs/exec-plans/2026-10-31-msrv-harness-repo-hygiene-plan.md` (`stash_ids`, `Problem Frame`, `Requirements Trace`, and Unit 6), `.backlogit/queue/061-F.md`, and `.backlogit/queue/061.006-T.md` (`custom_fields.source_stash_ids: C365AB98,AF676684`) so `061.006-T` replaces `.engram/` with `.engram/*` under `# Engram runtime data` AND removes the duplicate `.engram/` under `# UE`, allowing `!.engram/.version`, `!.engram/.workspace-id`, `!.engram/config.toml`, and `!.engram/registry.yaml` to match their `!` negation rules while keeping runtime children ignored.
+   * Archived `AF676684` via `backlogit stash archive AF676684` and verified `.backlogit/stash.jsonl` contains only the 8 excluded stash entries (3 Stream A + 5 Stream C).

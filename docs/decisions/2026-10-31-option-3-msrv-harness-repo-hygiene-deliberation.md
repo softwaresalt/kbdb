@@ -24,7 +24,7 @@ tags:
 
 Following the completion and archival of Feature `056-F` (`c70e59d8711b8f728398e11089240361fed38b93`) and its shipment chain (`049-S`, `054-S`, `053-S`, `052-S`, `055-S`), the backlog stash contains 36 active entries across five thematic streams, plus two completed deliberation items (`003-DL`, `004-DL`) in `.backlogit/queue/`. Under P-017 Dark Factory Mode (`DARK_MODE_ACTIVE = true`), the operator authorized Sequence Step 1 (**Batch 1: Option 3 — Streams D + E + Abandon `F1CE20EC`**), reserving Stream A (`0BD7D83C`, `6187B1EE`, `578B8678`) for Batch 2 and excluding Stream B (`059-F` and `059.001-T`..`059.014-T`), Stream C (`ECD56875`, `AC2E02C0`, `787C92F9`, `8EFB7D92`, `FF798FA3`), and externally blocked trackers (`013.008-T`, `060-F` status).
 
-Twenty-two of the 27 Stream D and Stream E stash entries carry the `DEFERRED SCOPE EXPANSION` token captured by Ship under P-021 C2. Under P-021 C6, every `DEFERRED SCOPE EXPANSION` entry must pass through Stage duplicate detection, mandatory late-identifier reconciliation, and durable deliberation before any planning or archival disposition occurs. We must also enforce strict P-010 Role Boundary separation (Stage owns `.backlogit/queue/060-F.md` planning fields and `docs/exec-plans/*.md` plan artifacts, which Ship is forbidden from modifying) and 100% non-Rust artifact-class isolation for the resulting shipment `056-S`.
+Twenty-two of the 27 initial Stream D and Stream E stash entries — plus follow-up capture `AF676684` recorded during Step 1.5 publication review of PR #148 (`23` `DEFERRED SCOPE EXPANSION` entries total) — carry the `DEFERRED SCOPE EXPANSION` token captured by Ship under P-021 C2. Under P-021 C6, every `DEFERRED SCOPE EXPANSION` entry must pass through Stage duplicate detection, mandatory late-identifier reconciliation, and durable deliberation before any planning or archival disposition occurs. We must also enforce strict P-010 Role Boundary separation (Stage owns `.backlogit/queue/060-F.md` planning fields and `docs/exec-plans/*.md` plan artifacts, which Ship is forbidden from modifying) and 100% non-Rust artifact-class isolation for the resulting shipment `056-S`.
 
 ## Research Findings
 
@@ -53,15 +53,16 @@ Twenty-two of the 27 Stream D and Stream E stash entries carry the `DEFERRED SCO
 
 ### Unconditional Duplicate Detection Scan — Obligation A
 
-Stage scanned all 36 active stash entries in `.backlogit/stash.jsonl` and all 58 archived stash entries in `.backlogit/archive/stash.jsonl`. Every one of the 22 `DEFERRED SCOPE EXPANSION` entries in Stream D and Stream E describes a distinct expansion:
+Stage scanned all active stash entries in `.backlogit/stash.jsonl` and all archived stash entries in `.backlogit/archive/stash.jsonl`. Every one of the 23 `DEFERRED SCOPE EXPANSION` entries in Stream D, Stream E, and Step 1.5 follow-up (`AF676684`) describes a distinct expansion:
 
 * `BAD41DF2` (`scripts/start.ps1.tmpl`) and `8AFB7B3A` (`scripts/start.sh.tmpl`) are sibling captures for distinct external template files, not duplicates.
 * `9A31F048`, `84CA0D08`, `1FF1BDC0`, `D9CB4ACF`, `2EFFA000`, `80083AF8`, `55AC021B`, and `8C8491A4` are distinct per-thread captures from PRs #128–#131 targeting separate metadata fields, wording claims, and source-reference lines.
-* **Outcome**: **CLEAN DUPLICATE SCAN** across all 22 `DEFERRED SCOPE EXPANSION` entries in Batch 1 (zero duplicate entries found).
+* `AF676684` (captured during Step 1.5 local review of PR #148 on `061.006-T` / Plan Unit 6) complements `C365AB98` rather than duplicating it: `C365AB98` identified the duplicate `.engram/` line under `# UE`, whereas `AF676684` identifies that the retained trailing-slash `.engram/` rule under `# Engram runtime data` causes Git to skip descending into `.engram/`, requiring replacement with `.engram/*` so child `!` negations match.
+* **Outcome**: **CLEAN DUPLICATE SCAN** across all 23 `DEFERRED SCOPE EXPANSION` entries in Batch 1 (zero duplicate entries found).
 
 ### Mandatory Late-Identifier Reconciliation — Obligation B
 
-For every `DEFERRED SCOPE EXPANSION` entry in Batch 1 carrying one or more `N/A` source-reference fields, Stage searched the Ship-owned closure and residual-risk records (`docs/closure/`, `docs/memory/compacted/`) and recorded the reconciliation outcome:
+For every `DEFERRED SCOPE EXPANSION` entry in Batch 1 carrying one or more `N/A` source-reference fields, Stage searched the Ship-owned closure and residual-risk records (`docs/closure/`, `docs/memory/compacted/`, `docs/memory/2026-10-31/`) and recorded the reconciliation outcome:
 
 | Stash ID | Captured `N/A` Fields | Reconciled Identifiers & Source Record | Terminal Disposition |
 |---|---|---|---|
@@ -82,6 +83,7 @@ For every `DEFERRED SCOPE EXPANSION` entry in Batch 1 carrying one or more `N/A`
 | `890D4468` | `task_id`, `feature_id` | Reconciled `feature_id=056-F` from `049-S` / `053-S` closure context on PR `#135` (`PRRT_kwDORiB5E86xwC0a`) | `feature_id=056-F` reconciled; `task_id=N/A` stands |
 | `358A5E68` | `pr_number`, `review_thread_id` | Reconciled `pr_number=136` from `053-S` delivery PR; pre-PR local review finding had no GitHub review thread | `pr_number=136` reconciled; `review_thread_id=N/A` stands |
 | `0E67835A` | `pr_number`, `review_thread_id` | Reconciled `pr_number=145` from `055-S` Pass 1 closure context (`E5C4DFFC`); local `verify-workspace` finding had no review thread | `pr_number=145` reconciled; `review_thread_id=N/A` stands |
+| `AF676684` | `pr_number`, `review_thread_id` | Reconciled `pr_number=148` from Step 1.5 staging publication PR `#148` (`chore/stage-056-S`, `docs/memory/2026-10-31/ship-stage-056-s-publication-blocked.md`); threadless pre-PR local review finding had no GitHub review thread | `pr_number=148` reconciled; `review_thread_id=N/A` stands |
 
 *(Note: `7A883184`, `8E8C6272`, `81588CD4`, and `906BA4E3` already had all five source-ref fields populated at capture time.)*
 
@@ -94,7 +96,7 @@ For every `DEFERRED SCOPE EXPANSION` entry in Batch 1 carrying one or more `N/A`
   2. Retire completed deliberations `003-DL` and `004-DL` (`queued -> active -> done -> archived`).
   3. Apply Stage-owned planning/backlog hygiene directly in Stage where Ship is forbidden by P-010 (`docs/exec-plans/2026-08-21-mcp-serve-initialize-handshake-regression-plan.md` for `906BA4E3` and `.backlogit/queue/060-F.md` for `9A31F048`, `1FF1BDC0`, `55AC021B`, `80083AF8`).
   4. Disposition and archive moot, historical, external-repo, and optional Rust-source cosmetic captures (`7A883184`, `8E8C6272`, `81588CD4`, `D948EC0B`, `BAD41DF2`, `8AFB7B3A`, `890D4468`, `84CA0D08`, `D9CB4ACF`, `2EFFA000`, `8C8491A4`, `8C2E313D`, `67BA0629`, `CCF0F0CE`, `B883681D`, `B8C0851E`) via `backlogit stash archive`.
-  5. Plan, review, harvest, and assemble the 6 actionable non-Rust hygiene entries (`358A5E68`, `0E67835A`, `3FFE51B4`, `1074A164`, `C365AB98`, `CCAC612D`) into covering feature `061-F` and fully-covered-root shipment `056-S`.
+  5. Plan, review, harvest, and assemble the 7 actionable non-Rust hygiene entries (`358A5E68`, `0E67835A`, `3FFE51B4`, `1074A164`, `C365AB98`, `AF676684`, `CCAC612D`) into covering feature `061-F` and fully-covered-root shipment `056-S`.
 * **Pros**: Preserves 100% non-Rust artifact-class isolation, respects P-010 Role Boundary constraints for both Stage and Ship, resolves all 4 `autoharness verify-workspace` warnings, and leaves only the 8 excluded Stream A + Stream C stash entries active.
 * **Cons**: Requires careful coordination of the uncommitted `.autoharness/config.yaml` operator edit across the Stage-to-Ship handoff.
 * **Effort estimate**: Low–Medium (7 width-isolated tasks, `<2h` each).
@@ -121,7 +123,7 @@ For every `DEFERRED SCOPE EXPANSION` entry in Batch 1 carrying one or more `N/A`
 
 We adopt **Option A**.
 
-### Per-Entry Disposition Matrix (Batch 1: 28 Stash Entries + 2 Queue Deliberations)
+### Per-Entry Disposition Matrix (Batch 1: 29 Stash Entries + 2 Queue Deliberations)
 
 | ID | Category | Disposition & Rationale | Action |
 |---|---|---|---|
@@ -154,6 +156,7 @@ We adopt **Option A**.
 | `3FFE51B4` | Actionable Scope (`056-S`) | Reconcile model-routing config, manifest variables (`ORCHESTRATOR_*`), frontmatter, and prose across `.autoharness/config.yaml`, `.autoharness/harness-manifest.yaml`, `.github/agents/_orchestrator.agent.md`, and `.github/instructions/adversarial-review.instructions.md` | Promote to Plan (`061.003-T`, `061.005-T`) |
 | `1074A164` | Actionable Scope (`056-S`) | Update `.github/instructions/backlogit-sql-schema.instructions.md` (`stash_entries.kind` table note) to document all CLI-accepted kinds plus workspace-configured WIT types (`chore`), and update its manifest checksum in `.autoharness/harness-manifest.yaml` | Promote to Plan (`061.004-T`, `061.005-T`) |
 | `C365AB98` | Actionable Scope (`056-S`) | Remove duplicate blanket `.engram/` entry in `.gitignore` (`# UE` section) that overrides earlier `!.engram/*` negations | Promote to Plan (`061.006-T`) |
+| `AF676684` | Actionable Scope (`056-S`) | Replace retained `.engram/` directory exclusion under `# Engram runtime data` in `.gitignore` with `.engram/*` (alongside removing duplicate `.engram/` under `# UE`) so Git descends into `.engram/` to match `!.engram/.version`, `!.engram/.workspace-id`, `!.engram/config.toml`, and `!.engram/registry.yaml` while keeping runtime subdirectories ignored | Promote to Plan (`061.006-T`) |
 | `CCAC612D` | Actionable Scope (`056-S`) | Delete ad-hoc debugging helper scripts `scripts/git_commands.py` and `scripts/run_git_commands.sh` | Promote to Plan (`061.007-T`) |
 
 ## Rejected Alternatives
@@ -163,7 +166,7 @@ We adopt **Option A**.
 
 ## Unresolved Questions
 
-None. All 28 in-scope stash entries and 2 completed deliberations have deterministic dispositions grounded in repository evidence.
+None. All 29 in-scope stash entries and 2 completed deliberations have deterministic dispositions grounded in repository evidence.
 
 ## Risks and Mitigations
 
