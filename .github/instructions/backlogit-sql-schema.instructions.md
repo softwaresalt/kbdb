@@ -78,7 +78,7 @@ Explicit typed links between artifacts.
 |---|---|---|
 | `stash_id` | TEXT PK | Hex ID (e.g. `A1B2C3D4`) |
 | `priority` | TEXT | `low`, `medium`, `high`, `critical` |
-| `kind` | TEXT | `feature`, `task`, `bug`, `epic`, `unknown` |
+| `kind` | TEXT | `feature`, `task`, `bug`, `epic`, `unknown`, `spike`, `subtask`, `deliberation`, `review`, `shipment`, plus workspace-configured WIT types in `.backlogit/config.yaml` (such as `chore`) |
 | `text` | TEXT | Stash entry text |
 | `deliberation_id` | TEXT | Linked deliberation artifact ID (optional) |
 | `state` | TEXT | `active`, `harvested`, `removed` |

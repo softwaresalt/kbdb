@@ -5,9 +5,9 @@ description: "Coordinates the Stage → Ship pipeline for continuous iteration: 
 maturity: stable
 tools: vscode, execute, read, agent, edit, search, todo, memory, backlogit
 max_subagent_tier: 3
-reasoning_effort: "medium"
-model_provider: "anthropic"
-model_family: "claude-sonnet-5.5"
+reasoning_effort: "high"
+model_provider: "google"
+model_family: "gemini-4-argon"
 context_tier: "long_context"
 subagent_depth: 3
 ---
@@ -514,10 +514,10 @@ each placeholder's source, default, and fallback):
 ```yaml
 model_routing:
   orchestrator:
-    model: "claude-sonnet-5.5"
-    model_family: "claude-sonnet-5.5"
-    model_provider: "anthropic"
-    reasoning_effort: "medium"
+    model: "gemini-4-argon"
+    model_family: "gemini-4-argon"
+    model_provider: "google"
+    reasoning_effort: "high"
     context_tier: "long_context"
   tier2:
     model: "claude-sonnet-5.5"
@@ -533,8 +533,8 @@ model_routing:
     reasoning_effort: "high"
     context_tier: "long_context"
   ship:
-    model_family: "claude-sonnet-5.5"
-    model_provider: "anthropic"
+    model_family: "gpt-6.1-sol"
+    model_provider: "openai"
     reasoning_effort: "medium"
     context_tier: "long_context"
 ```

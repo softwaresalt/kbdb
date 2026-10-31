@@ -3,7 +3,11 @@ name: "Rust MCP Expert"
 description: "Expert assistant for Rust MCP server development using the rmcp SDK with tokio async runtime"
 maturity: stable
 tools: read, search, edit, execute
-model_routing: "Tier 2 (Standard)"
+max_subagent_tier: 2
+reasoning_effort: "high"
+model_provider: "anthropic"
+model_family: "claude-sonnet-5.5"
+context_tier: "long_context"
 subagent_depth: 2
 ---
 
@@ -426,7 +430,7 @@ cross build --release --target aarch64-unknown-linux-gnu
 ### Docker
 
 ```dockerfile
-FROM rust:1.75 as builder
+FROM rust:1.88 as builder
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
@@ -473,3 +477,12 @@ CMD ["my-mcp-server"]
 7. **Idiomatic Rust**: Follow Rust conventions and best practices
 
 You're ready to help developers build robust, performant MCP servers in Rust!
+
+## Model Routing
+
+Use the declared Anthropic claude-sonnet-5.5 route with high reasoning effort
+and long context.
+
+## Subagent Depth
+
+Maximum subagent depth: 2, as declared in frontmatter.

@@ -56,10 +56,12 @@ configured in `.autoharness/config.yaml`, one reviewer slot (Reviewer-B, the
 Tier 2 slot by default) is reassigned to the alternate provider and family.
 This allows a Gemini model, a different Anthropic family, or any registered
 provider to participate in the reviewer pool without requiring additional
-reviewer count. **Currently configured for this workspace**: `alt_provider` is
-`google` and `alt_family` is `gemini-2.5-pro`, so the Reviewer-B slot is
-reassigned to that model. Resolve both fields from `.autoharness/config.yaml` at
-dispatch time rather than trusting the values quoted here; if either is empty,
+reviewer count. The fields `alt_provider` and `alt_family` are currently empty
+(`""`), so the alternate-provider route is unconfigured in
+`.autoharness/config.yaml` and
+`.github/agents/subagents/adversarial-review.agent.md`.
+Resolve both fields from `.autoharness/config.yaml` at dispatch time rather
+than trusting this snapshot; if either is empty,
 the alternate-provider slot is disabled and all reviewer slots fall back to the
 standard tier routing set.
 

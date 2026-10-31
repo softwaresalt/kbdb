@@ -88,12 +88,12 @@ artifacts:
   artifact_type: config
   primitive: 3
   template: harness-config.yaml.tmpl
-  checksum: 6021164b6652936ee859ef4ba0b5e94e6b40798ee5f46d9e4f8d6ecc73cdd580
+  checksum: 1a60c923832655760ed6e1387f9ac96194ecb4cfe799c6d51dbc9280005dc88d
 - path: .github/agents/_orchestrator.agent.md
   artifact_type: agent
   primitive: 4
   template: agents/_orchestrator.agent.md.tmpl
-  checksum: b1434d95580c809bd3ecd0e1729db789abad31b4e0eb63ece0aedb90f2a29f09
+  checksum: 2d50d127edf38ee0b7eb23f7c74e091e4203cce6c43bfc9c4029df3e126597a2
 - path: .github/agents/_ship.agent.md
   artifact_type: agent
   primitive: 4
@@ -198,7 +198,7 @@ artifacts:
   artifact_type: instruction
   primitive: 7
   template: instructions/adversarial-review.instructions.md.tmpl
-  checksum: de3f8106fde6937b9b82bad3ec1f80f6b98fe767dffa7bcdcf8955b3f5ee30bd
+  checksum: eaff10801f62921c452b70ab33781fb417368c4c36ab8b78da375aaf226921b7
 - path: .github/instructions/agent-engram.instructions.md
   artifact_type: instruction
   primitive: 6
@@ -218,7 +218,7 @@ artifacts:
   artifact_type: instruction
   primitive: 6
   template: instructions/backlogit-sql-schema.instructions.md.tmpl
-  checksum: 3ebffab9b73e005e7b74c5a32ad60630c19f6127589607fb1a3ed1b252859aa7
+  checksum: 79f2d8c43df809d5895a7ead9d079d58c85ed3549610775eedf62959498c4378
 - path: .github/instructions/backlogit-yaml-header-tooling.instructions.md
   artifact_type: instruction
   primitive: 6
@@ -801,8 +801,8 @@ variables_used:
     * Missing bounds checks on slice indexing
 
     * Unvalidated external input passed to `std::process::Command`'
-  LANGUAGE_VERSION: edition 2021, rust-version 1.75
-  LANGUAGE_VERSION_DETAIL: Rust 2021 edition, rust-version 1.75
+  LANGUAGE_VERSION: edition 2021, rust-version 1.88
+  LANGUAGE_VERSION_DETAIL: Rust 2021 edition, rust-version 1.88
   LEGACY_ESCALATION_CONTEXT_TIER: ''
   LEGACY_ESCALATION_FAMILY: ''
   LEGACY_ESCALATION_PROVIDER: ''
@@ -841,9 +841,9 @@ variables_used:
   OP_UPDATE_CLI: backlogit update {id}
   OP_UPDATE_MCP: backlogit_update_item
   ORCHESTRATOR_CONTEXT_TIER: long_context
-  ORCHESTRATOR_FAMILY: claude-sonnet-5.5
-  ORCHESTRATOR_PROVIDER: anthropic
-  ORCHESTRATOR_REASONING_EFFORT: medium
+  ORCHESTRATOR_FAMILY: gemini-4-argon
+  ORCHESTRATOR_PROVIDER: google
+  ORCHESTRATOR_REASONING_EFFORT: high
   PACK_REGISTRY_PATH: templates/packs/capability-pack-registry.yaml
   PATTERN_KEY: windows
   PERFORMANCE_RULES: '* Prefer `&str` over `String` in function parameters

@@ -3,7 +3,7 @@ generated_at: '2026-10-26T17:19:00Z'
 workspace_path: C:\Source\GitHub\kbdb
 languages:
   primary: Rust
-  version: edition 2021, rust-version 1.75
+  version: edition 2021, rust-version 1.88
   secondary:
   - Python
 frameworks:
