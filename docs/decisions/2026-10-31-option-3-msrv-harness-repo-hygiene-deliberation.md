@@ -7,6 +7,8 @@ decision_status: "decided"
 promoted_to: "plan"
 linked_artifacts:
   - "docs/exec-plans/2026-10-31-msrv-harness-repo-hygiene-plan.md"
+  - ".backlogit/queue/061-F.md"
+  - ".backlogit/queue/056-S.md"
   - ".backlogit/queue/060-F.md"
   - ".backlogit/archive/003-DL.md"
   - ".backlogit/archive/004-DL.md"
@@ -30,7 +32,7 @@ Twenty-two of the 27 Stream D and Stream E stash entries carry the `DEFERRED SCO
 
 * **Level-1 ID collision prevention (`docs/compound/backlogit-level1-id-collision-across-parent-types.md`)**: `backlogit` shares the `{NNN}` prefix across `feature` and `chore` parents that spawn `{NNN}.{nnn}-T` children. Because `max(feature) = 060` (`060-F`) exceeds `max(chore) = 043` (`043-C`), creating a task-spawning parent with `--type feature` (`061-F`) guarantees zero `{NNN}` collision across queue and archive.
 * **Harness manifest drift and checksums (`docs/compound/workflow-issues/harness-manifest-stale-paths-hide-drift-2026-07-09.md`)**: `.autoharness/harness-manifest.yaml` records both template variables (`LANGUAGE_VERSION`, `LANGUAGE_VERSION_DETAIL`, `ORCHESTRATOR_*`) and per-file SHA-256 checksums for rendered artifacts. Updating managed files requires refreshing their checksums in `.autoharness/harness-manifest.yaml` so `autoharness verify-workspace` stays clean.
-* **Dirty working-tree preservation (`docs/compound/workflow-issues/post-merge-branch-preserve-dirty-file-2026-08-29.md`)**: `.autoharness/config.yaml` currently carries an intentional uncommitted operator edit setting `model_routing.orchestrator` to `gemini-4-argon` / `google` / `high` / `long_context`. Stage must not stage or commit `.autoharness/config.yaml` on `main` (P-010 Role Boundary); instead, Stage commits only Stage-owned paths and documents the exact target config diff for Ship's `3FFE51B4` task.
+* **Dirty working-tree preservation (`docs/compound/workflow-issues/post-merge-branch-preserve-dirty-file-2026-08-29.md`)**: `.autoharness/config.yaml` currently carries an intentional uncommitted operator edit setting `model_routing.orchestrator` to `gemini-4-argon` / `google` / `high` / `long_context`. Stage must not stage or commit `.autoharness/config.yaml` on `main` (P-010 Role Boundary); instead, Stage commits only Stage-owned paths and documents the exact target config diff for Ship's `3FFE51B4` task (`061.005-T`).
 
 ### Codebase and Verification Evidence
 
@@ -95,7 +97,7 @@ For every `DEFERRED SCOPE EXPANSION` entry in Batch 1 carrying one or more `N/A`
   5. Plan, review, harvest, and assemble the 6 actionable non-Rust hygiene entries (`358A5E68`, `0E67835A`, `3FFE51B4`, `1074A164`, `C365AB98`, `CCAC612D`) into covering feature `061-F` and fully-covered-root shipment `056-S`.
 * **Pros**: Preserves 100% non-Rust artifact-class isolation, respects P-010 Role Boundary constraints for both Stage and Ship, resolves all 4 `autoharness verify-workspace` warnings, and leaves only the 8 excluded Stream A + Stream C stash entries active.
 * **Cons**: Requires careful coordination of the uncommitted `.autoharness/config.yaml` operator edit across the Stage-to-Ship handoff.
-* **Effort estimate**: Low–Medium (5 width-isolated tasks, `<2h` each).
+* **Effort estimate**: Low–Medium (7 width-isolated tasks, `<2h` each).
 * **Fit**: Complete alignment with operator directives and P-010/P-015/P-017/P-021 governance.
 
 ### Option B: Include Optional Rust-Source F6 Doc Comment Edits (`B883681D`, `B8C0851E`) and Historical Closure Rewrites in `056-S`
@@ -147,12 +149,12 @@ We adopt **Option A**.
 | `CCF0F0CE` | Historical Ship Memory | Optional pass-count wording note on Ship-authored `docs/memory/2026-08-17/047-s-session-closure-memory.md`; Stage is forbidden by P-010 from mutating Ship's memory and `047-S` is long closed/compacted | Dispositioned not-needed; archive via `backlogit stash archive CCF0F0CE` |
 | `B883681D` | Optional Rust Cosmetic | Optional cosmetic F6 cross-reference in `src/main.rs` doc comment; F6 is already documented across 5 surfaces and touching `src/main.rs` would violate 100% non-Rust artifact-class isolation | Dispositioned not-needed; archive via `backlogit stash archive B883681D` |
 | `B8C0851E` | Optional Rust Cosmetic | Optional F6 "overlapping guard lifetimes" wording across `src/db/store.rs` and design doc; explicitly noted in `047-S` closure as non-convergent diminishing returns for a documented best-effort residual and would touch Rust source | Dispositioned not-needed; archive via `backlogit stash archive B8C0851E` |
-| `358A5E68` | Actionable Scope (`056-S`) | Align stale Rust `1.75` MSRV declarations to `1.88` in `docs/developer-guide.md`, `.autoharness/workspace-profile.yaml`, `.autoharness/harness-manifest.yaml`, `.github/instructions/rust-mcp-server.instructions.md`, and `.github/agents/subagents/rust-mcp-expert.agent.md` | Promote to Plan (`061.001-T`, `061.002-T`, `061.003-T`) |
+| `358A5E68` | Actionable Scope (`056-S`) | Align stale Rust `1.75` MSRV declarations to `1.88` in `docs/developer-guide.md`, `.autoharness/workspace-profile.yaml`, `.autoharness/harness-manifest.yaml`, `.github/instructions/rust-mcp-server.instructions.md`, and `.github/agents/subagents/rust-mcp-expert.agent.md` | Promote to Plan (`061.001-T`, `061.002-T`, `061.004-T`, `061.005-T`) |
 | `0E67835A` | Actionable Scope (`056-S`) | Complete missing required frontmatter (`max_subagent_tier`, `model_family`, `model_provider`, `reasoning_effort`, `context_tier`) and replace unknown `model_routing` key with `## Model Routing` section in `.github/agents/subagents/rust-mcp-expert.agent.md` | Promote to Plan (`061.002-T`) |
-| `3FFE51B4` | Actionable Scope (`056-S`) | Reconcile model-routing config, manifest variables (`ORCHESTRATOR_*`), frontmatter, and prose across `.autoharness/config.yaml`, `.autoharness/harness-manifest.yaml`, `.github/agents/_orchestrator.agent.md`, and `.github/instructions/adversarial-review.instructions.md` | Promote to Plan (`061.003-T`, `061.004-T`) |
-| `1074A164` | Actionable Scope (`056-S`) | Update `.github/instructions/backlogit-sql-schema.instructions.md` (`stash_entries.kind` table note) to document all CLI-accepted kinds plus workspace-configured WIT types (`chore`) | Promote to Plan (`061.004-T`) |
-| `C365AB98` | Actionable Scope (`056-S`) | Remove duplicate blanket `.engram/` entry in `.gitignore` (`# UE` section) that overrides earlier `!.engram/*` negations | Promote to Plan (`061.005-T`) |
-| `CCAC612D` | Actionable Scope (`056-S`) | Delete ad-hoc debugging helper scripts `scripts/git_commands.py` and `scripts/run_git_commands.sh` | Promote to Plan (`061.005-T`) |
+| `3FFE51B4` | Actionable Scope (`056-S`) | Reconcile model-routing config, manifest variables (`ORCHESTRATOR_*`), frontmatter, and prose across `.autoharness/config.yaml`, `.autoharness/harness-manifest.yaml`, `.github/agents/_orchestrator.agent.md`, and `.github/instructions/adversarial-review.instructions.md` | Promote to Plan (`061.003-T`, `061.005-T`) |
+| `1074A164` | Actionable Scope (`056-S`) | Update `.github/instructions/backlogit-sql-schema.instructions.md` (`stash_entries.kind` table note) to document all CLI-accepted kinds plus workspace-configured WIT types (`chore`), and update its manifest checksum in `.autoharness/harness-manifest.yaml` | Promote to Plan (`061.004-T`, `061.005-T`) |
+| `C365AB98` | Actionable Scope (`056-S`) | Remove duplicate blanket `.engram/` entry in `.gitignore` (`# UE` section) that overrides earlier `!.engram/*` negations | Promote to Plan (`061.006-T`) |
+| `CCAC612D` | Actionable Scope (`056-S`) | Delete ad-hoc debugging helper scripts `scripts/git_commands.py` and `scripts/run_git_commands.sh` | Promote to Plan (`061.007-T`) |
 
 ## Rejected Alternatives
 
@@ -166,6 +168,6 @@ None. All 28 in-scope stash entries and 2 completed deliberations have determini
 ## Risks and Mitigations
 
 * **Risk 1 — Dirty `.autoharness/config.yaml` working-tree file during Ship branch creation (P-011)**:
-  * *Mitigation*: Stage commits only Stage-owned paths (`.backlogit/`, `docs/decisions/`, `docs/exec-plans/`, `docs/memory/`) on `main` and leaves `.autoharness/config.yaml` untouched in the working tree. Task `061.003-T` records the exact target `.autoharness/config.yaml` diff (`orchestrator: gemini-4-argon / google / high / long_context`) so Orchestrator/Ship can either stash-and-pop `.autoharness/config.yaml` onto the feature branch or revert-and-reapply it on the feature branch to satisfy P-011 cleanly.
+  * *Mitigation*: Stage commits only Stage-owned paths (`.backlogit/`, `docs/decisions/`, `docs/exec-plans/`, `docs/memory/`) on `main` and leaves `.autoharness/config.yaml` untouched in the working tree. Task `061.005-T` records the exact target `.autoharness/config.yaml` diff (`orchestrator: gemini-4-argon / google / high / long_context`) so Orchestrator/Ship can either stash-and-pop `.autoharness/config.yaml` onto the feature branch or revert-and-reapply it on the feature branch to satisfy P-011 cleanly.
 * **Risk 2 — `.autoharness/harness-manifest.yaml` checksum drift after editing managed `.github/` or `.autoharness/` files**:
-  * *Mitigation*: Every task that modifies a manifest-tracked file updates its SHA-256 `checksum` in `.autoharness/harness-manifest.yaml`, and the final task runs `autoharness verify-workspace --workspace C:\Source\GitHub\kbdb --json` to prove `strict_schema_blockers: []`, `blockers: []`, and `warning_instances: 0`.
+  * *Mitigation*: Task `061.005-T` (which depends on `061.002-T`, `061.003-T`, and `061.004-T`) owns `.autoharness/harness-manifest.yaml`, updates the SHA-256 checksums for all modified manifest-tracked files (`.autoharness/config.yaml`, `.github/agents/_orchestrator.agent.md`, `.github/instructions/adversarial-review.instructions.md`, and `.github/instructions/backlogit-sql-schema.instructions.md`), and runs `autoharness verify-workspace --workspace C:\Source\GitHub\kbdb --json` to prove `strict_schema_blockers: []`, `blockers: []`, and `warning_instances: 0`.

@@ -60,6 +60,7 @@ Every unit satisfies the 2-Hour Rule (`1` or `2` files, strictly `< 3` files), 1
 
 ### Unit 1: Align Rust 1.88 MSRV in Developer Guide and Rust MCP Server Instructions (`061.001-T`)
 
+* **Source Stash ID(s)**: `358A5E68`
 * **Domain / Width**: Documentation (`docs/`, `.github/instructions/`)
 * **Size / Complexity**: `size: XS`, `complexity: trivial`
 * **Execution Posture**: `characterization-first`
@@ -74,6 +75,7 @@ Every unit satisfies the 2-Hour Rule (`1` or `2` files, strictly `< 3` files), 1
 
 ### Unit 2: Repair Frontmatter Conformity and MSRV Example in Rust MCP Expert Subagent (`061.002-T`)
 
+* **Source Stash ID(s)**: `0E67835A`, `358A5E68`
 * **Domain / Width**: Prompt / Agent Metadata (`.github/agents/subagents/`)
 * **Size / Complexity**: `size: XS`, `complexity: low`
 * **Execution Posture**: `characterization-first`
@@ -88,6 +90,7 @@ Every unit satisfies the 2-Hour Rule (`1` or `2` files, strictly `< 3` files), 1
 
 ### Unit 3: Reconcile Model-Routing Frontmatter and Prose in Orchestrator Agent and Adversarial Review Instructions (`061.003-T`)
 
+* **Source Stash ID(s)**: `3FFE51B4`
 * **Domain / Width**: Prompt / Instruction Metadata (`.github/agents/`, `.github/instructions/`)
 * **Size / Complexity**: `size: S`, `complexity: low`
 * **Execution Posture**: `characterization-first`
@@ -105,6 +108,7 @@ Every unit satisfies the 2-Hour Rule (`1` or `2` files, strictly `< 3` files), 1
 
 ### Unit 4: Update Backlogit SQL Schema Kind Documentation and Workspace Profile MSRV (`061.004-T`)
 
+* **Source Stash ID(s)**: `1074A164`, `358A5E68`
 * **Domain / Width**: Harness Instructions & Profile Metadata (`.github/instructions/`, `.autoharness/`)
 * **Size / Complexity**: `size: XS`, `complexity: trivial`
 * **Execution Posture**: `characterization-first`
@@ -119,6 +123,7 @@ Every unit satisfies the 2-Hour Rule (`1` or `2` files, strictly `< 3` files), 1
 
 ### Unit 5: Synchronize Harness Config and Manifest Variables and Checksums (`061.005-T`)
 
+* **Source Stash ID(s)**: `3FFE51B4`, `358A5E68`, `1074A164`
 * **Domain / Width**: Harness Configuration & Manifest (`.autoharness/`)
 * **Size / Complexity**: `size: S`, `complexity: low`
 * **Execution Posture**: `characterization-first`
@@ -138,6 +143,7 @@ Every unit satisfies the 2-Hour Rule (`1` or `2` files, strictly `< 3` files), 1
 
 ### Unit 6: Remove Duplicate Blanket `.engram/` Ignore in `.gitignore` (`061.006-T`)
 
+* **Source Stash ID(s)**: `C365AB98`
 * **Domain / Width**: Repository Git Configuration (`.gitignore`)
 * **Size / Complexity**: `size: XS`, `complexity: trivial`
 * **Execution Posture**: `test-first` (verify `git check-ignore -v .engram/config.toml` before and after)
@@ -150,6 +156,7 @@ Every unit satisfies the 2-Hour Rule (`1` or `2` files, strictly `< 3` files), 1
 
 ### Unit 7: Remove Ad-Hoc Debugging Helper Scripts (`061.007-T`)
 
+* **Source Stash ID(s)**: `CCAC612D`
 * **Domain / Width**: Repository Scripts Hygiene (`scripts/`)
 * **Size / Complexity**: `size: XS`, `complexity: trivial`
 * **Execution Posture**: `characterization-first`

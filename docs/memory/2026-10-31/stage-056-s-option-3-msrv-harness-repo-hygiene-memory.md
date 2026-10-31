@@ -39,7 +39,7 @@ Invoked by `_Orchestrator` under P-017 Dark Factory Mode (`DARK_MODE_ACTIVE = tr
      * `061.002-T` (`Size: XS | Complexity: low`): `.github/agents/subagents/rust-mcp-expert.agent.md` (`0E67835A`, `358A5E68`)
      * `061.003-T` (`Size: S | Complexity: low`): `.github/agents/_orchestrator.agent.md`, `.github/instructions/adversarial-review.instructions.md` (`3FFE51B4`)
      * `061.004-T` (`Size: XS | Complexity: trivial`): `.github/instructions/backlogit-sql-schema.instructions.md`, `.autoharness/workspace-profile.yaml` (`1074A164`, `358A5E68`)
-     * `061.005-T` (`Size: S | Complexity: low`, depends on `061.002-T,061.003-T,061.004-T`): `.autoharness/config.yaml`, `.autoharness/harness-manifest.yaml` (`3FFE51B4`, `358A5E68`)
+     * `061.005-T` (`Size: S | Complexity: low`, depends on `061.002-T,061.003-T,061.004-T`): `.autoharness/config.yaml`, `.autoharness/harness-manifest.yaml` (`3FFE51B4`, `358A5E68`, `1074A164`)
      * `061.006-T` (`Size: XS | Complexity: trivial`): `.gitignore` (`C365AB98`)
      * `061.007-T` (`Size: XS | Complexity: trivial`): `scripts/git_commands.py`, `scripts/run_git_commands.sh` (`CCAC612D`)
    * Note on sizing metadata: `.backlogit/header-def.yaml` in this workspace does not define `size` or `complexity` fields on `task` (`artifact type "task" does not define a size/complexity field`); per the Harvest Structured-Emission Capability Gate, enum-validated `Size: ... | Complexity: ...` metadata is embedded at the start of every task description.
@@ -53,3 +53,10 @@ Invoked by `_Orchestrator` under P-017 Dark Factory Mode (`DARK_MODE_ACTIVE = tr
 ## Handoff Note on `.autoharness/config.yaml` (P-010 / P-011)
 
 Per P-010 Role Boundary (`Source code: Write, modify, or delete source, test, or config files -> Forbidden`), Stage did not stage or commit `.autoharness/config.yaml` on `main`. Its uncommitted operator diff (`model_routing.orchestrator: gemini-4-argon / google / high / long_context`) remains preserved in the working tree and is fully specified in `061.005-T`. Before `_Ship` runs its P-011 Branch Creation Gate, `_Orchestrator` or `_Ship` should stash `.autoharness/config.yaml` (`git stash push -m "orchestrator-route-061.005-T" -- .autoharness/config.yaml`) and pop it onto the `056-S` feature branch for `061.005-T`.
+
+## Step 1.5 Review Remediation Pass (P-010)
+
+During Step 1.5 publication review of `c010cbda3cd2fbcab8c11bd58adb2d2b0ab04c11`, `_Orchestrator` routed Stage-owned planning/deliberation review findings back to `_Stage`:
+
+1. Updated `docs/decisions/2026-10-31-option-3-msrv-harness-repo-hygiene-deliberation.md` so Option A's effort estimate (`7 width-isolated tasks, <2h each`), the `Per-Entry Disposition Matrix` task mappings (`358A5E68 -> 061.001-T, 061.002-T, 061.004-T, 061.005-T`; `0E67835A -> 061.002-T`; `3FFE51B4 -> 061.003-T, 061.005-T`; `1074A164 -> 061.004-T, 061.005-T`; `C365AB98 -> 061.006-T`; `CCAC612D -> 061.007-T`), Risk 1 (`Task 061.005-T`), and Risk 2 (centralized `.autoharness/harness-manifest.yaml` checksum ownership in `061.005-T`) match the 7-task hierarchy.
+2. Updated `.backlogit/queue/061.005-T.md` (`custom_fields.source_stash_ids: 3FFE51B4,358A5E68,1074A164` and `Scope` prose) and `docs/exec-plans/2026-10-31-msrv-harness-repo-hygiene-plan.md` (explicit `Source Stash ID(s)` per unit) so stash provenance is 100% consistent across the deliberation, the exec-plan, `061-F.md`, and `061.001-T.md`..`061.007-T.md`.
