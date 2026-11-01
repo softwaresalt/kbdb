@@ -63,3 +63,21 @@ branch: chore/stage-058-S
 * Leaf reviewers will read a locally materialized authoritative diff; terminal
   execution and nested delegation are not required of them.
 * Commit this recovery evidence before reviewing the final publication HEAD.
+
+## Harness-ready republication pass
+
+* Scope: publish Stage commit `6c5f667f03c4d03e1011ba3e80c179bad9aabe7b`
+  through `chore/stage-058-S`; no shipment or task execution is authorized.
+* Fresh workspace verification reports `strict_schema_blockers: []`.
+* Full checkpoint enumeration confirms zero active records, zero quarantined
+  records, and zero records needing quarantine; backlog index sync succeeded.
+* The worktree was clean at the supplied Stage commit with only one worktree.
+* This pass publishes Stage's harness labels, red-phase command metadata, and
+  scaffolded feature metadata; it does not validate implementation completion.
+* Commit this continuity update before local report-only review. Reviewers receive
+  the authoritative diff and changed files without terminal or nested agent use.
+* Full local build is not applicable: planning, backlog, and documentation only.
+* Preserve shipment `058-S` and its eight tasks queued for Orchestrator Step 2.
+* Pending gates: current-HEAD local review, CI, Copilot completion, all five
+  readiness checks, merge-commit settings, and independent merge confirmation.
+* No deferred scope expansion has been captured during this pass.
