@@ -138,8 +138,9 @@ branch: chore/stage-058-S
 
 * Scope: publish Stage commit `8d19420560a43799dbaf1b91f7380c29772f461c`
   through `chore/stage-058-S` for Orchestrator Step 1.5 only.
-* Stage reconciled and retired PR 158 captures `CB22058F`, `EFB90085`, and
-  `A9F87316`; this pass publishes those changes without editing Stage planning.
+* Stage initially reconciled and retired PR 158 captures `CB22058F`,
+  `EFB90085`, and `A9F87316`. Later remediation restored `EFB90085` as an
+  active separate harness/template work unit; publication does not close it.
 * Fresh configuration verification returned `strict_schema_blockers: []`.
 * Registered CLI checkpoint enumeration reports 37 resolved records, zero
   active records, zero quarantined records, and zero needing quarantine.
@@ -213,3 +214,31 @@ branch: chore/stage-058-S
   Existing Stage-owned follow-ups remain separate from publication authority.
 * After confirmed staging merge, sync `main`, delete the requested publication
   branch, verify queued remote artifacts, and return commit and PR evidence.
+
+## Recovery review follow-up handoff
+
+* Reviewed HEAD `fe2142d705227359b659943a2073437a158cba5d` received
+  `READY_WITH_FOLLOWUPS`, with zero P0/P1 findings.
+* Corrected Ship-owned historical capture-retirement prose to distinguish
+  the later restoration of `EFB90085`; no Stage artifact was edited.
+* Task-level residual risk for `059.002-T`: `25490C6F` captures Stage's
+  executed-revision evidence clarity, `DA21F92A` captures repeated U2 planning
+  requirements, and `B8C850D4` captures Ship-executor/Orchestrator-router prose.
+* Task-level residual risk for `059.001-T`: `6AE77C59` captures the obsolete
+  feasibility guard in the nofollow plan.
+* Run-level and publication closure residual risk: these four immutable
+  P-021 C2 entries are Stage deliberation handoffs, not completed fixes.
+  Their source paths and reviewed HEAD are recorded in each capture.
+* Active-stash discovery found no matching expansion. Archived-stash lookup
+  is unavailable through the installed CLI; all four entries record
+  `DISCOVERY-STATUS: LOOKUP-UNAVAILABLE`. Stage must check for duplicates.
+* P-021 C1 excludes changes to Stage-owned planning or memory from this
+  transport-only publication. Captures preceded disposition; no thread
+  reply or resolution is possible for these pre-PR local observations.
+* PR and review-thread references are independently N/A at capture time.
+  Keep captures immutable; record later references in PR residual-risk notes.
+* Unestablished reviewer observations are not accepted as defects: the patch
+  does not prove stale mandatory-red prose, a provenance-schema contradiction,
+  or confusion between resolved historical checkpoint evidence and readiness.
+* Review the new committed HEAD before push; retain the queued shipment and
+  task manifest for Orchestrator Step 2.
