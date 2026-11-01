@@ -102,3 +102,34 @@ branch: chore/stage-058-S
 * PR and review-thread identifiers were unavailable at pre-PR capture. Keep the
   capture immutable; record any later identifiers in PR residual-risk evidence.
 * Review the final HEAD after committing this capture and continuity evidence.
+
+## Copilot residual-risk handoff for PR 158
+
+* CI code detection and pipeline topology passed at
+  `306c163ae3ab40c790f5131a8ce61bd7f442eea9`; build/MSRV were skipped
+  for this artifact-only publication.
+* Copilot completed review with two open threads; P-018 correctly blocked merge.
+* Task-level residual risk `059.002-T` / feature `059-F`: `EFB90085` captures
+  missing compiling behavioral scaffolding behind readiness labels, including
+  U2's early-exit command; thread `PRRT_kwDORiB5E86yWhrF`.
+* Task-level residual risk `059.001-T`: `A9F87316` captures platform gating
+  of capability dependencies incompatible with the accepted U7 evidence;
+  thread `PRRT_kwDORiB5E86yWhrJ`.
+* Both entries carry PR `158`, actual thread IDs, and all source refs at capture.
+  Both used `DISCOVERY-STATUS: LOOKUP-UNAVAILABLE` because archived lookup
+  was unavailable; active discovery found no same-expansion match.
+* Run-level and publication closure residual risks: `CB22058F`, `EFB90085`,
+  and `A9F87316` remain Stage-owned deliberation handoffs, not fixed findings.
+* P-021 C1 forbids widening transport-only publication into source scaffolding,
+  dependency implementation, or Stage planning mutation. No code or planning
+  fix was made; captures preceded thread replies and resolution.
+* Follow-up handoff for Stage: reconcile readiness before skipping scaffolding,
+  reconcile shared capability dependency requirements, and correct U11's
+  verification contract before execution. Sources are PR 158 review threads
+  and the local review recorded above.
+* New PR/thread identifiers for pre-PR entry `CB22058F`: PR `158`;
+  review-thread remains N/A. The original stash entry remains immutable.
+* Commit capture evidence, reply citing each captured ID, resolve its thread,
+  refresh final-HEAD local review and PR body, and re-run CI/P-018/readiness.
+* Publication does not authorize Orchestrator to ignore execution-readiness
+  concerns; Stage must address the handoffs before relying on readiness labels.
