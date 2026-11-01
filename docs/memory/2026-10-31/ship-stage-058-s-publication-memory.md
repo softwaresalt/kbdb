@@ -81,3 +81,24 @@ branch: chore/stage-058-S
 * Pending gates: current-HEAD local review, CI, Copilot completion, all five
   readiness checks, merge-commit settings, and independent merge confirmation.
 * No deferred scope expansion has been captured during this pass.
+
+## Local review residual-risk handoff
+
+* Reviewed base HEAD: `dbce4195ed6a8c704de5a67d3a94d16325274c51`.
+* Four leaf personas reported zero P0/P1 findings and one deduplicated P2.
+* Task-level residual risk for `059.011-T`: the U11 three-test minimum conflicts
+  with Windows-only scenarios and the permitted compile-time assertion.
+* Run-level and publication closure residual risk: deferred entry `CB22058F`
+  records this expansion for `059-F` / `058-S`; no planning fix was made.
+* P-021 C1 disposition: publication does not authorize changing Stage-owned
+  planning or harness expectations. Stage owns deliberation and remediation
+  before future U11 execution.
+* Pre-capture discovery found no active U11 entry. Archived stash lookup was
+  unavailable through the installed CLI, so capture used
+  `DISCOVERY-STATUS: LOOKUP-UNAVAILABLE`; Stage must check for duplicates.
+* Follow-up handoff: Stage should reconcile the U11 verification contract and
+  corresponding Stage memory description; source is the local review of
+  `.backlogit/queue/059.011-T.md:37-38`.
+* PR and review-thread identifiers were unavailable at pre-PR capture. Keep the
+  capture immutable; record any later identifiers in PR residual-risk evidence.
+* Review the final HEAD after committing this capture and continuity evidence.
