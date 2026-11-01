@@ -58,3 +58,27 @@ dark_mode_active: true
 ## Handoff
 
 * **Authoritative Handoff Token**: `shipment_id: 058-S` (queued on `main`, ready for Orchestrator Step 1.5 publication via `chore/stage-058-S` and subsequent Ship execution).
+
+## P-010 Execution-Metadata Handoff Resolution (`058-S` / `059-F`: `harness-ready` & Red-Phase `Harness command:`)
+
+Following `_Ship`'s P-010 execution-metadata handoff on `058-S` (`docs/memory/2026-10-31/ship-058-s-execution-memory.md`), `_Orchestrator` invoked `_Stage` under P-017 Dark Factory Mode (`DARK_MODE_ACTIVE = true`, resolved route `gemini-4-argon` / `google` / `high` / `long_context`) to populate Stage-owned harness readiness metadata on `059-F` and the 8 Mode R tasks (`059.001-T`, `059.002-T`, `059.006-T`, `059.003-T`, `059.004-T`, `059.005-T`, `059.010-T`, `059.011-T`):
+
+1. **Covering Feature Harness Status (`059-F`)**:
+   * Updated `.backlogit/queue/059-F.md` via `backlogit update 059-F --harness-status scaffolded` (`custom_fields.harness_status: scaffolded`).
+2. **`harness-ready` Labels and Single-Quoted `Harness command:` Declarations**:
+   * Appended `harness-ready` to existing `labels` via `backlogit update <id> --labels "<existing>,harness-ready"` across all 8 tasks (`059.001-T`, `059.002-T`, `059.006-T`, `059.003-T`, `059.004-T`, `059.005-T`, `059.010-T`, `059.011-T`).
+   * Added single-quoted `Harness command: powershell -NoProfile -Command '...'` lines (with doubled single quotes `''...''` inside so PowerShell callers never interpolate `$` variables before `powershell.exe` runs) to all 8 task bodies:
+     * `059.001-T` (U1): Verifies `Cargo.toml` declares `cap-std = "4.0.3"`, `cap-primitives = "4.0.3"`, `libc`, and `windows-sys` (`0.61` with `Win32_Storage_FileSystem`), and `cargo check --all-targets --quiet` exits `0`.
+     * `059.002-T` (U2): Verifies `src/db/store.rs` defines `const REPARSE_ATTR: u32 = 0x0000_0400`, `fn should_refuse_reparse`, `fn open_no_follow`, `fn capture_perms`, and `fn set_readonly_via_handle`, and `cargo test --lib db::store::tests::u2_ -- --nocapture` passes with at least 3 tests.
+     * `059.006-T` (U6): Verifies `src/db/store.rs` calls `open_dir_nofollow` and `open_ambient_dir`, and `cargo test --lib db::store::tests::u6_ -- --nocapture` passes with at least 3 tests.
+     * `059.003-T` (U3): Verifies `src/db/store.rs` defines `struct GuardedEntry` with retained `File` handle and runs `cargo test --lib db::store::tests::open_engine_readonly_ignores_a_post_lock_symlink_swap_of_the_main_db_on_drop -- --exact` plus `u3_` tests (`>= 2` passed).
+     * `059.004-T` (U4): Verifies `src/db/store.rs` defines and passes `cargo test --lib db::store::tests::open_sqlite_refuses_to_clear_readonly_through_a_swapped_sidecar_symlink -- --exact` plus `u4_` tests (`>= 1` passed).
+     * `059.005-T` (U5): Verifies `src/db/store.rs` defines `fn u5_` tests and runs `cargo test --lib db::store::tests::u5_ -- --nocapture` with at least 3 tests passing.
+     * `059.010-T` (U10): Verifies `src/db/store.rs` defines `fn u10_` tests and runs `cargo test --lib db::store::tests::u10_ -- --nocapture` with at least 2 tests passing.
+     * `059.011-T` (U11): Verifies `src/db/store.rs` contains `0x0000_0400` exactly once (single-source invariant, at most once and present in `REPARSE_ATTR`) and runs `cargo test --lib db::store::tests::u11_ -- --nocapture` with at least 3 tests passing.
+3. **Verbatim Red-Phase Verification**:
+   * Executed each of the 8 `powershell -NoProfile -Command '...'` commands verbatim on `main` in 8 separate terminal invocations; all 8 exited with code `1` in red phase with zero PowerShell syntax or variable-expansion errors.
+4. **Index Sync & Hook Poll/Ack**:
+   * `backlogit sync` completed (`545` artifacts indexed, `0` parse failures).
+   * Polled and acknowledged Stage hook events (`backlogit hooks poll --consumer-id stage` -> `backlogit hooks ack --consumer-id stage --seq 1356`).
+
