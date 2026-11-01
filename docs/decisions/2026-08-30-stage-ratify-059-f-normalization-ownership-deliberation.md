@@ -438,6 +438,96 @@ recorded with the sign-off metadata, moved to `done`, and archived at
 `done` and archived, satisfying the Step 5.5 Mode R prerequisite gate for assembling the 8-task
 shipment (`058-S`).
 
+## PR #158 P-021 C6 Deliberation and Readiness Reconciliation (`CB22058F`, `EFB90085`, `A9F87316`)
+
+Before `_Ship` claims and executes shipment `058-S`, `_Stage` reconciled the three Stage-owned
+`DEFERRED SCOPE EXPANSION` captures surfaced during Step 1.5 staging publication PR #158
+(`CB22058F`, `EFB90085`, `A9F87316`), recorded in
+`docs/memory/2026-10-31/ship-stage-058-s-publication-memory.md`.
+
+### Unconditional Duplicate Detection Scan — Obligation A (2026-10-31)
+
+Stage scanned all 18 active stash entries in `.backlogit/stash.jsonl` and all 96 archived stash
+entries in `.backlogit/archive/stash.jsonl` for duplicates of `CB22058F`, `EFB90085`, and `A9F87316`
+(each carrying `DISCOVERY-STATUS: LOOKUP-UNAVAILABLE` as a known-risk scan accelerator because the
+installed `backlogit` CLI has no archived-stash listing surface):
+
+* `CB22058F` covers `059.011-T` (U11) runtime test-count alignment across Windows and non-Windows
+  targets and requiring scenario `(g1)` to be implemented as a countable `#[cfg(windows)] #[test]`
+  function.
+* `EFB90085` covers reconciling `059-F` (`custom_fields.harness_status: scaffolded`) and
+  `059.002-T`..`059.011-T` (`labels: ["harness-ready"]`) under P-010 role boundaries with P-002 and
+  P-004 behavioral red-to-green verification during `_Ship` Step 4.2 (`build-feature`).
+* `A9F87316` covers `059.001-T` (U1) `Cargo.toml` section placement for `cap-std = "4.0.3"` and
+  `cap-primitives = "4.0.3"` in the shared `[dependencies]` section (used on both Unix and Windows
+  per `.backlogit/archive/059.007-T.md:48`), while keeping `libc` under
+  `[target.'cfg(unix)'.dependencies]` and `windows-sys` under
+  `[target.'cfg(windows)'.dependencies]`.
+* **Outcome**: **CLEAN DUPLICATE SCAN** across all 3 `DEFERRED SCOPE EXPANSION` entries (`0`
+  duplicate entries found in active or archived stash).
+
+### Mandatory Late-Identifier Reconciliation — Obligation B (2026-10-31)
+
+Stage searched Ship-owned publication and residual-risk records
+(`docs/memory/2026-10-31/ship-stage-058-s-publication-memory.md` and `git log` on `main`) for every
+`N/A` source-reference field in `CB22058F`, `EFB90085`, and `A9F87316`:
+
+| Stash ID | Captured `N/A` Fields | Reconciled Identifiers and Source Record | Terminal Disposition |
+|---|---|---|---|
+| `CB22058F` | `pr_number`, `review_thread_id` (`task_id=059.011-T`, `feature_id=059-F`, `shipment_id=058-S` populated at capture) | Surfaced during pre-PR local persona review of `dbce4195ed6a8c704de5a67d3a94d16325274c51` and published in staging PR `#158` (`docs/memory/2026-10-31/ship-stage-058-s-publication-memory.md`). Reconciled `pr_number=158` in place via `backlogit stash edit CB22058F`; no GitHub review thread was created for this local persona finding | `pr_number=158` reconciled; `review_thread_id=N/A` stands as truthful terminal record |
+| `EFB90085` | None (`task_id=059.002-T` covering `059.001-T`..`059.011-T`, `feature_id=059-F`, `shipment_id=058-S`, `pr_number=158`, `review_thread_id=PRRT_kwDORiB5E86yWhrF`, `comment_id=4434085488` populated at capture) | Verified in `docs/memory/2026-10-31/ship-stage-058-s-publication-memory.md` — no `N/A` fields present | All source-ref fields concrete at capture (reconciliation no-op) |
+| `A9F87316` | None (`task_id=059.001-T`, `feature_id=059-F`, `shipment_id=058-S`, `pr_number=158`, `review_thread_id=PRRT_kwDORiB5E86yWhrJ`, `comment_id=4434085497` populated at capture) | Verified in `docs/memory/2026-10-31/ship-stage-058-s-publication-memory.md` — no `N/A` fields present | All source-ref fields concrete at capture (reconciliation no-op) |
+
+### Deliberation and Decided Dispositions (2026-10-31)
+
+1. **`A9F87316` — Shared vs. Platform-Gated Dependency Placement in `059.001-T` (U1)**:
+   * **Problem**: `059.001-T` (`implementation-notes`) previously phrased `cap-std = "4.0.3"` and
+     `cap-primitives = "4.0.3"` alongside `libc` under `[target.'cfg(unix)'.dependencies]`, whereas
+     the accepted U7 feasibility proof (`.backlogit/archive/059.007-T.md:48`) uses
+     `cap_primitives::fs::open_ambient_dir`, `cap_primitives::fs::open_dir_nofollow`, and
+     `cap_std::fs::Dir` on **both** Unix and Windows.
+   * **Decided Contract**: `cap-std = "4.0.3"` and `cap-primitives = "4.0.3"` MUST be declared in
+     the shared `[dependencies]` section of `Cargo.toml`, while `libc` is declared under
+     `[target.'cfg(unix)'.dependencies]` and
+     `windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem"] }` is declared under
+     `[target.'cfg(windows)'.dependencies]`. `059.001-T`'s `Harness command:` parses `Cargo.toml`
+     by section header (`[dependencies]`, `[target.'cfg(unix)'.dependencies]`, and
+     `[target.'cfg(windows)'.dependencies]`) to verify each dependency is placed in its exact target
+     or shared section.
+
+2. **`CB22058F` — Cross-Platform Test-Count and Runtime `#[test]` Alignment in `059.011-T` (U11)**:
+   * **Problem**: `059.011-T` permitted delta `(g1)` (`REPARSE_ATTR ==
+     windows_sys::Win32::Storage::FileSystem::FILE_ATTRIBUTE_REPARSE_POINT`) to be implemented via a
+     compile-time `const_assert` and gated both `(g1)` and `(g2)` under `#[cfg(windows)]`, while its
+     `Harness command:` unconditionally required `[int]$Matches[1] -ge 3` passing runtime `u11_`
+     tests on every host OS.
+   * **Decided Contract**: Delta `(g1)` MUST be implemented as a countable
+     `#[cfg(windows)] #[test] fn u11_g1_...` runtime test (in addition to any optional `const`
+     check) so all three scenarios — `u11_f_...` on all targets, plus `u11_g1_...` and `u11_g2_...`
+     under `#[cfg(windows)]` — are countable `#[test]` functions, and `059.011-T`'s
+     `Harness command:` computes `$min = if ($env:OS -eq "Windows_NT") { 3 } else { 1 }` and checks
+     `[int]$Matches[1] -lt $min`.
+
+3. **`EFB90085` — Reconciling P-010 Role Boundaries with P-002 and P-004 Behavioral Red-Phase Verification (`059-F` and `059.002-T`..`059.011-T`)**:
+   * **Problem**: Under the P-010 Role Boundary, `_Stage` is strictly forbidden from modifying Rust
+     source files (`src/db/store.rs`), and `_Ship` is forbidden from mutating Stage-owned planning
+     fields (`labels: ["harness-ready"]` and `custom_fields.harness_status: scaffolded`). Therefore,
+     `_Stage` populates `harness-ready` and `custom_fields.harness_status: scaffolded` at staging
+     time with pre-implementation `Harness command:` strings that fail in red phase on `main`, while
+     P-002 and P-004 require a compiling behavioral red phase before production logic is implemented.
+   * **Decided Contract**: Preserve P-010 role separation and enforce P-002 / P-004 behavioral
+     test-first discipline by explicitly mandating in `059-F.md` and in the `acceptance-criteria`
+     and `implementation-notes` of every code/test task (`059.002-T` through `059.011-T`) that
+     during `_Ship` Step 4.2 (`build-feature`), `_Ship` MUST execute a **two-step red-to-green
+     sequence on the feature branch**:
+     * **Step A (Behavioral Red Phase — P-004)**: First author compiling helper/function stubs and
+       the task's `#[test]` functions in `src/db/store.rs`, confirm `cargo check --lib` exits `0`,
+       and confirm `cargo test --lib db::store::tests::uX_` (and any named regression test for the
+       unit) exits non-zero due to behavioral test assertion failures (not missing symbols or
+       pre-test string-grep short-circuits).
+     * **Step B (Green Phase)**: Implement the production logic so both `cargo test --lib` and the
+       task's `Harness command:` exit `0`.
+
 ## Follow-up Left to Ship
 
 Ship, on its next cycle, should correct
