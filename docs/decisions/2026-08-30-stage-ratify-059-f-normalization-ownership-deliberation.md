@@ -426,6 +426,18 @@ archived parent. Superseding the counts recorded immediately above:
 
 No item status, dependency edge, shipment, or sign-off state changed in this pass either.
 
+### Operator sign-off and Mode R prerequisite satisfaction addendum (2026-10-31)
+
+On `2026-10-31`, operator `softwaresalt` signed off `059.014-T` accepting the
+Accepted-Residual-Risk Record in
+`docs/decisions/2026-08-29-store-toctou-engine-boundary-redeliberation-deliberation.md` and
+Precondition Control #3 in
+`docs/design-docs/2026-07-15-consumption-first-serve-and-trust-boundary.md`. `059.014-T` was
+recorded with the sign-off metadata, moved to `done`, and archived at
+`.backlogit/archive/059.014-T.md`. Both `prerequisite_ids` (`059.007-T` and `059.014-T`) are now
+`done` and archived, satisfying the Step 5.5 Mode R prerequisite gate for assembling the 8-task
+shipment (`058-S`).
+
 ## Follow-up Left to Ship
 
 Ship, on its next cycle, should correct

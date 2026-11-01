@@ -416,6 +416,9 @@ record itself says has no causal basis and no schedule benefit.
   design-doc guidance is a **committed precondition** of `059.014-T` (recorded in that item's
   acceptance criteria); sign-off cannot close while it is absent. **This record
   does NOT assert that the original Principles III/IV fail-closed DoD passed.**
+  *(Enacted 2026-10-31: signed off by `softwaresalt` on `2026-10-31` after verifying Control #3 in
+  `docs/design-docs/2026-07-15-consumption-first-serve-and-trust-boundary.md`, and moved to
+  `done`/archived at `.backlogit/archive/059.014-T.md`.)*
 
 ## Ship-Side Transition (SUPERSEDED / ENACTED — see 2026-08-30 outcome note)
 
@@ -575,8 +578,9 @@ legalized by any Stage ratification; Stage only affirms resulting dispositions o
 
 ## Unresolved Questions
 
-1. Operator sign-off on the accepted engine-open residual (`059.014-T`) — required before
-   implementation.
+1. ~~Operator sign-off on the accepted engine-open residual (`059.014-T`) — required before
+   implementation.~~ **Resolved (2026-10-31).** Signed off by `softwaresalt` on `2026-10-31` and
+   archived (`done` at `.backlogit/archive/059.014-T.md`).
 2. Upstream cozo appetite for a capability-/identity-bound open (Option A, `059.013-T`) — not
    yet investigated to acceptance; determines whether closure is via upstream PR or a maintained
    fork, and on what timeline.

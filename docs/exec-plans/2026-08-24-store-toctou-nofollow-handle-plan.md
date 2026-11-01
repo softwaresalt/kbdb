@@ -53,7 +53,7 @@ established. See `docs/decisions/2026-08-24-store-toctou-nofollow-handle-deliber
 | Cover the previously-uncovered main db (index 0) swap (`5905CDEE`) | U3 opens index 0 no-follow at lock time and restores via that handle on Drop. |
 | Prohibit path-based chmod fallback; remove per-sidecar `is_reparse_point` re-check (`5905CDEE`) | U3/U4 replace path-based `set_readonly`/`fs::metadata` with handle-bound calls; delete the in-loop `is_reparse_point` re-check (a successful no-follow open supersedes it). |
 | Fail closed when a no-follow handle cannot be obtained/retained (`5905CDEE`, `E86A6E56`) | U3/U4 return the existing refusal error rather than mutating via a re-resolved path. |
-| `#![forbid(unsafe_code)]`, MSRV 1.75 | U1/U2 use only safe std + `OpenOptionsExt::custom_flags` + platform flag constants. |
+| `#![forbid(unsafe_code)]`, root MSRV 1.88 (Constitution 1.1.0; historical U7 proved 1.75) | U1/U2 use only safe std + `OpenOptionsExt::custom_flags` + platform flag constants. |
 | Preserve exact-permission and sidecar-content safety | U3/U4 keep capture/restore exact (handle-bound), preserve non-empty sidecars, and replace racy empty-sidecar deletion with fail-closed retention unless same-identity deletion is proven; U5 re-verifies. |
 | Test-first swap-resistance + platform behavior | U3/U4 add test-first swap-resistance cases; U5 adds the cross-platform matrix; U10 adds the Windows handle-mode validation. |
 | Intermediate-directory (parent) swap containment, not just final component (PR #107 review, 2026-08-25) | U7 proves the root/API/MSRV capability foundation; U8 separately proves the SQLite/Cozo engine boundary; U1 adopts only the proven dependencies; U2 provides the leaf no-follow/permission primitives; U6 composes U2 and integrates the beneath-root permission boundary; U9 integrates the actual engine open. U3–U5 and U10 depend on both U6 and U9; U2 precedes U6; U11 depends on U2. |
@@ -98,8 +98,10 @@ established. See `docs/decisions/2026-08-24-store-toctou-nofollow-handle-deliber
   `windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem"] }`,
   and the exact `cap-std` version proven by U7/U8. U1 does not discover or test an
   unproven candidate in the product manifest.
-* **Tests**: host build/check; `cargo +1.75.0 check --all-targets`; continuous Rust
-  1.75 CI coverage; before/after `cargo tree -d` plus inverse trees; `cargo audit`.
+* **Tests**: host build/check; `cargo +1.88.0 check --all-targets --locked` (Constitution
+  1.1.0 root MSRV 1.88, enforced by `.github/workflows/ci.yml` job `msrv (rust 1.88.0)`;
+  U7's historical 1.75 proof for `cap-std 4.0.3` and `cap-primitives 4.0.3` is a stricter
+  floor that trivially satisfies 1.88); before/after `cargo tree -d` plus inverse trees; `cargo audit`.
 * **Outcome**: if either feasibility task is BLOCKED, U1 does not run and no
   `cap-std` edge is retained.
 * **Backlog**: `059.001-T`; depends on U7 and U8.
@@ -141,7 +143,7 @@ established. See `docs/decisions/2026-08-24-store-toctou-nofollow-handle-deliber
         (1) a precise name-surrogate test requires reading the reparse tag and
         evaluating `IsReparseTagNameSurrogate`, which is only obtainable via
         `DeviceIoControl(FSCTL_GET_REPARSE_POINT)` — an `unsafe` FFI call
-        precluded by `#![forbid(unsafe_code)]` at MSRV 1.75; and
+        precluded by `#![forbid(unsafe_code)]` at MSRV 1.88 (and historical 1.75); and
         `std::fs::FileType::is_symlink()` (which does classify name-surrogates)
         is **path-based** (derived from `symlink_metadata`, not the retained
         handle) and so would re-introduce the very TOCTOU this change closes.
@@ -232,7 +234,7 @@ established. See `docs/decisions/2026-08-24-store-toctou-nofollow-handle-deliber
   3. a table-driven refusal matrix covers unavailable root authority, absolute/`..`
      escape, and final-component symlink/reparse (delegated to U2's leaf refusal
      primitive) without a path fallback.
-* **Acceptance**: integrated `src/db/store.rs` passes Rust 1.75 check, clippy
+* **Acceptance**: integrated `src/db/store.rs` passes `cargo +1.88.0 check --all-targets --locked` (Constitution 1.1.0 root MSRV 1.88), clippy
   pedantic, and targeted tests; no in-crate `unsafe` or unwrap/expect.
 * **Backlog**: `059.006-T`; depends on U1, U2, and U7 (U8 dropped — **superseded 2026-08-29**, accepted residual); composes U2; gates U3–U5/U10 (U9 deferred to a later separate shipment). See the re-deliberation replan for the authoritative deps.
 
@@ -250,7 +252,7 @@ established. See `docs/decisions/2026-08-24-store-toctou-nofollow-handle-deliber
      refused with no external database or sidecar creation/mutation;
   3. `open_sqlite`, `open_sqlite_readonly`, and `open_engine_readonly` preserve
      expected behavior through the proven bound mechanism.
-* **Acceptance**: Rust 1.75, clippy pedantic, and targeted tests pass; no in-crate
+* **Acceptance**: Rust 1.88 MSRV (`cargo +1.88.0 check --all-targets --locked`), clippy pedantic, and targeted tests pass; no in-crate
   `unsafe`, original-path engine reopen, or success-shaped fallback.
 * **Backlog**: `059.009-T`; **DEFERRED** — depends on `059.013-T` and U6 (U8 dropped as a gate; **superseded 2026-08-29**); U3–U5 and U10 NO LONGER depend on U9; U2 precedes U6 and U11 depends on U2.
 
@@ -942,10 +944,10 @@ Dependency changes from the prior authority (each enacted in backlog by this Sta
 * Principles III/IV are **PASSED for the permission-mutation threat only**; they remain
   **NOT-PASSED for the engine-open leaf and intermediate-directory redirection**, which is the named,
   signed-off accepted residual. The original fail-closed DoD is **not** claimed as satisfied.
-* Implementation (U1 onward) does not begin until `059.014-T` (operator sign-off) is `done`.
-* Everything else in the prior DoD (test-first, `#![forbid(unsafe_code)]`, MSRV 1.75 continuous
-  CID check, clippy pedantic, cargo audit, no duplicate crate copy, exact-permission and sidecar
-  invariants, deterministic `should_refuse_reparse` predicate) is retained unchanged for the
+* Implementation (U1 onward) does not begin until `059.014-T` (operator sign-off) is `done` *(satisfied 2026-10-31 by `softwaresalt`; archived at `.backlogit/archive/059.014-T.md`)*.
+* Everything else in the prior DoD (test-first, `#![forbid(unsafe_code)]`, root MSRV 1.88 continuous
+  CI check `cargo +1.88.0 check --all-targets --locked` in `.github/workflows/ci.yml` job `msrv (rust 1.88.0)` per Constitution 1.1.0 — with U7's historical 1.75 proof for `cap-std 4.0.3` and `cap-primitives 4.0.3` trivially satisfying 1.88, clippy pedantic, cargo audit, no duplicate crate copy, exact-permission and sidecar
+  invariants, deterministic `should_refuse_reparse` predicate) is retained for the
   feasible units.
 
 **`051-S` transition (SUPERSEDED / ENACTED — 2026-08-30 Stage convergence, PR #114):**
@@ -1013,5 +1015,15 @@ auditable union of those sets and is never the assembly set. Exclusions
 § *Mode R Authorization for Successor-Shipment Assembly*. Once both prerequisites are satisfied —
 which requires `059.014-T` to reach `done`/archived after sign-off — Stage enters
 Step 5.5 directly under Mode R citing that section, logs Steps 1–5 as not applicable, re-validates
-each set against its own rules, and assembles the 9 members only. No stash entry or synthetic
+each set against its own rules, and assembles the 8 task-only members only. No stash entry or synthetic
 harvest may be manufactured, and no shipment is assembled while the gate is open.
+
+**Enacted (2026-10-31):** Operator `softwaresalt` signed off `059.014-T` on `2026-10-31` (`done` and
+archived at `.backlogit/archive/059.014-T.md`). Stage aligned the active root MSRV acceptance
+criteria across `059-F` and the 8 Mode R tasks to Constitution 1.1.0 (`1.88`, enforced by
+`.github/workflows/ci.yml` job `msrv (rust 1.88.0)`), applied structured sizing (`size` and
+`complexity`) to all 8 tasks, and atomically assembled Mode R shipment `058-S` (`member_ids` =
+`[059.001-T, 059.002-T, 059.006-T, 059.003-T, 059.004-T, 059.005-T, 059.010-T, 059.011-T]`,
+sequencing edge `058-S -> 057-S`, P-015 protected set `059-F` + `059.008/009/012/013-T` intact in
+`.backlogit/queue/`).
+
