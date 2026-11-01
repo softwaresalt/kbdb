@@ -33,3 +33,15 @@ branch: chore/stage-058-S
 * Verify all five readiness checks, CI, merge-only settings, and scoped approval
 * Confirm merge independently, sync `main`, and verify the remote queued manifest
 * Return PR, reviewed HEAD, merge SHA, and any deferred-entry IDs to Orchestrator
+
+## Blocked publication checkpoint
+
+* Review target: `d3ce07a34d67584d16ac0558fb6a59edc6592734`
+* Three reviewers completed artifact checks, but reported `BLOCKED` because
+  command execution was unavailable for authoritative diff verification
+* No confirmed P0/P1 defect; speculative observations remain unclosed
+* No deferred stash entry was created and no planning artifact was edited
+* No push, PR creation, merge, shipment claim, or task transition was attempted
+* Orchestrator must restore usable reviewer execution and obtain a current-HEAD
+  readiness result before resuming publication on this same branch
+* Local `main` retains the two Stage commits; do not force-move its ref
