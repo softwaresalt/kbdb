@@ -94,17 +94,22 @@ established. See `docs/decisions/2026-08-24-store-toctou-nofollow-handle-deliber
 
 ### U1 — Add proven platform-gated dependencies (config)
 
-* **Changes**: only after U7 and U8 PASS, add `libc`,
-  `windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem"] }`,
-  and the exact `cap-std` version proven by U7/U8. U1 does not discover or test an
-  unproven candidate in the product manifest.
+* **Changes**: only after U7 PASS and operator sign-off `059.014-T` `done` (U8 is the accepted
+  engine-open residual), add `cap-std = "4.0.3"` and `cap-primitives = "4.0.3"` in the shared
+  `[dependencies]` section of `Cargo.toml` (because both Unix and Windows use
+  `cap_primitives::fs::open_ambient_dir`, `cap_primitives::fs::open_dir_nofollow`, and
+  `cap_std::fs::Dir` per U7's accepted evidence in `.backlogit/archive/059.007-T.md:48`), `libc`
+  under `[target.'cfg(unix)'.dependencies]`, and
+  `windows-sys = { version = "0.61", features = ["Win32_Storage_FileSystem"] }` under
+  `[target.'cfg(windows)'.dependencies]`. U1 does not discover or test an unproven candidate in the
+  product manifest.
 * **Tests**: host build/check; `cargo +1.88.0 check --all-targets --locked` (Constitution
   1.1.0 root MSRV 1.88, enforced by `.github/workflows/ci.yml` job `msrv (rust 1.88.0)`;
   U7's historical 1.75 proof for `cap-std 4.0.3` and `cap-primitives 4.0.3` is a stricter
   floor that trivially satisfies 1.88); before/after `cargo tree -d` plus inverse trees; `cargo audit`.
 * **Outcome**: if either feasibility task is BLOCKED, U1 does not run and no
-  `cap-std` edge is retained.
-* **Backlog**: `059.001-T`; depends on U7 and U8.
+  `cap-std` edge is retained. *(Re-deliberation 2026-08-29: U7 PASS + `059.014-T` `done` gate U1; U8 BLOCKED is the accepted engine-open residual.)*
+* **Backlog**: `059.001-T`; depends on U7 (`059.007-T`) and `059.014-T`.
 
 ### U2 — Safe no-follow handle helper + handle-bound permission primitives (code, test-first)
 
@@ -404,16 +409,21 @@ established. See `docs/decisions/2026-08-24-store-toctou-nofollow-handle-deliber
   still refuses).
   Because the predicate and its literal are target-independent, this test **compiles
   and runs on Linux CI** with no filesystem, no privilege, no reparse fixture, and no
-  `windows-sys`. (g) **Windows-only equality assertion (`#[cfg(windows)]`):**
-  assert `REPARSE_ATTR == windows_sys::Win32::Storage::FileSystem::FILE_ATTRIBUTE_REPARSE_POINT`
-  (via `const_assert` or a `#[cfg(windows)]` `#[test]`), referencing `REPARSE_ATTR` so the
+  `windows-sys` (`#[test] fn u11_f_...`). (g) **Windows-only equality and structural assertions
+  (`#[cfg(windows)]`):**
+  (g1) assert `REPARSE_ATTR == windows_sys::Win32::Storage::FileSystem::FILE_ATTRIBUTE_REPARSE_POINT`
+  inside a countable `#[cfg(windows)] #[test] fn u11_g1_...` runtime test (in addition to any
+  optional `const` check), referencing `REPARSE_ATTR` so the
   assertion never repeats the numeric literal and the cross-platform constant can never
-  drift from the real Win32 constant, **and structurally prove the
-  production Windows refusal branch calls `should_refuse_reparse`** - a `#[cfg(windows)]`
-  test drives the production branch through the predicate so it cannot be a decorative
-  unused helper, and the module contains exactly one occurrence of the numeric literal
-  `0x0000_0400` (inside the `REPARSE_ATTR` constant), with production and tests
-  referencing `REPARSE_ATTR`, so no duplicated inline mask can exist.
+  drift from the real Win32 constant, **and (g2) structurally prove the
+  production Windows refusal branch calls `should_refuse_reparse`** — a
+  `#[cfg(windows)] #[test] fn u11_g2_...` runtime test drives the production branch through the
+  predicate so it cannot be a decorative unused helper, and the module contains exactly one
+  occurrence of the numeric literal `0x0000_0400` (inside the `REPARSE_ATTR` constant), with
+  production and tests referencing `REPARSE_ATTR`, so no duplicated inline mask can exist. All three
+  scenarios (`u11_f_...` on all targets; `u11_g1_...` and `u11_g2_...` under `#[cfg(windows)]`) are
+  countable `#[test]` functions, and the U11 harness command checks `$min = if ($env:OS -eq
+  "Windows_NT") { 3 } else { 1 }`.
 * **Files**: `src/db/store.rs` tests.
 * **Tests**: the (f) deterministic predicate unit test (fabricated-bit inputs, always
   on Linux CI) and the (g) `#[cfg(windows)]` literal-equality plus single-source
@@ -1026,4 +1036,27 @@ criteria across `059-F` and the 8 Mode R tasks to Constitution 1.1.0 (`1.88`, en
 `[059.001-T, 059.002-T, 059.006-T, 059.003-T, 059.004-T, 059.005-T, 059.010-T, 059.011-T]`,
 sequencing edge `058-S -> 057-S`, P-015 protected set `059-F` + `059.008/009/012/013-T` intact in
 `.backlogit/queue/`).
+
+**PR #158 P-021 C6 Reconciliation (2026-10-31):** Before `_Ship` claims `058-S`, `_Stage` reconciled
+the three PR #158 P-021 captures (`A9F87316`, `CB22058F`, `EFB90085`; see
+`docs/decisions/2026-08-30-stage-ratify-059-f-normalization-ownership-deliberation.md` § *PR #158
+P-021 C6 Deliberation and Readiness Reconciliation*):
+
+* **`A9F87316` (`059.001-T` / U1)**: Clarified that `cap-std = "4.0.3"` and `cap-primitives =
+  "4.0.3"` are declared in the shared `[dependencies]` section of `Cargo.toml` (used on both Unix
+  and Windows per `059.007-T`), while `libc` is under `[target.'cfg(unix)'.dependencies]` and
+  `windows-sys` (`0.61`, `Win32_Storage_FileSystem`) is under
+  `[target.'cfg(windows)'.dependencies]`, with section-aware `Cargo.toml` verification in U1's
+  `Harness command:`.
+* **`CB22058F` (`059.011-T` / U11)**: Specified that scenario `(g1)` is a countable
+  `#[cfg(windows)] #[test] fn u11_g1_...` runtime test (in addition to any optional `const` check)
+  so `(f)`, `(g1)`, and `(g2)` are all countable `#[test]` functions, and updated U11's
+  `Harness command:` to compute `$min = if ($env:OS -eq "Windows_NT") { 3 } else { 1 }`.
+* **Harness command alignment (`059.002-T`..`059.011-T`) and `EFB90085` retention**: Updated the
+  `Harness command:` strings on `059.002-T`..`059.011-T` to remove pre-test `Get-Content` string-grep
+  early exits so `cargo test --lib` always compiles and runs first during red-phase verification
+  (with `059.011-T`'s `0x0000_0400` single-source check evaluated after `cargo test --lib`). Retained
+  `EFB90085` as `state: active` in `.backlogit/stash.jsonl` under P-021 because reconciling the
+  workspace-wide P-002/P-004 vs. P-010 `labels` (`harness-ready`) mutation boundary requires a
+  separate harness/template work unit outside `059-F`'s scope.
 
