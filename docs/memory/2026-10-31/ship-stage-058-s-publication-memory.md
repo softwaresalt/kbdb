@@ -45,3 +45,21 @@ branch: chore/stage-058-S
 * Orchestrator must restore usable reviewer execution and obtain a current-HEAD
   readiness result before resuming publication on this same branch
 * Local `main` retains the two Stage commits; do not force-move its ref
+
+## Confirmed recovery
+
+* Operator explicitly selected and confirmed
+  `checkpoint-20261101-010632.json` for publication only.
+* Unfiltered checkpoint enumeration found one active Ship checkpoint and zero
+  validation or quarantine anomalies; the selected record is valid and conforming.
+* Engram workspace status succeeded on `chore/stage-058-S` with
+  `stale_files: false`; the replacement daemon is reachable.
+* Restored the publication cursor, checkpoint identity, scope, and gate verdicts;
+  dropped superseded reviewer execution failure traces from working context.
+* Resolved the selected checkpoint after successful restore; enumeration confirms
+  zero active checkpoints and zero quarantine anomalies.
+* The current worktree is the only attached worktree. Shipment `058-S` and its
+  tasks remain untouched.
+* Leaf reviewers will read a locally materialized authoritative diff; terminal
+  execution and nested delegation are not required of them.
+* Commit this recovery evidence before reviewing the final publication HEAD.
