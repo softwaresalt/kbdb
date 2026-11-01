@@ -1052,14 +1052,11 @@ P-021 C6 Deliberation and Readiness Reconciliation*):
   `#[cfg(windows)] #[test] fn u11_g1_...` runtime test (in addition to any optional `const` check)
   so `(f)`, `(g1)`, and `(g2)` are all countable `#[test]` functions, and updated U11's
   `Harness command:` to compute `$min = if ($env:OS -eq "Windows_NT") { 3 } else { 1 }`.
-* **`EFB90085` (`059-F` and `059.002-T`..`059.011-T`)**: Documented the P-010 / P-002 / P-004
-  contract: because P-010 forbids `_Stage` from writing Rust source (`src/db/store.rs`) and forbids
-  `_Ship` from mutating task `labels` (`harness-ready`), `_Stage` sets `harness-ready` and
-  `custom_fields.harness_status: scaffolded` at staging time, and each code/test task (`059.002-T`
-  through `059.011-T`) mandates a **two-step red-to-green sequence during `_Ship` Step 4.2
-  (`build-feature`)** — **Step A (Behavioral Red Phase — P-004)**: author compiling helper/function
-  stubs and the task's `#[test]` functions in `src/db/store.rs`, confirm `cargo check --lib` exits
-  `0`, and confirm `cargo test --lib db::store::tests::uX_` exits non-zero due to behavioral test
-  assertion failures; **Step B (Green Phase)**: implement production logic so both
-  `cargo test --lib` and the task's `Harness command:` exit `0`.
+* **Harness command alignment (`059.002-T`..`059.011-T`) and `EFB90085` retention**: Updated the
+  `Harness command:` strings on `059.002-T`..`059.011-T` to remove pre-test `Get-Content` string-grep
+  early exits so `cargo test --lib` always compiles and runs first during red-phase verification
+  (with `059.011-T`'s `0x0000_0400` single-source check evaluated after `cargo test --lib`). Retained
+  `EFB90085` as `state: active` in `.backlogit/stash.jsonl` under P-021 because reconciling the
+  workspace-wide P-002/P-004 vs. P-010 `labels` (`harness-ready`) mutation boundary requires a
+  separate harness/template work unit outside `059-F`'s scope.
 

@@ -508,25 +508,24 @@ Stage searched Ship-owned publication and residual-risk records
      `Harness command:` computes `$min = if ($env:OS -eq "Windows_NT") { 3 } else { 1 }` and checks
      `[int]$Matches[1] -lt $min`.
 
-3. **`EFB90085` — Reconciling P-010 Role Boundaries with P-002 and P-004 Behavioral Red-Phase Verification (`059-F` and `059.002-T`..`059.011-T`)**:
-   * **Problem**: Under the P-010 Role Boundary, `_Stage` is strictly forbidden from modifying Rust
-     source files (`src/db/store.rs`), and `_Ship` is forbidden from mutating Stage-owned planning
-     fields (`labels: ["harness-ready"]` and `custom_fields.harness_status: scaffolded`). Therefore,
-     `_Stage` populates `harness-ready` and `custom_fields.harness_status: scaffolded` at staging
-     time with pre-implementation `Harness command:` strings that fail in red phase on `main`, while
-     P-002 and P-004 require a compiling behavioral red phase before production logic is implemented.
-   * **Decided Contract**: Preserve P-010 role separation and enforce P-002 / P-004 behavioral
-     test-first discipline by explicitly mandating in `059-F.md` and in the `acceptance-criteria`
-     and `implementation-notes` of every code/test task (`059.002-T` through `059.011-T`) that
-     during `_Ship` Step 4.2 (`build-feature`), `_Ship` MUST execute a **two-step red-to-green
-     sequence on the feature branch**:
-     * **Step A (Behavioral Red Phase — P-004)**: First author compiling helper/function stubs and
-       the task's `#[test]` functions in `src/db/store.rs`, confirm `cargo check --lib` exits `0`,
-       and confirm `cargo test --lib db::store::tests::uX_` (and any named regression test for the
-       unit) exits non-zero due to behavioral test assertion failures (not missing symbols or
-       pre-test string-grep short-circuits).
-     * **Step B (Green Phase)**: Implement the production logic so both `cargo test --lib` and the
-       task's `Harness command:` exit `0`.
+3. **`EFB90085` — Pre-Test Early-Exit Removal in `059.002-T`..`059.011-T` and Retention of Cross-Policy `EFB90085` in Active Stash**:
+   * **Problem**: Under P-010 Role Boundary, `_Stage` is forbidden from modifying Rust source files
+     (`src/db/store.rs`), and `_Ship` is forbidden from mutating Stage-owned planning fields
+     (`labels: ["harness-ready"]` and `custom_fields.harness_status: scaffolded`). In addition,
+     `059.002-T`..`059.011-T`'s `Harness command:` strings previously contained pre-test
+     `Get-Content` early-exit string checks before `cargo test --lib` ran.
+   * **Decided Contract**:
+     * Updated the `Harness command:` strings across `059.002-T`, `059.006-T`, `059.003-T`,
+       `059.004-T`, `059.005-T`, `059.010-T`, and `059.011-T` so `cargo test --lib` always compiles
+       and runs first during red-phase verification without pre-test `Get-Content` early-exit
+       short-circuits (matching the `062.002-T` pattern in `057-S`, with `059.011-T`'s `0x0000_0400`
+       single-source check evaluated after `cargo test --lib`).
+     * Resolving the broader workspace-wide P-002/P-004 vs. P-010 `labels` (`harness-ready`)
+       mutation gap requires a harness-template/policy change outside `059-F`'s application scope
+       (and cannot be resolved inside `059-F` by claiming that `EFB90085` is satisfied by deferring
+       harness creation to Ship Step 4.2). Therefore, per P-021, `EFB90085` is retained as
+       `state: active` in `.backlogit/stash.jsonl` for a future harness/template Stage triage cycle,
+       while `A9F87316` and `CB22058F` are reconciled and archived into `058-S`.
 
 ## Follow-up Left to Ship
 
