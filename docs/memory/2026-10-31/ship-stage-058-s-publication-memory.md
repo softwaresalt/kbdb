@@ -133,3 +133,28 @@ branch: chore/stage-058-S
   refresh final-HEAD local review and PR body, and re-run CI/P-018/readiness.
 * Publication does not authorize Orchestrator to ignore execution-readiness
   concerns; Stage must address the handoffs before relying on readiness labels.
+
+## Reconciled staging publication pass
+
+* Scope: publish Stage commit `8d19420560a43799dbaf1b91f7380c29772f461c`
+  through `chore/stage-058-S` for Orchestrator Step 1.5 only.
+* Stage reconciled and retired PR 158 captures `CB22058F`, `EFB90085`, and
+  `A9F87316`; this pass publishes those changes without editing Stage planning.
+* Fresh configuration verification returned `strict_schema_blockers: []`.
+* Registered CLI checkpoint enumeration reports 37 resolved records, zero
+  active records, zero quarantined records, and zero needing quarantine.
+* Backlog sync succeeded. Backlog MCP is unavailable; registered CLI fallback
+  is used. Indexed engram and documentation MCP surfaces are unavailable here;
+  this publication uses literal file and diff evidence, not indexed analysis.
+* The supplied Stage HEAD was clean, with only the current worktree attached.
+* Shipment `058-S` and all eight tasks remain queued and must not be claimed,
+  executed, completed, or archived during this publication.
+* Commit this continuity record before final-HEAD report-only local review.
+* Full local build is not applicable: planning, backlog, and documentation only.
+* Pending gates: local review, CI, Copilot completion, all five readiness
+  checks, merge-commit strategy, and independent merge confirmation.
+* Merge is pre-authorized for this publication only. Admin fallback is limited
+  to a required-review block after a normal attempt and all gates passing.
+* No new deferred scope expansion has been captured during this pass.
+* After confirmed merge, sync local `main`, remove the requested publication
+  branch, verify queued remote artifacts, and return PR and commit evidence.
